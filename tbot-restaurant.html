@@ -173,6 +173,8 @@
         -webkit-tap-highlight-color: transparent;
       }
       button:active { transform: scale(0.96); }
+      button:disabled { opacity: 0.45; cursor: default; }
+      button:disabled:active { transform: none; }
       button.primary {
         background: var(--accent);
         color: var(--accent-ink);
@@ -552,7 +554,7 @@
     </style>
   </head>
   <body>
-    <canvas id="stage" aria-label="A TBOT dining room: a kitchen pass across the top and eight numbered tables of TBOT guests. You are the waiter — tap the table wearing the number the kitchen calls."></canvas>
+    <canvas id="stage" aria-label="A TBOT dining room: a kitchen pass across the top and numbered tables of TBOT guests. You are the waiter — tap the table wearing the number the kitchen calls."></canvas>
 
     <!-- Background music: the last 17 seconds of "Velvet Rot" by
          Kimo (the series track), looped behind the game. It starts
@@ -572,6 +574,7 @@
       <div id="ticketChip" role="status" aria-label="Current order">TABLE<strong id="ticketNum">–</strong></div>
       <div class="tb-side right">
         <button id="resetBtn" type="button">Reset</button>
+        <button id="packBtn" type="button" aria-label="Pack 'em — add more tables to the floor">Pack ’em</button>
         <button id="musicBtn" type="button">Music: off</button>
       </div>
     </div>
@@ -621,6 +624,7 @@
         var ticketChip = document.getElementById("ticketChip");
         var ticketNumEl = document.getElementById("ticketNum");
         var resetBtn = document.getElementById("resetBtn");
+        var packBtn = document.getElementById("packBtn");
         var musicBtn = document.getElementById("musicBtn");
         var bgMusic = document.getElementById("bgMusic");
         var brandLogoEl = document.getElementById("brandLogo");
@@ -1142,8 +1146,10 @@
 
         // ---------- The dining room ----------
         var GAME_SECONDS = 60;   // the shift: sixty seconds on the clock
-        var TABLE_COUNT = 8;     // eight tables on the floor
-        var NUMBER_POOL = 12;    // table numbers are dealt from 1..12
+        var TABLE_COUNT = 8;     // the floor opens with eight tables
+        var MAX_TABLES = 16;     // Pack 'em can seat the floor up to sixteen
+        var PACK_STEP = 2;       // each Pack 'em press seats two more tables
+        var NUMBER_POOL = 12;    // table numbers are dealt from 1..12 (the pool grows with the floor — see dealNumbers)
         var POINTS_RIGHT = 10;   // a plate on the right table
         var POINTS_WRONG = 5;    // a plate on the wrong table, subtracted
 
@@ -1192,22 +1198,28 @@
           };
         }
 
-        // The floor: eight tables in a grid between the kitchen
+        // The floor: the tables in a grid between the kitchen
         // pass and the toolbar — four across on a wide screen,
-        // two across and four down on a phone.
+        // two across and four down on a phone. A packed floor
+        // (Pack 'em) widens the grid and shrinks the tables a
+        // step so the extra tables still fit the room.
         function layoutTables() {
-          var top = kitchenH() + 46;
+          var count = tables.length;
+          var packed = count > TABLE_COUNT;
+          // A packed floor starts a step lower, so its first
+          // row clears the waiter parked in front of the pass.
+          var top = kitchenH() + 46 + (packed ? 34 : 0);
           var bottom = groundY() - 56;
           var wide = W >= 620;
-          var cols = wide ? 4 : 2;
-          var rows = Math.ceil(TABLE_COUNT / cols);
+          var cols = wide ? (count > 12 ? 5 : 4) : (packed ? 3 : 2);
+          var rows = Math.ceil(count / cols);
           var cellW = W / cols;
-          var cellH = Math.max((bottom - top) / rows, 60);
+          var cellH = Math.max((bottom - top) / rows, packed ? 52 : 60);
           for (var i = 0; i < tables.length; i++) {
             var c = i % cols, r = Math.floor(i / cols);
             tables[i].x = cellW * (c + 0.5);
             tables[i].y = top + cellH * (r + 0.5);
-            tables[i].r = clamp(Math.min(cellW, cellH) * 0.30, 32, 60);
+            tables[i].r = clamp(Math.min(cellW, cellH) * 0.30, packed ? 26 : 32, 60);
           }
           waiter.homeX = W / 2;
           waiter.homeY = kitchenH() - 14;
@@ -1231,13 +1243,14 @@
           return dealShow(SHOWS[deck[deckPos++]], false);
         }
 
-        // Table numbers: eight distinct numbers dealt from
-        // 1..NUMBER_POOL — which eight, and which table wears
-        // which, is the whole game. A party leaving re-deals
-        // them (see partyLeaves).
+        // Table numbers: distinct numbers dealt from a pool
+        // four wider than the floor — which numbers, and which
+        // table wears which, is the whole game. A party
+        // leaving re-deals them (see partyLeaves).
         function dealNumbers() {
+          var poolSize = Math.max(NUMBER_POOL, tables.length + 4);
           var pool = [];
-          for (var i = 1; i <= NUMBER_POOL; i++) pool.push(i);
+          for (var i = 1; i <= poolSize; i++) pool.push(i);
           for (var j = pool.length - 1; j > 0; j--) {
             var k = Math.floor(Math.random() * (j + 1));
             var tmp = pool[j]; pool[j] = pool[k]; pool[k] = tmp;
@@ -1534,17 +1547,20 @@
             toolbarEl.insertBefore(toolbarLeftEl, toolbarEl.firstChild);
           }
           if (!resetBtn.parentNode) toolbarRightEl.insertBefore(resetBtn, musicBtn);
+          if (!packBtn.parentNode) toolbarRightEl.insertBefore(packBtn, musicBtn);
         }
-        // The round screen is clean: no Reset, no masthead —
-        // those leave the document for the whole round. The
-        // round toolbar is the ticket (left seat) / End game
-        // (centre, the same PLAY button) / Music (right).
+        // The round screen is clean: no Reset, no Pack 'em, no
+        // masthead — those leave the document for the whole
+        // round. The round toolbar is the ticket (left seat) /
+        // End game (centre, the same PLAY button) / Music
+        // (right).
         function clearRoundChrome() {
           toolbarEl.classList.add("inround");
           toolbarEl.insertBefore(ticketChip, toolbarRightEl);
           toolbarEl.insertBefore(gameBtn, toolbarRightEl);
           if (toolbarLeftEl.parentNode) toolbarLeftEl.parentNode.removeChild(toolbarLeftEl);
           if (resetBtn.parentNode) resetBtn.parentNode.removeChild(resetBtn);
+          if (packBtn.parentNode) packBtn.parentNode.removeChild(packBtn);
           if (brandLogoEl.parentNode) brandLogoEl.parentNode.removeChild(brandLogoEl);
         }
 
@@ -1843,6 +1859,40 @@
           resetFloor(performance.now());
         });
 
+        // ---------- Pack 'em: more tables on the floor ----------
+        // The family's Pack 'em, restaurant-style: each press
+        // seats PACK_STEP more tables on the floor — new
+        // parties at new tables, the numbers re-dealt across
+        // the whole floor — up to a full house of MAX_TABLES.
+        // The packed floor is the floor: it carries into the
+        // next shift as it stands, and Reset re-deals it
+        // without unseating anyone. Idle room only — the
+        // button leaves the document for a round (see
+        // clearRoundChrome).
+        function paintPackBtn() {
+          var full = tables.length >= MAX_TABLES;
+          packBtn.disabled = full;
+          packBtn.textContent = full ? "Full house" : "Pack ’em";
+        }
+        function packEm() {
+          if (gameOn) return;
+          var add = Math.min(PACK_STEP, MAX_TABLES - tables.length);
+          if (add <= 0) { paintPackBtn(); return; }
+          var nowMs = performance.now();
+          for (var i = 0; i < add; i++) {
+            var t = makeTable(nowMs);
+            t.show = nextDeckShow(); // each new table gets its party and its show
+            t.state = "seated";
+            t.stateAt = nowMs;
+            tables.push(t);
+          }
+          dealNumbers();
+          for (var j = 0; j < tables.length; j++) tables[j].numPop = 1;
+          layoutTables();
+          paintPackBtn();
+        }
+        packBtn.addEventListener("click", packEm);
+
         // ---------- Input ----------
         // A tap anywhere on the canvas during a round is a
         // table tap if it lands on a table — the nearest table
@@ -1958,6 +2008,7 @@
         if (ticketChip.parentNode) ticketChip.parentNode.removeChild(ticketChip);
         resize();
         resetFloor(performance.now());
+        paintPackBtn();
         showRestDesc();
         requestAnimationFrame(frame);
 
@@ -1975,6 +2026,7 @@
             wrong: wrongCount,
             ticket: ticketNum,
             numbers: tables.map(function (t) { return t.number; }),
+            tableCount: tables.length,
             tableStates: tables.map(function (t) { return t.state; }),
             tableShows: tables.map(function (t) { return t.show ? t.show.name : null; }),
             waiterState: waiter.state,
