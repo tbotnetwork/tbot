@@ -232,11 +232,16 @@
          staggered three-column stack this bar used to be in free
          play, which ate the bottom ~200px of the phone screen.
          The left column holds Start game (the gold hero,
-         below), the middle holds Jump with the two sound
-         switches stacked beside it — Music directly over the
-         Bouncer, the two over each other (John's order,
-         2026-10-20) — and the right column holds Reset and
-         Pack ’em in a row. FIXED SEATS (John's order,
+         below), the middle holds Jump ALONE, dead centre of
+         the bar (John's order, 2026-10-20: "Jump button is
+         supposed to be in the middle") — the grid's two side
+         columns are both 1fr, so the auto-width middle track
+         sits exactly on the bar's centre line and Jump, its
+         only content, sits on that line with it — and the
+         right column holds Reset and Pack ’em in a row with
+         the two sound switches stacked at the group's end:
+         Music directly over the Bouncer, the two over each
+         other (John's order, 2026-10-20). FIXED SEATS (John's order,
          later 2026-10-20: "Fix control buttons they all seemed
          to move"; and his ruling the same day: no greyed-out
          buttons — a button that cannot be used in a state is
@@ -333,14 +338,18 @@
       @media (prefers-reduced-motion: reduce) {
         .toolbar:not(.in-round) > #gameBtn { animation: none; }
       }
-      /* The middle group: Jump with the sound switches beside
-         it — the switches themselves stacked in a column,
-         Music over the Bouncer (see .sound-stack) — where the
-         old bar stacked the sound switches in a second block
-         under Jump and doubled the bar's height. The group
-         never comes apart: free play and round alike, Jump
-         keeps this seat at the one size the unscoped
-         #shakeBtn rule below gives it. */
+      /* The middle group: Jump, ALONE (John's order,
+         2026-10-20: "Jump button is supposed to be in the
+         middle"). The toolbar grid is 1fr / auto / 1fr, so
+         this auto track — sized by Jump and nothing else —
+         lands exactly on the bar's centre line, and Jump
+         with it, in free play and in a round alike. (The
+         sound switches used to ride in this group beside
+         Jump, which pushed Jump itself a stack's width off
+         centre; they now close out the right-hand group —
+         see .sound-stack and .pack-stack.) Jump keeps this
+         seat at the one size the unscoped #shakeBtn rule
+         below gives it. */
       .mid-stack {
         display: flex;
         flex-direction: row;
@@ -354,10 +363,17 @@
       .toolbar > #gameBtn { justify-self: start; }
       /* The sound stack: Music and the Bouncer toggle, the
          game's two sound switches as one unit, STACKED in a
-         column beside Jump in every state — Music directly
-         OVER the Bouncer, the two over each other (John's
-         order, 2026-10-20: "the music should be over the
-         bouncer ... so they should be over each other"). The
+         column — Music directly OVER the Bouncer, the two
+         over each other (John's order, 2026-10-20: "the
+         music should be over the bouncer ... so they should
+         be over each other"). The stack rides LAST in the
+         right-hand group (.pack-stack), hard against the
+         bar's right end: the group is end-aligned, so the
+         stack's seat is the same in a round — when Reset and
+         Pack 'em leave the screen — as in free play.
+         (It used to sit beside Jump in the middle group;
+         moving it out is what lets Jump sit dead centre —
+         John's order, 2026-10-20.) The
          column stretches both switches to one shared width,
          and each carries a fixed minimum sized for its longer
          label ("Music: off", "Bouncer: off"), so flipping a
@@ -379,8 +395,9 @@
          (John's ruling, 2026-10-20: no greyed-out buttons — if
          a button cannot be used in a state, it is not on the
          screen in that state). display: none takes them out
-         without moving anything else: on desktop they leave an
-         empty right-hand group inside its fixed 1fr column,
+         without moving anything else: on desktop the
+         right-hand group keeps the sound stack at its end,
+         in the same seat, inside its fixed 1fr column,
          and on a phone their grid cells stand empty (the
          tracks come from the grid template, never from
          content). startGame / endGame flip the class and the
@@ -391,11 +408,14 @@
       .toolbar.in-round #addBtn { display: none; }
       button:disabled { cursor: default; }
       /* The right group: Reset and Pack ’em in ONE ROW at the
-         bar's right end, pinned to the third column whether
-         the middle group is wide or narrow. In a round the two
-         buttons leave the screen (above) and this group sits
-         empty inside its column — the column is 1fr of the
-         grid, so nothing else in the bar moves. */
+         bar's right end, with the sound stack (.sound-stack)
+         closing the row, pinned to the third column whether
+         the middle group is wide or narrow. In a round Reset
+         and Pack 'em leave the screen (above) and the sound
+         stack stays behind at the group's end — the group is
+         end-aligned, so the stack keeps the exact seat it
+         had in free play, and the column is 1fr of the grid,
+         so nothing else in the bar moves. */
       .pack-stack {
         display: flex;
         flex-direction: row;
@@ -738,7 +758,12 @@
            the Bouncer's (row 2, column 3) — the two sound
            switches over each other in one column (John's
            order, 2026-10-20), the same stack the desktop bar
-           makes with its .sound-stack column.
+           makes with its .sound-stack column. The two side
+           tracks are EQUAL fractions (1.35fr each), so Jump's
+           middle cell is centred on the bar exactly (John's
+           order, 2026-10-20: "Jump button is supposed to be
+           in the middle") — the old 1.4fr / 1.06fr split had
+           pushed Jump's cell right of centre.
            Every button fills its cell exactly (width and
            height 100%, min-width / min-height 0 — a grid
            item's automatic minimum is its content, so without
@@ -757,7 +782,7 @@
            changes nothing but the words. */
         .toolbar {
           display: grid;
-          grid-template-columns: 1.4fr 0.9fr 1.06fr;
+          grid-template-columns: 1.35fr 0.9fr 1.35fr;
           grid-template-rows: 52px 42px;
           gap: 6px;
           padding: 8px;
@@ -789,7 +814,8 @@
           grid-column: 1;
           justify-self: stretch;
           font-size: 19px;
-          padding: 12px 10px;
+          letter-spacing: 0.01em;
+          padding: 12px 8px;
           width: 100%;
           height: 100%;
           min-height: 0;
@@ -800,7 +826,8 @@
           grid-column: 1;
           justify-self: stretch;
           font-size: 19px;
-          padding: 12px 10px;
+          letter-spacing: 0.01em;
+          padding: 12px 8px;
           width: 100%;
           height: 100%;
           min-height: 0;
@@ -855,14 +882,14 @@
       <button id="gameBtn" type="button">Start game</button>
       <div class="mid-stack" id="midStack">
         <button class="primary" id="shakeBtn" type="button">Jump</button>
-        <div class="sound-stack" id="soundStack">
-          <button id="musicBtn" type="button">Music: off</button>
-          <button id="bouncerBtn" type="button">Bouncer: on</button>
-        </div>
       </div>
       <div class="pack-stack" id="packStack">
         <button id="resetBtn" type="button">Reset</button>
         <button id="addBtn" type="button">Pack ’em</button>
+        <div class="sound-stack" id="soundStack">
+          <button id="musicBtn" type="button">Music: off</button>
+          <button id="bouncerBtn" type="button">Bouncer: on</button>
+        </div>
       </div>
     </div>
 
