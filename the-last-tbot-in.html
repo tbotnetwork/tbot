@@ -231,19 +231,24 @@
          tall as its tallest button, instead of the tall
          staggered three-column stack this bar used to be in free
          play, which ate the bottom ~200px of the phone screen.
-         In free play the left column holds Start game (the gold
-         hero, below), the middle holds Jump with the two sound
+         The left column holds Start game (the gold hero,
+         below), the middle holds Jump with the two sound
          switches beside it in a row, and the right column holds
-         Reset and Pack ’em in a row. In a round the same grid
-         seats Jump at the left, End game in the middle, and the
-         sound stack at the right end — the seat swap itself
-         still lives in startGame / endGame, which move the same
-         elements in and out of the same containers; only the
-         seats' shapes changed. The physics floor already clears
-         whatever the toolbar measures (floorInset in resize),
-         and the slim free-play bar now stands about as tall as
-         the in-round bar, so the pile's floor barely moves
-         between the two. */
+         Reset and Pack ’em in a row. FIXED SEATS (John's order,
+         later 2026-10-20: "Fix control buttons they all seemed
+         to move"): the bar NEVER rearranges — no button changes
+         seat, size, or neighbours between free play and a round.
+         startGame / endGame only flip the bar's .in-round class:
+         Start game trades its gold hero face for the End game
+         face in the same seat at the same size, and Reset /
+         Pack ’em dim in place, disabled for the round (their
+         handlers refuse mid-round clicks too). Every button
+         also carries a fixed width, so a label flipping between
+         "Music: on" and "Music: off" cannot nudge a neighbour.
+         And the physics floor is measured straight off the
+         bar's top edge (floorInset in resize), so the pile sits
+         ON TOP of the bar — no gap of sky under it — in both
+         states, at any width. */
       /* Start game in free play is the bar's hero, wearing the
          TBOT Garden PLAY treatment: a polished gold gradient
          face, a strong dark border, and a warm glow that
@@ -255,19 +260,19 @@
          never sits still defeats the tap-stability checks the
          audit probe (and some assistive tech) rely on, so here
          the face stays put and the light does the breathing.
-         The :has() guard is what keeps this off the End game
-         button — the middle group is in the bar only in free
-         play, so in a round the same button keeps its plain
-         seat in the middle column. The pulse honours
-         reduced-motion: no motion at all for players who ask
-         for none. */
-      .toolbar:has(> .mid-stack) > #gameBtn {
+         The :not(.in-round) guard is what keeps this off the
+         End game button — in a round the same button keeps the
+         same seat and the same box (see the .in-round rule
+         below) and only trades the gold face for the plain one.
+         The pulse honours reduced-motion: no motion at all for
+         players who ask for none. */
+      .toolbar:not(.in-round) > #gameBtn {
         justify-self: start;
         font-size: 20px;
         font-weight: 900;
         letter-spacing: 0.04em;
         padding: 15px 26px;
-        min-width: 148px;
+        width: 188px;
         min-height: 54px;
         border-radius: 15px;
         color: #221a04;
@@ -279,6 +284,23 @@
           inset 0 2px 0 rgba(255, 255, 255, 0.65),
           inset 0 -3px 0 rgba(120, 72, 0, 0.35);
         animation: startPulse 2.4s ease-in-out infinite;
+      }
+      /* End game: Start game's seat and box, exactly — same
+         width, padding, and height, so the change of face never
+         moves the button or anything beside it. Only the paint
+         changes: the plain button face, no pulse. */
+      .toolbar.in-round > #gameBtn {
+        justify-self: start;
+        font-size: 20px;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+        padding: 15px 26px;
+        width: 188px;
+        min-height: 54px;
+        border-radius: 15px;
+        background: var(--btn-bg);
+        color: var(--btn-ink);
+        border: 3px solid transparent;
       }
       @keyframes startPulse {
         0%, 100% {
@@ -297,14 +319,14 @@
         }
       }
       @media (prefers-reduced-motion: reduce) {
-        .toolbar:has(> .mid-stack) > #gameBtn { animation: none; }
+        .toolbar:not(.in-round) > #gameBtn { animation: none; }
       }
-      /* The middle group in free play: ONE ROW — Jump with the
-         sound switches beside it — where the old bar stacked
-         the sound switches in a second block under Jump and
-         doubled the bar's height. The group exists only in
-         free play (startGame takes it apart for the round), so
-         nothing here can reach the in-round bar. */
+      /* The middle group: ONE ROW — Jump with the sound
+         switches beside it — where the old bar stacked the
+         sound switches in a second block under Jump and doubled
+         the bar's height. The group never comes apart: free
+         play and round alike, Jump keeps this seat at the one
+         size the unscoped #shakeBtn rule below gives it. */
       .mid-stack {
         display: flex;
         flex-direction: row;
@@ -312,43 +334,37 @@
         gap: 8px;
         min-width: 0;
       }
-      /* Jump in its free-play seat: the same red button at a
-         row-friendly size, a step under its enlarged in-round
-         box (the unscoped #shakeBtn rule below), which it keeps
-         when it lifts out of this group to the bar's left end
-         for the round. */
-      .mid-stack #shakeBtn {
-        min-width: 0;
-        font-size: 19px;
-        padding: 13px 22px;
-        min-height: 48px;
-        border-radius: 14px;
-      }
-      /* In a round, Jump is a direct child of the bar in the
-         left column: like the Garden's CATCH it hugs the left
-         edge at its own width instead of stretching across the
-         flexible track, and End game centres in the middle. */
-      .toolbar > #shakeBtn { justify-self: start; }
-      .toolbar > #gameBtn { justify-self: center; }
+      /* Start / End game hugs the bar's left edge at its own
+         width in both states (the hero and .in-round rules
+         above set the same justify-self; this is the base). */
+      .toolbar > #gameBtn { justify-self: start; }
       /* The sound stack: Music and the Bouncer toggle, the
-         game's two sound switches as one unit. In a round the
-         stack sits at the toolbar's right end as a vertical
-         pair at its natural width (see startGame); in free play
-         it lies down into the middle group's single row beside
-         Jump, at the same base button size. */
+         game's two sound switches as one unit, in one row
+         beside Jump in every state. Each switch carries a
+         fixed width sized for its longer label ("Music: off",
+         "Bouncer: off"), so flipping a switch never widens or
+         narrows it and nothing beside it shifts. */
       .sound-stack {
         display: flex;
-        flex-direction: column;
-        align-items: stretch;
+        flex-direction: row;
+        align-items: center;
         gap: 6px;
       }
-      .toolbar > .sound-stack { justify-self: end; }
-      .mid-stack .sound-stack { flex-direction: row; align-items: center; }
-      /* The right group in free play: Reset and Pack ’em in
-         ONE ROW at the bar's right end, pinned to the third
-         column whether the middle group is wide or narrow.
-         startGame takes the whole group out of the toolbar for
-         the round and endGame seats it back in the same row. */
+      #musicBtn { min-width: 114px; }
+      #bouncerBtn { min-width: 130px; }
+      /* Reset and Pack ’em in a round: still in their seats,
+         visibly parked — dimmed and disabled until endGame
+         wakes them (startGame / endGame flip the class and the
+         disabled flags together; the click handlers also refuse
+         mid-round, so the pile can neither grow nor reset
+         while a round runs). */
+      .toolbar.in-round .pack-stack button { opacity: 0.45; }
+      button:disabled { cursor: default; }
+      /* The right group: Reset and Pack ’em in ONE ROW at the
+         bar's right end, pinned to the third column whether
+         the middle group is wide or narrow. The group never
+         leaves the bar — in a round its buttons only dim and
+         disable in place (above). */
       .pack-stack {
         display: flex;
         flex-direction: row;
@@ -386,8 +402,9 @@
          on a phone. It stays the same single red button in the same
          toolbar; it grows only within the bottom control zone, and the
          HUD below is lifted to clear the taller toolbar (see .gamehud).
-         The physics floor already sits above the toolbar's measured
-         height (floorInset in resize), so the pile stays clear too. */
+         The physics floor sits on the toolbar's top edge itself
+         (floorInset in resize), so the pile rests on the bar under
+         this button, in free play and in a round alike. */
       #shakeBtn {
         font-size: 22px;
         font-weight: 800;
@@ -679,59 +696,67 @@
       a.btnlink[hidden] { display: none; }
       @media (max-width: 480px) {
         button { padding: 11px 13px; font-size: 13.5px; }
-        /* Phone free play: the three grid groups would squeeze
-           their rows past a narrow screen, so the bar lets go of
-           the grid and the groups dissolve — the six buttons
-           flow as one centred wrap in two short rows (Start game,
+        /* Phone: the three grid groups would squeeze their
+           rows past a narrow screen, so the bar lets go of the
+           grid and the groups dissolve — the six buttons flow
+           as one centred wrap in two short rows (Start game,
            Jump, Reset, then Pack ’em, Music, Bouncer, by the
-           order below), about half the old stacked bar's height.
-           In a round the bar keeps its grid at every width:
-           Jump left, End game middle, the sound stack at the
-           right end. */
-        .toolbar { gap: 6px; padding: 8px; }
-        .toolbar:has(> .mid-stack) {
+           order below), about half the old stacked bar's
+           height. The fixed seats hold here too: the same wrap
+           in a round as in free play, so the rows never reflow
+           between states. */
+        .toolbar {
+          gap: 6px;
+          padding: 8px;
           display: flex;
           flex-wrap: wrap;
           justify-content: center;
           align-items: center;
         }
-        .toolbar:has(> .mid-stack) .mid-stack,
-        .toolbar:has(> .mid-stack) .pack-stack,
-        .toolbar:has(> .mid-stack) .sound-stack { display: contents; }
+        .toolbar .mid-stack,
+        .toolbar .pack-stack,
+        .toolbar .sound-stack { display: contents; }
         /* Start game keeps the hero treatment on a narrow phone
-           too, a touch smaller (the Garden's phone PLAY size). */
-        .toolbar:has(> .mid-stack) > #gameBtn {
+           too, a touch smaller (the Garden's phone PLAY size),
+           and End game takes the same box in the same seat. */
+        .toolbar:not(.in-round) > #gameBtn {
           order: 1;
           font-size: 19px;
           padding: 14px 22px;
-          min-width: 132px;
+          width: 174px;
           min-height: 52px;
           border-radius: 14px;
         }
-        .toolbar:has(> .mid-stack) #shakeBtn { order: 2; }
-        .toolbar:has(> .mid-stack) #resetBtn { order: 3; }
-        .toolbar:has(> .mid-stack) #addBtn { order: 4; }
-        .toolbar:has(> .mid-stack) #musicBtn { order: 5; }
-        .toolbar:has(> .mid-stack) #bouncerBtn { order: 6; }
+        .toolbar.in-round > #gameBtn {
+          order: 1;
+          font-size: 19px;
+          padding: 14px 22px;
+          width: 174px;
+          min-height: 52px;
+          border-radius: 14px;
+        }
+        .toolbar #shakeBtn { order: 2; }
+        .toolbar #resetBtn { order: 3; }
+        .toolbar #addBtn { order: 4; }
+        .toolbar #musicBtn { order: 5; }
+        .toolbar #bouncerBtn { order: 6; }
+        /* The sound switches' fixed widths shrink with the
+           phone's smaller type — still sized for the longer
+           "off" labels, so a flip never moves a neighbour. */
+        #musicBtn { min-width: 100px; }
+        #bouncerBtn { min-width: 116px; }
         #gameBtn { padding-left: 10px; padding-right: 10px; }
         .sound-stack button { padding-left: 10px; padding-right: 10px; }
-        /* Jump stays ~1.5x the (slightly smaller) phone buttons in
-           a round, and the HUD lifts further: the in-round bar's
-           tall Jump row is what the chips must clear. */
+        /* Jump stays ~1.5x the (slightly smaller) phone buttons,
+           at this one size in free play and in a round alike,
+           and the HUD lifts further: the bar's Jump row is what
+           the chips must clear. */
         #shakeBtn {
           font-size: 20px;
           padding: 16px 18px;
           border-radius: 15px;
           min-width: 102px;
           min-height: 52px;
-        }
-        /* Jump's free-play seat shrinks at phone width too; the
-           unscoped rule above still owns the in-round Jump. */
-        .mid-stack #shakeBtn {
-          font-size: 18px;
-          padding: 12px 16px;
-          min-height: 46px;
-          border-radius: 13px;
         }
         .gamehud { bottom: calc(168px + env(safe-area-inset-bottom)); }
         .hint { font-size: 12.5px; }
@@ -860,7 +885,7 @@
         var bouncerBtn = document.getElementById("bouncerBtn");
 
         var W = 0, H = 0, DPR = 1;
-        var floorInset = 0; // physics floor sits just above the toolbar so the pile never hides behind it
+        var floorInset = 0; // physics floor = the toolbar's top edge: the pile rests ON the bar (see resize)
         var toolbarEl = document.querySelector(".toolbar");
 
         function floorY() { return H - floorInset; }
@@ -2011,7 +2036,16 @@
           canvas.style.width = W + "px";
           canvas.style.height = H + "px";
           ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-          floorInset = toolbarEl ? toolbarEl.offsetHeight + 30 : 0;
+          // The floor IS the bar's top edge (John's order,
+          // 2026-10-20: "The items should sit on top of the
+          // bar"): measured straight off the bar's rendered
+          // position, so the resting pile sits on the bar
+          // itself — no gap of sky under it — whatever the
+          // bar's height, width, or state. (The sprite's visible
+          // bottom lands ~0.97r below its centre, so a body
+          // resting with its centre one radius above this line
+          // touches the bar almost exactly.)
+          floorInset = toolbarEl ? Math.max(0, H - toolbarEl.getBoundingClientRect().top) : 0;
           // The hole's BASE radius: the size it has always been,
           // grown ×1.05 (the PFP "a little bigger" base — see the
           // pulse note at holeVisR). The pulse breathes around
@@ -2027,6 +2061,13 @@
         }
         window.addEventListener("resize", resize);
         window.addEventListener("load", resize);
+        // The bar can shift without the window resizing (a
+        // webfont landing, a state restyle), and the floor rides
+        // on the bar's top edge — so watch the bar itself and
+        // re-measure whenever it moves.
+        if (toolbarEl && window.ResizeObserver) {
+          new ResizeObserver(function () { resize(); }).observe(toolbarEl);
+        }
 
         function rand(min, max) { return min + Math.random() * (max - min); }
 
@@ -4361,29 +4402,23 @@
           spawn(GAME_COUNT);
           roundDeck = null; // dealt out — later spawns are free play again
           gameOn = true;
-          // John's orders: no Pack ’em and no Reset in the game. The
-          // whole free-play stack leaves the toolbar for the round —
-          // not hidden, GONE from the document — so while a round is
-          // running nothing on the round screen can add a TBOT (a
-          // round is exactly 15) or settle the pile back to 35.
-          // endGame seats the stack back in the right-hand row, Reset
-          // beside Pack ’em in the same order, for free play.
-          if (packStack.parentNode) packStack.parentNode.removeChild(packStack);
-          // The toolbar switch (John's order — the same switch as
-          // the other games): for the round, Jump takes the LEFT
-          // seat, End game's old place, at its full enlarged size,
-          // and End game sits dead-centre in Jump's old seat. The
-          // middle group comes apart for the round: Jump lifts
-          // out of it into the left seat, the sound stack lifts
-          // out to the toolbar's right end, and the empty group
-          // leaves with the Pack ’em stack, so the round bar is
-          // the same single row as always. Both buttons keep
-          // their size, styling, and behavior; only the seats
-          // change. endGame rebuilds the Garden-style free-play
-          // bar exactly (see there).
-          toolbarEl.insertBefore(shakeBtn, gameBtn);
-          toolbarEl.appendChild(soundStack);
-          if (midStack.parentNode) midStack.parentNode.removeChild(midStack);
+          // The bar's fixed seats (John's order, 2026-10-20: "Fix
+          // control buttons they all seemed to move"): NOTHING in
+          // the toolbar changes seat, size, or neighbours for the
+          // round — no element is moved, removed, or rebuilt; the
+          // bar only gains its .in-round class. Start game trades
+          // its gold hero face for End game's plain one in the
+          // same seat at the same size (see the toolbar CSS), and
+          // Reset / Pack ’em dim in place, disabled for the round,
+          // so nothing on the round screen can add a TBOT (a round
+          // is exactly 15) or settle the pile back to 35 — their
+          // click handlers refuse mid-round clicks as well. Then
+          // resize() re-measures the floor off the bar's top edge,
+          // so the pile keeps sitting on the bar.
+          toolbarEl.classList.add("in-round");
+          resetBtn.disabled = true;
+          addBtn.disabled = true;
+          resize();
           timeLeftMs = GAME_SECONDS * 1000;
           overOverlay.hidden = true;
           gameHud.hidden = false;
@@ -4415,30 +4450,19 @@
           var finalIn = inCount;
           var timeLeft = Math.max(0, Math.min(GAME_SECONDS, Math.ceil(timeLeftMs / 1000)));
           gameOn = false;
-          // The round is over: the free-play toolbar is REBUILT in
-          // the Garden-style single-row arrangement (the
-          // same rebuild runs whichever way the player re-enters
-          // free play — the card's TBOT Pack button included,
-          // since it only closes this card onto the bar endGame
-          // leaves behind): Start game holds the left seat as the
-          // gold hero; the middle group is reassembled with Jump
-          // back in it and the sound stack — Music beside
-          // Bouncer — in the same row; and the Pack ’em stack
-          // returns as one unit at the right end, Reset beside
-          // Pack ’em, both buttons working exactly as they always
-          // have from their row seats.
-          // The toolbar switch unwinds first: Start game takes
-          // the left seat back; then Jump and the sound stack go
-          // home into the middle group, the group slots back
-          // between Start game and the right-hand group, and the
-          // stack takes the right end.
-          toolbarEl.insertBefore(gameBtn, shakeBtn);
-          if (!midStack.parentNode) {
-            midStack.appendChild(shakeBtn);
-            midStack.appendChild(soundStack);
-            toolbarEl.appendChild(midStack);
-          }
-          if (!packStack.parentNode) toolbarEl.appendChild(packStack);
+          // The round is over: the bar never moved, so there is
+          // nothing to rebuild — the .in-round class comes off,
+          // Start game's gold hero face returns to the same seat,
+          // and Reset / Pack ’em wake in place, working exactly as
+          // they always have from their row seats (this runs
+          // whichever way the player re-enters free play — the
+          // card's TBOT Pack button included, since it only closes
+          // this card onto the bar endGame leaves behind).
+          // resize() re-measures the floor off the bar's top edge.
+          toolbarEl.classList.remove("in-round");
+          resetBtn.disabled = false;
+          addBtn.disabled = false;
+          resize();
           // The ring eases home: updateHole now winds the drift
           // amplitude down from wherever the round left it, so the
           // ring glides back to dead centre behind the end card —
@@ -4590,18 +4614,18 @@
         });
 
         addBtn.addEventListener("click", function () {
-          // Belt and braces beside the round-time removal above:
-          // even a programmatic click on the detached button can
-          // never add a TBOT mid-round. In free play it adds 3,
-          // exactly as it always has.
+          // Belt and braces beside the round-time disabling
+          // above: even a programmatic click on the parked button
+          // can never add a TBOT mid-round. In free play it adds
+          // 3, exactly as it always has.
           if (gameOn) return;
           spawn(3);
         });
         shakeBtn.addEventListener("click", shake);
         resetBtn.addEventListener("click", function () {
-          // Belt and braces beside the round-time removal above:
-          // even a programmatic click on the detached button can
-          // never reset the pile mid-round. In free play it
+          // Belt and braces beside the round-time disabling
+          // above: even a programmatic click on the parked button
+          // can never reset the pile mid-round. In free play it
           // settles the pile back to 35, exactly as it always has.
           if (gameOn) return;
           reset();
