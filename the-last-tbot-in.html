@@ -210,143 +210,153 @@
         left: 50%;
         bottom: calc(14px + env(safe-area-inset-bottom));
         transform: translateX(-50%);
-        display: flex;
-        align-items: flex-start;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
         gap: 8px;
-        flex-wrap: wrap;
-        justify-content: center;
-        width: max-content;
-        max-width: calc(100vw - 20px);
-        padding: 10px;
+        width: min(780px, calc(100vw - 20px));
+        padding: 8px;
         border-radius: 18px;
         background: var(--bar-bg);
         border: 1px solid var(--bar-border);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
-        /* The free-play column width: all three columns share
-           it, so Start game, Jump, Reset, Pack ’em, Music and
-           Bouncer all render at ONE width, as in John's picture.
-           The min() keeps the three columns inside the bar on
-           narrower windows instead of wrapping. The width came
-           DOWN (152px → 128px, John's 2026-10-20 order: smaller
-           buttons so the whole arrangement sits inside the box
-           with margin) and every column carries min-width: 0
-           below, so a column can never be forced wider than
-           this by its label's min-content — the spill that put
-           Start game's left edge and Reset / Pack ’em's right
-           edges outside the panel on John's phone shot. */
-        --colw: min(128px, calc((100vw - 68px) / 3));
+        z-index: 7;
       }
-      /* The free-play toolbar is THREE COLUMNS in the staggered
-         two-tier geometry of John's picture (2026-10-20), NOT one
-         level row: the RIGHT column (Reset over Pack ’em) sits
-         HIGHEST — Reset's top is the bar's top line. The CENTRE
-         column starts lower: Jump's top sits below Reset's top,
-         and START GAME, alone in the left column, sits lower
-         still, centred against Jump (its margin below puts its
-         middle on Jump's middle). The sound stack forms a
-         SEPARATE LOWER BLOCK under Jump: the centre column's gap
-         is sized so Music's top lands just BELOW Pack ’em's
-         bottom edge, clear of the whole top tier. All three
-         columns share the one width (--colw). The columns make
-         the bar taller; the physics floor already clears
+      /* The bar is TBOT Garden's bar (John's order, 2026-10-20:
+         "The bottom is big in the free game part" — make it like
+         the TBOT Garden): a three-column grid — left controls,
+         middle, right controls — holding ONE slim row about as
+         tall as its tallest button, instead of the tall
+         staggered three-column stack this bar used to be in free
+         play, which ate the bottom ~200px of the phone screen.
+         In free play the left column holds Start game (the gold
+         hero, below), the middle holds Jump with the two sound
+         switches beside it in a row, and the right column holds
+         Reset and Pack ’em in a row. In a round the same grid
+         seats Jump at the left, End game in the middle, and the
+         sound stack at the right end — the seat swap itself
+         still lives in startGame / endGame, which move the same
+         elements in and out of the same containers; only the
+         seats' shapes changed. The physics floor already clears
          whatever the toolbar measures (floorInset in resize),
-         and the HUD's fixed lift only has to clear the in-round
-         bar, which holds a single row (Jump left, End game
-         centre, the sound stack at the right end) — the
-         round-time seat swap and its unwind live in startGame /
-         endGame. The stagger rules below are free-play only by
-         construction: the centre and right columns leave the
-         document for the round, so nothing here can reach the
-         in-round bar. */
-      /* Start game in free play: the shared column width, dropped
-         so its centre lines up with Jump's centre. The :has()
-         guard is what keeps this off the End game button — the
-         centre column is in the bar only in free play. */
+         and the slim free-play bar now stands about as tall as
+         the in-round bar, so the pile's floor barely moves
+         between the two. */
+      /* Start game in free play is the bar's hero, wearing the
+         TBOT Garden PLAY treatment: a polished gold gradient
+         face, a strong dark border, and a warm glow that
+         breathes with a gentle pulse so it is the first control
+         a player sees — at the calibrated Garden size, hero of
+         the bar without crowding the row. The pulse moves only
+         the glow, never the button's box: the Garden's version
+         also swells the button itself, but a button whose box
+         never sits still defeats the tap-stability checks the
+         audit probe (and some assistive tech) rely on, so here
+         the face stays put and the light does the breathing.
+         The :has() guard is what keeps this off the End game
+         button — the middle group is in the bar only in free
+         play, so in a round the same button keeps its plain
+         seat in the middle column. The pulse honours
+         reduced-motion: no motion at all for players who ask
+         for none. */
       .toolbar:has(> .mid-stack) > #gameBtn {
-        flex: 0 0 var(--colw);
-        min-width: 0;
-        margin-top: 31px;
-        font-size: 13.5px;
-        padding: 10px 13px;
+        justify-self: start;
+        font-size: 20px;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+        padding: 15px 26px;
+        min-width: 148px;
+        min-height: 54px;
+        border-radius: 15px;
+        color: #221a04;
+        background: linear-gradient(180deg, #ffe082 0%, #ffc21f 52%, #eda200 100%);
+        border: 3px solid #14181f;
+        box-shadow:
+          0 10px 28px rgba(240, 165, 0, 0.5),
+          0 4px 10px rgba(20, 24, 31, 0.35),
+          inset 0 2px 0 rgba(255, 255, 255, 0.65),
+          inset 0 -3px 0 rgba(120, 72, 0, 0.35);
+        animation: startPulse 2.4s ease-in-out infinite;
       }
-      /* The centre column: Jump — the big red button — on top,
-         dropped 24px below the bar's top line (below Reset's
-         top), and the sound stack as the lower block beneath it:
-         the 30px gap is what puts Music's top below Pack ’em's
-         bottom edge (Reset 38 + 12 gap + Pack ’em 48 = 98 from
-         the top; Jump ends at 24 + 48 = 72, + 30 = Music at 102). */
+      @keyframes startPulse {
+        0%, 100% {
+          box-shadow:
+            0 8px 22px rgba(240, 165, 0, 0.42),
+            0 4px 10px rgba(20, 24, 31, 0.35),
+            inset 0 2px 0 rgba(255, 255, 255, 0.65),
+            inset 0 -3px 0 rgba(120, 72, 0, 0.35);
+        }
+        50% {
+          box-shadow:
+            0 14px 36px rgba(240, 165, 0, 0.75),
+            0 6px 14px rgba(20, 24, 31, 0.35),
+            inset 0 2px 0 rgba(255, 255, 255, 0.7),
+            inset 0 -3px 0 rgba(120, 72, 0, 0.35);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .toolbar:has(> .mid-stack) > #gameBtn { animation: none; }
+      }
+      /* The middle group in free play: ONE ROW — Jump with the
+         sound switches beside it — where the old bar stacked
+         the sound switches in a second block under Jump and
+         doubled the bar's height. The group exists only in
+         free play (startGame takes it apart for the round), so
+         nothing here can reach the in-round bar. */
       .mid-stack {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
         align-items: center;
-        gap: 30px;
-        flex: 0 0 var(--colw);
+        gap: 8px;
         min-width: 0;
-        margin-top: 24px;
       }
-      /* Jump fills the centre column's shared width in free
-         play, wearing the shrunk seat size (smaller type,
-         padding and height than the base class, so the whole
-         bar fits inside the panel — John's 2026-10-20 order);
-         in a round it leaves the column and keeps its own
-         enlarged box at the bar's left end, untouched. */
+      /* Jump in its free-play seat: the same red button at a
+         row-friendly size, a step under its enlarged in-round
+         box (the unscoped #shakeBtn rule below), which it keeps
+         when it lifts out of this group to the bar's left end
+         for the round. */
       .mid-stack #shakeBtn {
-        width: 100%;
         min-width: 0;
         font-size: 19px;
-        padding: 14px 18px;
+        padding: 13px 22px;
         min-height: 48px;
         border-radius: 14px;
       }
-      /* The sound stack: Music on top, the Bouncer toggle directly
-         under it — the game's two sound switches read as one little
-         stack centred under Jump in the centre column. Inside the
-         centre column it takes the full shared width; in a round
-         the stack leaves the column and sits at the toolbar's right
-         end as the same unit at its natural width (see startGame). */
+      /* In a round, Jump is a direct child of the bar in the
+         left column: like the Garden's CATCH it hugs the left
+         edge at its own width instead of stretching across the
+         flexible track, and End game centres in the middle. */
+      .toolbar > #shakeBtn { justify-self: start; }
+      .toolbar > #gameBtn { justify-self: center; }
+      /* The sound stack: Music and the Bouncer toggle, the
+         game's two sound switches as one unit. In a round the
+         stack sits at the toolbar's right end as a vertical
+         pair at its natural width (see startGame); in free play
+         it lies down into the middle group's single row beside
+         Jump, at the same base button size. */
       .sound-stack {
         display: flex;
         flex-direction: column;
         align-items: stretch;
         gap: 6px;
       }
-      .mid-stack .sound-stack { width: 100%; }
-      /* The sound buttons shrink in their free-play seat too
-         (in a round the stack sits at the bar's right end at
-         the base button size, untouched). */
-      .mid-stack .sound-stack button { font-size: 13px; padding: 10px 12px; }
-      /* The free-play stack: Reset on top, Pack ’em directly
-         below it — the two free-play buttons seated in ONE
-         column of their own at the toolbar's RIGHT, at the bar's
-         top line, with a clear 12px gap between them. The column
-         stretches both buttons to the shared width, so their
-         left edges align down the column, exactly as in John's
-         picture: Reset is a TALL button (see #resetBtn), Pack ’em
-         the big one below it, wearing the enlarged Jump class
-         (see #addBtn). startGame takes the whole stack out of
-         the toolbar for the round and endGame seats it back in
-         the same column. */
+      .toolbar > .sound-stack { justify-self: end; }
+      .mid-stack .sound-stack { flex-direction: row; align-items: center; }
+      /* The right group in free play: Reset and Pack ’em in
+         ONE ROW at the bar's right end, pinned to the third
+         column whether the middle group is wide or narrow.
+         startGame takes the whole group out of the toolbar for
+         the round and endGame seats it back in the same row. */
       .pack-stack {
         display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 12px;
-        flex: 0 0 var(--colw);
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
         min-width: 0;
+        justify-self: end;
       }
-      /* Reset is a tall button in its own right — about
-         three-quarters of Pack ’em's height, as in John's
-         picture — not the thin strip the plain button padding
-         gave it. It exists only in the free-play stack, so this
-         never reaches a round. */
-      #resetBtn { min-height: 38px; }
-      /* Inside its column, Pack ’em takes the shared column
-         width like every other button — its enlarged class's
-         min-width must not push it past the column on a narrow
-         phone. (Its height and type keep the enlarged class.) */
-      .pack-stack #addBtn { min-width: 0; }
       button {
         appearance: none;
         border: 0;
@@ -387,24 +397,12 @@
         min-width: 106px;
         min-height: 56px;
       }
-      /* Pack ’em in its stack seat matches the free-play Jump
-         seat's class: the same type, padding, and height —
-         shrunk with the rest of the bar (John's 2026-10-20
-         order: smaller so everything fits inside the box) to
-         48px tall on desktop, 46px at phone width — and it
-         renders at the free-play columns' one shared width
-         (--colw, see .toolbar), the same width as every other
-         button in the bar. Reset above it is a tall button of
-         its own (see #resetBtn), and the winner card's TBOT
-         Pack button is untouched. */
+      /* Pack ’em wears the plain button size in the Garden-style
+         row — like the Garden's + TBOT, a regular control beside
+         Reset, not a second hero. (The winner card's TBOT Pack
+         button is a different element and is untouched.) */
       #addBtn {
-        font-size: 19px;
-        font-weight: 800;
-        letter-spacing: 0.01em;
-        padding: 14px 16px;
-        border-radius: 14px;
-        min-width: 92px;
-        min-height: 48px;
+        min-width: 0;
       }
       .gamehud {
         position: fixed;
@@ -681,42 +679,45 @@
       a.btnlink[hidden] { display: none; }
       @media (max-width: 480px) {
         button { padding: 11px 13px; font-size: 13.5px; }
-        /* The three free-play columns hold ONE row at phone width
-           too (John's picture is a phone shot), in the same
-           staggered two-tier geometry: the shared column width is
-           a third of the bar's inner width, Start game and the
-           sound buttons give up a few px of side padding, and
-           Jump / Pack ’em trade side padding inside the column —
-           heights and type stay exactly as set below, so the
-           columns fit side by side inside the bar's max width
-           with no wrap and no sideways overflow. The column
-           budget now leaves slack under the bar's max width
-           (John's 2026-10-20 phone shot showed the side columns
-           spilling OUTSIDE the panel: the budget is 3 columns +
-           12px gaps + 16px padding + 2px border = 100vw − 26px,
-           6px under the cap, and the columns' min-width: 0 keeps
-           any label from forcing them wider). The stagger
-           shrinks with the buttons: Reset 36 + 12 + Pack ’em 46
-           puts Pack ’em's bottom at 94; Jump runs 22–68, so the
-           30px centre gap puts Music at 98, just below it, and
-           Start game's 28px drop centres it on Jump (22 + 23 =
-           45; 45 − ~17 = 28). */
-        .toolbar { gap: 6px; padding: 8px; --colw: calc((100vw - 56px) / 3); }
-        /* The free-play columns never wrap at phone width: the
-           column widths are budgeted to fit exactly (above), and
-           Pack ’em's side padding gives up the last few px so its
-           label's min-content fits inside its column — the bar
-           holds the picture's three columns in one row instead of
-           dropping Reset / Pack ’em to a centred row of their own. */
-        .toolbar:has(> .mid-stack) { flex-wrap: nowrap; }
-        .toolbar:has(> .mid-stack) > #gameBtn { margin-top: 28px; }
-        .mid-stack { margin-top: 22px; gap: 30px; }
-        #resetBtn { min-height: 36px; }
+        /* Phone free play: the three grid groups would squeeze
+           their rows past a narrow screen, so the bar lets go of
+           the grid and the groups dissolve — the six buttons
+           flow as one centred wrap in two short rows (Start game,
+           Jump, Reset, then Pack ’em, Music, Bouncer, by the
+           order below), about half the old stacked bar's height.
+           In a round the bar keeps its grid at every width:
+           Jump left, End game middle, the sound stack at the
+           right end. */
+        .toolbar { gap: 6px; padding: 8px; }
+        .toolbar:has(> .mid-stack) {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          align-items: center;
+        }
+        .toolbar:has(> .mid-stack) .mid-stack,
+        .toolbar:has(> .mid-stack) .pack-stack,
+        .toolbar:has(> .mid-stack) .sound-stack { display: contents; }
+        /* Start game keeps the hero treatment on a narrow phone
+           too, a touch smaller (the Garden's phone PLAY size). */
+        .toolbar:has(> .mid-stack) > #gameBtn {
+          order: 1;
+          font-size: 19px;
+          padding: 14px 22px;
+          min-width: 132px;
+          min-height: 52px;
+          border-radius: 14px;
+        }
+        .toolbar:has(> .mid-stack) #shakeBtn { order: 2; }
+        .toolbar:has(> .mid-stack) #resetBtn { order: 3; }
+        .toolbar:has(> .mid-stack) #addBtn { order: 4; }
+        .toolbar:has(> .mid-stack) #musicBtn { order: 5; }
+        .toolbar:has(> .mid-stack) #bouncerBtn { order: 6; }
         #gameBtn { padding-left: 10px; padding-right: 10px; }
         .sound-stack button { padding-left: 10px; padding-right: 10px; }
-        /* Jump stays ~1.5x the (slightly smaller) phone buttons, and the
-           HUD lifts further: on a narrow phone the toolbar can wrap to
-           two rows with the tall Jump row, and the chips must clear it. */
+        /* Jump stays ~1.5x the (slightly smaller) phone buttons in
+           a round, and the HUD lifts further: the in-round bar's
+           tall Jump row is what the chips must clear. */
         #shakeBtn {
           font-size: 20px;
           padding: 16px 18px;
@@ -724,27 +725,14 @@
           min-width: 102px;
           min-height: 52px;
         }
-        /* Jump's free-play seat shrinks at phone width too,
-           matching Pack ’em's phone size below; the unscoped
-           rule above still owns the in-round Jump. */
+        /* Jump's free-play seat shrinks at phone width too; the
+           unscoped rule above still owns the in-round Jump. */
         .mid-stack #shakeBtn {
           font-size: 18px;
-          padding: 13px 14px;
+          padding: 12px 16px;
           min-height: 46px;
           border-radius: 13px;
         }
-        /* Pack ’em tracks Jump's free-play class at phone width
-           too. In its free-play column the side padding slims to
-           8px (see .pack-stack #addBtn below) so the label fits
-           the shared column width without forcing the bar to wrap. */
-        #addBtn {
-          font-size: 17px;
-          padding: 13px 12px;
-          border-radius: 13px;
-          min-width: 88px;
-          min-height: 46px;
-        }
-        .pack-stack #addBtn { padding-left: 8px; padding-right: 8px; }
         .gamehud { bottom: calc(168px + env(safe-area-inset-bottom)); }
         .hint { font-size: 12.5px; }
         .game-title { font-size: 16.5px; }
@@ -4378,20 +4366,20 @@
           // not hidden, GONE from the document — so while a round is
           // running nothing on the round screen can add a TBOT (a
           // round is exactly 15) or settle the pile back to 35.
-          // endGame seats the stack back in the right column, Reset
-          // over Pack ’em in the same order, for free play.
+          // endGame seats the stack back in the right-hand row, Reset
+          // beside Pack ’em in the same order, for free play.
           if (packStack.parentNode) packStack.parentNode.removeChild(packStack);
           // The toolbar switch (John's order — the same switch as
           // the other games): for the round, Jump takes the LEFT
           // seat, End game's old place, at its full enlarged size,
           // and End game sits dead-centre in Jump's old seat. The
-          // centre column comes apart for the round: Jump lifts
+          // middle group comes apart for the round: Jump lifts
           // out of it into the left seat, the sound stack lifts
-          // out to the toolbar's right end, and the empty column
+          // out to the toolbar's right end, and the empty group
           // leaves with the Pack ’em stack, so the round bar is
           // the same single row as always. Both buttons keep
           // their size, styling, and behavior; only the seats
-          // change. endGame rebuilds the three-column free-play
+          // change. endGame rebuilds the Garden-style free-play
           // bar exactly (see there).
           toolbarEl.insertBefore(shakeBtn, gameBtn);
           toolbarEl.appendChild(soundStack);
@@ -4428,22 +4416,21 @@
           var timeLeft = Math.max(0, Math.min(GAME_SECONDS, Math.ceil(timeLeftMs / 1000)));
           gameOn = false;
           // The round is over: the free-play toolbar is REBUILT in
-          // the three-column arrangement of John's picture (the
+          // the Garden-style single-row arrangement (the
           // same rebuild runs whichever way the player re-enters
           // free play — the card's TBOT Pack button included,
           // since it only closes this card onto the bar endGame
-          // leaves behind): Start game holds the left column;
-          // the centre column is reassembled with Jump back on
-          // top and the sound stack — Music over Bouncer —
-          // centred under it; and the Pack ’em stack returns as
-          // one unit in the right column, Reset on top, Pack ’em
-          // directly below it at the shared column width, both
-          // buttons working exactly as they always have from
-          // their stacked seats.
+          // leaves behind): Start game holds the left seat as the
+          // gold hero; the middle group is reassembled with Jump
+          // back in it and the sound stack — Music beside
+          // Bouncer — in the same row; and the Pack ’em stack
+          // returns as one unit at the right end, Reset beside
+          // Pack ’em, both buttons working exactly as they always
+          // have from their row seats.
           // The toolbar switch unwinds first: Start game takes
           // the left seat back; then Jump and the sound stack go
-          // home into the centre column, the column slots back
-          // between Start game and the right column, and the
+          // home into the middle group, the group slots back
+          // between Start game and the right-hand group, and the
           // stack takes the right end.
           toolbarEl.insertBefore(gameBtn, shakeBtn);
           if (!midStack.parentNode) {
