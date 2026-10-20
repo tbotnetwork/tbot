@@ -173,8 +173,6 @@
         -webkit-tap-highlight-color: transparent;
       }
       button:active { transform: scale(0.96); }
-      button:disabled { opacity: 0.45; cursor: default; }
-      button:disabled:active { transform: none; }
       button.primary {
         background: var(--accent);
         color: var(--accent-ink);
@@ -1602,8 +1600,7 @@
           if (toolbarLeftEl.parentNode !== toolbarEl) {
             toolbarEl.insertBefore(toolbarLeftEl, toolbarEl.firstChild);
           }
-          if (!resetBtn.parentNode) toolbarRightEl.insertBefore(resetBtn, musicBtn);
-          if (!packBtn.parentNode) toolbarRightEl.insertBefore(packBtn, musicBtn);
+          paintIdleButtons();
         }
         // The round screen is clean: no Reset, no Pack 'em, no
         // masthead — those leave the document for the whole
@@ -1797,6 +1794,12 @@
           servedLabel.textContent = "0";
           timeLabel.textContent = String(GAME_SECONDS);
           timeChip.classList.remove("low");
+          if (!tables.length) {
+            // Reset cleared the floor: PLAY seats the
+            // opening eight again before the shift is dealt.
+            for (var si = 0; si < TABLE_COUNT; si++) tables.push(makeTable(nowMs));
+            layoutTables();
+          }
           resetFloor(nowMs); // a fresh shuffle and fresh numbers for every shift
           waiter.state = "pass";
           waiter.target = null;
@@ -1910,9 +1913,16 @@
           showRestDesc();
           if (!brandLogoEl.parentNode) document.body.insertBefore(brandLogoEl, toolbarEl);
         });
+        // Reset: the tables leave the floor entirely — the
+        // room stands empty until Pack ’em seats new tables
+        // or PLAY opens a fresh shift (see startGame).
         resetBtn.addEventListener("click", function () {
           if (gameOn) return;
-          resetFloor(performance.now());
+          tables = [];
+          floats = [];
+          ticketNum = null;
+          layoutTables();
+          paintIdleButtons();
         });
 
         // ---------- Pack 'em: more tables on the floor ----------
@@ -1921,19 +1931,42 @@
         // parties at new tables, the numbers re-dealt across
         // the whole floor — up to a full house of MAX_TABLES.
         // The packed floor is the floor: it carries into the
-        // next shift as it stands, and Reset re-deals it
-        // without unseating anyone. Idle room only — the
+        // next shift as it stands, until Reset clears the
+        // tables off the floor entirely. Idle room only — the
         // button leaves the document for a round (see
-        // clearRoundChrome).
-        function paintPackBtn() {
-          var full = tables.length >= MAX_TABLES;
-          packBtn.disabled = full;
-          packBtn.textContent = full ? "Full house" : "Pack ’em";
+        // clearRoundChrome), and leaves it again whenever the
+        // house is full (see paintIdleButtons).
+        // The idle bar's buttons, kept honest: there are NO
+        // greyed-out buttons in this game — a button that
+        // cannot do anything is not on the screen at all.
+        // Reset shows only while there are tables to clear;
+        // Pack ’em only while the house still has room.
+        function paintIdleButtons() {
+          if (gameOn) return; // a round owns the bar (see clearRoundChrome)
+          var changed = false;
+          if (tables.length > 0) {
+            if (!resetBtn.parentNode) {
+              // Reset keeps its seat LEFT of Pack ’em.
+              toolbarRightEl.insertBefore(resetBtn, packBtn.parentNode ? packBtn : musicBtn);
+              changed = true;
+            }
+          } else if (resetBtn.parentNode) {
+            resetBtn.parentNode.removeChild(resetBtn);
+            changed = true;
+          }
+          if (tables.length < MAX_TABLES) {
+            if (!packBtn.parentNode) { toolbarRightEl.insertBefore(packBtn, musicBtn); changed = true; }
+            packBtn.textContent = "Pack ’em";
+          } else if (packBtn.parentNode) {
+            packBtn.parentNode.removeChild(packBtn);
+            changed = true;
+          }
+          if (changed) resize(); // the bar's height follows its buttons
         }
         function packEm() {
           if (gameOn) return;
           var add = Math.min(PACK_STEP, MAX_TABLES - tables.length);
-          if (add <= 0) { paintPackBtn(); return; }
+          if (add <= 0) { paintIdleButtons(); return; }
           var nowMs = performance.now();
           for (var i = 0; i < add; i++) {
             var t = makeTable(nowMs);
@@ -1945,7 +1978,7 @@
           dealNumbers();
           for (var j = 0; j < tables.length; j++) tables[j].numPop = 1;
           layoutTables();
-          paintPackBtn();
+          paintIdleButtons();
         }
         packBtn.addEventListener("click", packEm);
 
@@ -2064,7 +2097,7 @@
         if (ticketChip.parentNode) ticketChip.parentNode.removeChild(ticketChip);
         resize();
         resetFloor(performance.now());
-        paintPackBtn();
+        paintIdleButtons();
         showRestDesc();
         requestAnimationFrame(frame);
 
