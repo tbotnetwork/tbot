@@ -515,7 +515,7 @@
         justify-content: center;
         background: rgba(8, 10, 14, 0.45);
         z-index: 10;
-        padding: 20px;
+        padding: 12px;
       }
       .overlay[hidden] { display: none; }
       .over-card {
@@ -524,25 +524,29 @@
         backdrop-filter: blur(14px);
         -webkit-backdrop-filter: blur(14px);
         border-radius: 20px;
-        padding: 15px 20px;
+        padding: 12px 16px;
         text-align: center;
         width: 100%;
         max-width: 340px;
         box-shadow: 0 18px 50px rgba(0, 0, 0, 0.3);
-        /* The whole card fits on one screen (John's order): the
-           medium buttons plus the tightened internal spacing keep
-           every line — prize, earned, result, rank, tier,
-           stars, and all three buttons — inside the viewport with
-           no scrolling, even on a short phone. The max-height below
-           is only a last-resort guard for extreme viewports. */
-        max-height: calc(100dvh - 40px);
+        /* The whole card fits on one screen (John's order): every
+           element on the card — prize plate, earned, result, rank,
+           tier, compete, stars, and all three buttons — is sized
+           compactly enough that the full stack lands inside a
+           phone viewport with no scrolling and nothing clipped at
+           the bottom (an earlier, larger sizing pushed the bottom
+           button row off the visible screen in the in-app browser,
+           whose chrome eats into the height 100dvh reports). The
+           max-height below is only a last-resort guard for extreme
+           viewports. */
+        max-height: calc(100dvh - 24px);
         overflow-y: auto;
       }
       .over-prize {
-        font-size: 30px;
+        font-size: 24px;
         font-weight: 800;
-        line-height: 1.25;
-        margin: 0 0 8px;
+        line-height: 1.2;
+        margin: 0 0 6px;
       }
       .over-prize[hidden] { display: none; }
       /* The prize title sits on its own dark plate: gold straight
@@ -553,25 +557,28 @@
          (2026-10-18): the plate names the SHOW ONLY — no episode
          line up here (the episode lives on the Watch button
          below) and the show name is NOT a link — and it is the
-         biggest, boldest text on the card: 45px extra-bold, half
-         again its old 30px, on its own full-width line under
-         "Your last TBOT was", wrapping inside the plate so even
-         the longest show name fits the card without clipping. */
+         biggest, boldest text on the card: 34px extra-bold on its
+         own full-width line under "Your last TBOT was", wrapping
+         inside the plate so even the longest show name fits the
+         card without clipping. (It was 45px until 2026-10-20,
+         when John ordered the whole card shrunk to fit the phone
+         screen; 34px keeps it the card's headline at the new
+         compact scale.) */
       .prize-show {
         display: block;
-        margin-top: 8px;
+        margin-top: 6px;
         background: #0b1026;
         color: #ffbe1a;
-        font-size: 45px;
+        font-size: 34px;
         font-weight: 900;
-        line-height: 1.15;
-        padding: 12px 14px 14px;
+        line-height: 1.12;
+        padding: 10px 12px 11px;
         border-radius: 14px;
         box-shadow: 0 4px 14px rgba(4, 6, 16, 0.45);
         overflow-wrap: break-word;
       }
-      .over-score { font-size: 16px; margin: 10px 0 4px; }
-      .over-score strong { font-size: 23px; }
+      .over-score { font-size: 15px; margin: 8px 0 2px; }
+      .over-score strong { font-size: 20px; }
       /* The earned line renders only on a full clear (see
          endGame): on a short round it stays hidden entirely —
          no "You earned 0 Sun Chips." anywhere on the card. */
@@ -583,17 +590,17 @@
         margin: 0 0 18px;
       }
       /* The end card's actions: the Watch button sits at the
-         medium size (17px type, tap target about 46px tall) on
+         compact size (15px type, tap target about 42px tall) on
          its own full-width row on top, its episode label wrapping
          inside the button rather than overflowing the card.
          Play again and TBOT Pack sit side by side in one row
          beneath it, each about half the card's width, a LITTLE
-         bigger than the medium (John's order): 19px label type,
-         ~14px × 20px padding, ~52px tap height — a modest step
-         up only, not back to the old full-width stacked
-         overshoot. Labels, order, and behavior are unchanged —
-         only the size of those two buttons moves. */
-      .over-btns { display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch; }
+         bigger than the Watch button: 17px label type, 11px × 14px
+         padding, ~48px tap height. Labels, order, and behavior
+         are unchanged — only the sizes moved, shrunk with the
+         rest of the card on 2026-10-20 so the whole card fits
+         the phone screen. */
+      .over-btns { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
       .over-btns button,
       .over-btns a.btnlink {
         font-weight: 800;
@@ -603,42 +610,39 @@
         text-align: center;
       }
       .over-btns a.btnlink {
-        font-size: 17px;
-        padding: 12px 18px;
-        min-height: 46px;
+        font-size: 15px;
+        padding: 10px 14px;
+        min-height: 42px;
       }
       .over-btns button {
-        font-size: 19px;
-        padding: 14px 16px;
-        min-height: 52px;
-        /* One line each: at 19px the old 20px side padding left
-           "Play again" too little room in its half-width button
-           and the label wrapped onto two lines, ballooning the
-           row to ~72px — the slightly slimmer side padding (and
-           the card's trimmed side padding above) keeps both
-           labels on one line at the ~52px height intended. */
+        font-size: 17px;
+        padding: 11px 14px;
+        min-height: 48px;
+        /* One line each: the side padding leaves "Play again"
+           enough room in its half-width button to stay on one
+           line — a wrapped label would balloon the row and push
+           the card past the bottom of the screen again. */
         white-space: nowrap;
       }
       .over-btns a.btnlink { flex: 1 1 100%; }
       .over-btns button { flex: 1 1 0; min-width: 0; }
       .over-btns a.btnlink[hidden] { display: none; }
-      /* The result line, enlarged (John's order): the round's
-         figures — TBOTs in, Sun Chips, clock — in noticeably
-         bigger, heavier type (~21px, extra-bold, full ink rather
-         than the soft tone) so it reads as a headline under the
-         prize. At phone width it wraps cleanly onto two lines
-         inside the card rather than overflowing. */
+      /* The result line: the round's figures — TBOTs in, Sun
+         Chips, clock — in bigger, heavier type (18px, extra-bold,
+         full ink rather than the soft tone) so it reads as a
+         headline under the prize. At phone width it wraps cleanly
+         onto two lines inside the card rather than overflowing. */
       .over-result {
-        font-size: 21px;
+        font-size: 18px;
         font-weight: 800;
         color: var(--ink);
         line-height: 1.3;
-        margin: 0 0 10px;
+        margin: 0 0 8px;
       }
       .over-rank {
-        font-size: 20px;
+        font-size: 17px;
         font-weight: 800;
-        margin: 0 0 6px;
+        margin: 0 0 5px;
         line-height: 1.3;
       }
       .over-rank[hidden] { display: none; }
@@ -658,22 +662,22 @@
          rank; only the rank fallback (no number loaded) shows no
          tier at all. The badge POPS (John: "You can't
          really see tier. Make it pop"): a solid bright-gold fill,
-         heavy black extra-bold type at ~20px, a thick dark border,
+         heavy black extra-bold type at 16px, a dark border,
          generous padding, and a strong soft shadow/glow so it lifts
          off the card and is one of the first things the eye lands
          on after the prize. */
       .over-tier {
         display: inline-block;
-        font-size: 20px;
+        font-size: 16px;
         font-weight: 900;
         line-height: 1.2;
         letter-spacing: 0.01em;
         color: #111318;
         background: #ffbe1a;
-        border: 3px solid #14181f;
+        border: 2px solid #14181f;
         border-radius: 999px;
-        padding: 9px 22px;
-        margin: 0 0 8px;
+        padding: 7px 18px;
+        margin: 0 0 7px;
         box-shadow: 0 6px 20px rgba(255, 190, 26, 0.55), 0 3px 10px rgba(0, 0, 0, 0.35);
       }
       .over-tier[hidden] { display: none; }
@@ -688,21 +692,21 @@
          no scrolling. */
       .over-card a.over-compete {
         display: block;
-        font-size: 17px;
+        font-size: 15px;
         font-weight: 800;
         line-height: 1.15;
         text-align: center;
         text-decoration: none;
-        padding: 12px 18px;
-        min-height: 46px;
+        padding: 10px 14px;
+        min-height: 42px;
         border-radius: 14px;
-        margin: 2px 0 12px;
+        margin: 2px 0 10px;
       }
-      .rate-box { margin: 0 0 10px; }
+      .rate-box { margin: 0 0 8px; }
       .rate-label {
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 700;
-        margin: 0 0 4px;
+        margin: 0 0 2px;
       }
       .stars {
         display: flex;
@@ -713,11 +717,11 @@
         background: transparent;
         color: var(--ink-soft);
         opacity: 0.45;
-        font-size: 40px;
+        font-size: 32px;
         line-height: 1;
-        padding: 8px 7px;
-        min-width: 52px;
-        min-height: 52px;
+        padding: 5px 6px;
+        min-width: 46px;
+        min-height: 44px;
         border-radius: 12px;
       }
       button.star-btn.filled {
