@@ -261,19 +261,25 @@
       @media (prefers-reduced-motion: reduce) {
         .toolbar:not(.inround) #gameBtn { animation: none; }
       }
+      /* The round HUD (score / served / time) rides at the
+         TOP of the screen, over the kitchen header — scenery,
+         not play space — so it never covers a table. Score and
+         served sit in the top-left corner, time in the
+         top-right, leaving the centred KITCHEN sign clear
+         between them. */
       .gamehud {
         position: fixed;
-        left: 50%;
-        bottom: calc(142px + env(safe-area-inset-bottom));
-        transform: translateX(-50%);
+        top: calc(10px + env(safe-area-inset-top));
+        left: 10px;
+        right: 10px;
         display: flex;
         flex-wrap: wrap;
-        justify-content: center;
+        justify-content: flex-start;
         gap: 8px;
-        max-width: 94vw;
         pointer-events: none;
         z-index: 5;
       }
+      .hud-chip.time { margin-left: auto; }
       .gamehud[hidden] { display: none; }
       .hud-chip {
         padding: 8px 14px;
@@ -531,7 +537,14 @@
           border-radius: 15px;
         }
         #ticketChip strong { font-size: 28px; }
-        .gamehud { bottom: calc(168px + env(safe-area-inset-bottom)); }
+        .gamehud {
+          top: calc(8px + env(safe-area-inset-top));
+          left: 8px;
+          right: 8px;
+          gap: 6px;
+        }
+        .hud-chip { padding: 7px 10px; font-size: 10.5px; }
+        .hud-chip strong { font-size: 14px; margin-left: 4px; }
         .toolbar:not(.inround) {
           grid-template-columns: 1fr 1fr;
           grid-template-areas: "left right";
@@ -1474,6 +1487,49 @@
           ctx.lineWidth = 1;
           ctx.stroke();
           ctx.restore();
+          // The order ticket, held in his LEFT hand: a small
+          // white ticket card at his left side wearing the
+          // number the kitchen is calling — the tray rides at
+          // his right side, the ticket at his left, so the
+          // number he is running is right there on the TBOT
+          // at the kitchen pass. Round only: no ticket, no card.
+          if (gameOn && ticketNum != null) {
+            var kx = waiter.x - s * 0.88, ky = waiter.y - bobY - s * 0.02;
+            var kw = s * 0.82, kh2 = s * 0.64;
+            // The little arm out to the ticket.
+            ctx.strokeStyle = "#17181d";
+            ctx.lineWidth = Math.max(3, s * 0.07);
+            ctx.beginPath();
+            ctx.moveTo(waiter.x - s * 0.4, ky + kh2 * 0.1);
+            ctx.lineTo(kx + kw * 0.42, ky + kh2 * 0.1);
+            ctx.stroke();
+            ctx.save();
+            ctx.translate(kx, ky);
+            ctx.rotate(-0.07);
+            ctx.fillStyle = "#fffdf6";
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(-kw / 2, -kh2 / 2, kw, kh2, 4);
+            else ctx.rect(-kw / 2, -kh2 / 2, kw, kh2);
+            ctx.fill();
+            ctx.strokeStyle = "rgba(43,26,18,0.4)";
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
+            // The ticket's red top strip.
+            ctx.fillStyle = "#e5322d";
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(-kw / 2, -kh2 / 2, kw, kh2 * 0.26, 4);
+            else ctx.rect(-kw / 2, -kh2 / 2, kw, kh2 * 0.26);
+            ctx.fill();
+            ctx.fillRect(-kw / 2, -kh2 / 2 + kh2 * 0.13, kw, kh2 * 0.13);
+            // The called number, big and plain under the strip.
+            ctx.fillStyle = "#2b1a12";
+            ctx.font = "900 " + Math.round(kh2 * 0.52) + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(String(ticketNum), 0, kh2 * 0.16 + 1);
+            ctx.textBaseline = "alphabetic";
+            ctx.restore();
+          }
           // The tray, carried at his side while a plate is out.
           if (waiter.carrying) {
             var tx2 = waiter.x + s * 0.66, ty2 = waiter.y - bobY - s * 0.02;
