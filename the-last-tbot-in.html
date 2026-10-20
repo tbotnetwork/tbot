@@ -233,8 +233,10 @@
          play, which ate the bottom ~200px of the phone screen.
          The left column holds Start game (the gold hero,
          below), the middle holds Jump with the two sound
-         switches beside it in a row, and the right column holds
-         Reset and Pack ’em in a row. FIXED SEATS (John's order,
+         switches stacked beside it — Music directly over the
+         Bouncer, the two over each other (John's order,
+         2026-10-20) — and the right column holds Reset and
+         Pack ’em in a row. FIXED SEATS (John's order,
          later 2026-10-20: "Fix control buttons they all seemed
          to move"; and his ruling the same day: no greyed-out
          buttons — a button that cannot be used in a state is
@@ -331,12 +333,14 @@
       @media (prefers-reduced-motion: reduce) {
         .toolbar:not(.in-round) > #gameBtn { animation: none; }
       }
-      /* The middle group: ONE ROW — Jump with the sound
-         switches beside it — where the old bar stacked the
-         sound switches in a second block under Jump and doubled
-         the bar's height. The group never comes apart: free
-         play and round alike, Jump keeps this seat at the one
-         size the unscoped #shakeBtn rule below gives it. */
+      /* The middle group: Jump with the sound switches beside
+         it — the switches themselves stacked in a column,
+         Music over the Bouncer (see .sound-stack) — where the
+         old bar stacked the sound switches in a second block
+         under Jump and doubled the bar's height. The group
+         never comes apart: free play and round alike, Jump
+         keeps this seat at the one size the unscoped
+         #shakeBtn rule below gives it. */
       .mid-stack {
         display: flex;
         flex-direction: row;
@@ -349,15 +353,24 @@
          above set the same justify-self; this is the base). */
       .toolbar > #gameBtn { justify-self: start; }
       /* The sound stack: Music and the Bouncer toggle, the
-         game's two sound switches as one unit, in one row
-         beside Jump in every state. Each switch carries a
-         fixed width sized for its longer label ("Music: off",
-         "Bouncer: off"), so flipping a switch never widens or
-         narrows it and nothing beside it shifts. */
+         game's two sound switches as one unit, STACKED in a
+         column beside Jump in every state — Music directly
+         OVER the Bouncer, the two over each other (John's
+         order, 2026-10-20: "the music should be over the
+         bouncer ... so they should be over each other"). The
+         column stretches both switches to one shared width,
+         and each carries a fixed minimum sized for its longer
+         label ("Music: off", "Bouncer: off"), so flipping a
+         switch never widens or narrows it and nothing beside
+         it shifts. On a phone the stack dissolves into the
+         grid (display: contents) and the same over-each-other
+         arrangement is carried by the grid cells instead —
+         Music's cell sits directly above the Bouncer's (see
+         the phone query below). */
       .sound-stack {
         display: flex;
-        flex-direction: row;
-        align-items: center;
+        flex-direction: column;
+        align-items: stretch;
         gap: 6px;
       }
       #musicBtn { min-width: 114px; }
@@ -719,8 +732,13 @@
            desktop groups dissolve (display: contents) so each
            button sits in its own cell at the explicit
            grid-row / grid-column seat below:
-             row 1: Start game (End game in a round) · Jump · Reset
-             row 2: Pack ’em · Music · Bouncer
+             row 1: Start game (End game in a round) · Jump · Music
+             row 2: Pack ’em · Reset · Bouncer
+           Music's cell (row 1, column 3) sits directly OVER
+           the Bouncer's (row 2, column 3) — the two sound
+           switches over each other in one column (John's
+           order, 2026-10-20), the same stack the desktop bar
+           makes with its .sound-stack column.
            Every button fills its cell exactly (width and
            height 100%, min-width / min-height 0 — a grid
            item's automatic minimum is its content, so without
@@ -789,9 +807,9 @@
           border-radius: 14px;
         }
         .toolbar #shakeBtn { grid-row: 1; grid-column: 2; }
-        .toolbar #resetBtn { grid-row: 1; grid-column: 3; }
+        .toolbar #musicBtn { grid-row: 1; grid-column: 3; }
         .toolbar #addBtn { grid-row: 2; grid-column: 1; }
-        .toolbar #musicBtn { grid-row: 2; grid-column: 2; }
+        .toolbar #resetBtn { grid-row: 2; grid-column: 2; }
         .toolbar #bouncerBtn { grid-row: 2; grid-column: 3; }
         .sound-stack button { padding-left: 8px; padding-right: 8px; }
         /* Jump stays the big red target at this one size in
