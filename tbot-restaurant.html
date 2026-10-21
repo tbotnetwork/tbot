@@ -1407,52 +1407,90 @@
         // game's ONE voice for this track; no second element
         // ever rolls it in shadow, so it cannot echo against
         // itself. Sound is ON by default: every fresh session
-        // opens with the music wanted, the start is attempted
-        // on load, and the player's first touch anywhere wakes
+        // opens wanting the music, the start is attempted on
+        // load, and the player's first touch anywhere wakes
         // it if the browser held the autoplay. The toggle is
         // law inside the session — off stays off until the
         // player flips it back — but an off is never carried
         // into a new session: nothing here is stored.
+        //
+        // The label reports the ENGINE, never the wish: it
+        // reads "on" only while the track is actually
+        // sounding. A browser that holds the autoplay leaves
+        // the element paused, so the button honestly reads
+        // "off" until the first touch lands the song — then
+        // the "playing" event flips it to "on" by itself. The
+        // toggle likewise decides from the sounding state,
+        // so one tap on a held, silent game STARTS the music
+        // (the play call rides the button's own click, the
+        // gesture every browser honors) instead of switching
+        // an already-silent game "off" first.
         var musicWanted = true;
         bgMusic.loop = true;
+        function musicSounding() {
+          return !bgMusic.paused && !bgMusic.ended;
+        }
         function setMusicLabel() {
-          musicBtn.textContent = "Music: " + (musicWanted ? "on" : "off");
+          musicBtn.textContent = "Music: " + (musicSounding() ? "on" : "off");
         }
         function playMusic() {
           bgMusic.muted = false;
           bgMusic.volume = 1;
           var p = bgMusic.play();
-          if (p && p.catch) p.catch(function () { /* held by the browser — the first touch wakes it */ });
+          if (p && p.then) {
+            // Reconcile the label with the settled outcome:
+            // a held start leaves it honestly "off", a landed
+            // start turns it "on".
+            p.then(function () { setMusicLabel(); }, function () { setMusicLabel(); });
+          }
         }
         function tryStartMusic() {
           musicWanted = true;
-          setMusicLabel();
           playMusic();
+          setMusicLabel();
         }
         function stopMusic() {
           musicWanted = false;
-          setMusicLabel();
           bgMusic.pause();
+          setMusicLabel();
         }
         bgMusic.addEventListener("playing", function () {
-          if (!musicWanted) bgMusic.pause();
+          if (!musicWanted) { bgMusic.pause(); return; }
+          setMusicLabel();
         });
+        bgMusic.addEventListener("play", setMusicLabel);
+        bgMusic.addEventListener("pause", setMusicLabel);
+        bgMusic.addEventListener("ended", setMusicLabel);
+        bgMusic.addEventListener("error", setMusicLabel);
         musicBtn.addEventListener("click", function () {
-          if (musicWanted) stopMusic();
+          if (musicSounding()) stopMusic();
           else tryStartMusic();
         });
         setMusicLabel();
         playMusic(); // sound on from open; if the browser holds it, the wake below lands it
         // The first touch anywhere wakes the held song and
         // unlocks the serving sounds — the earliest moment any
-        // browser allows. It never restarts what the player
-        // switched off: it only acts while music is wanted.
-        function wakeSound() {
+        // browser allows. Every gesture kind is covered
+        // (pointer, touch, click, key): some webviews only
+        // honor the plain click or touch as a media-unlocking
+        // gesture, and a wake that misses leaves the label
+        // saying "on" over silence. It never restarts what
+        // the player switched off: it only acts while music
+        // is wanted. Taps on the Music button itself skip the
+        // wake — the button's own handler makes that call, so
+        // a wake-started song is never instantly toggled off.
+        function wakeSound(e) {
+          if (e && e.target === musicBtn) { primeSfx(); return; }
           if (musicWanted && bgMusic.paused) playMusic();
           primeSfx();
         }
         document.addEventListener("pointerdown", wakeSound, true);
+        document.addEventListener("touchend", wakeSound, true);
+        document.addEventListener("click", wakeSound, true);
         document.addEventListener("keydown", wakeSound, true);
+        document.addEventListener("visibilitychange", function () {
+          if (!document.hidden && musicWanted && bgMusic.paused) playMusic();
+        });
 
         // ---------- Serving sounds ----------
         // Small Web Audio blips, unlocked under the PLAY tap:
