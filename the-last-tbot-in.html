@@ -250,8 +250,9 @@
          seat, size, or neighbours between free play and a
          round, at any width. startGame / endGame only flip the
          bar's .in-round class: Start game trades its gold hero
-         face for the End game face in the same seat at the same
-         size, and Reset / Pack ’em LEAVE the screen for the
+         face for the End game face in the same seat (End game
+         itself is deliberately smaller than the hero — John's
+         order, 2026-10-21), and Reset / Pack ’em LEAVE the screen for the
          round (display: none — not dimmed, not greyed; their
          cells stay empty) and return to those same cells when
          the round ends. On a phone the bar is a fixed six-cell
@@ -279,8 +280,8 @@
          the face stays put and the light does the breathing.
          The :not(.in-round) guard is what keeps this off the
          End game button — in a round the same button keeps the
-         same seat and the same box (see the .in-round rule
-         below) and only trades the gold face for the plain one.
+         same seat in a smaller box (see the .in-round rule
+         below) and trades the gold face for the plain one.
          The pulse honours reduced-motion: no motion at all for
          players who ask for none. */
       .toolbar:not(.in-round) > #gameBtn {
@@ -302,19 +303,24 @@
           inset 0 -3px 0 rgba(120, 72, 0, 0.35);
         animation: startPulse 2.4s ease-in-out infinite;
       }
-      /* End game: Start game's seat and box, exactly — same
-         width, padding, and height, so the change of face never
-         moves the button or anything beside it. Only the paint
-         changes: the plain button face, no pulse. */
+      /* End game: Start game's seat, but a SMALLER box (John's
+         order, 2026-10-21: "The end game button is too big") —
+         a regular control's footprint instead of the hero's:
+         narrower, shorter, smaller type, still left-aligned in
+         the same seat so nothing beside it moves (the toolbar's
+         height is carried by Jump and the sound stack, and the
+         grid's side columns are unchanged). Plain button face,
+         no pulse — only Start game wears the gold hero. */
       .toolbar.in-round > #gameBtn {
         justify-self: start;
-        font-size: 20px;
-        font-weight: 900;
-        letter-spacing: 0.04em;
-        padding: 15px 26px;
-        width: 188px;
-        min-height: 54px;
-        border-radius: 15px;
+        align-self: center;
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+        padding: 10px 18px;
+        width: 132px;
+        min-height: 42px;
+        border-radius: 12px;
         background: var(--btn-bg);
         color: var(--btn-ink);
         border: 3px solid transparent;
@@ -828,14 +834,19 @@
         .toolbar.in-round > #gameBtn {
           grid-row: 1;
           grid-column: 1;
-          justify-self: stretch;
-          font-size: 19px;
+          /* Smaller than its cell (John's order, 2026-10-21):
+             the fixed tracks don't change, so Jump, Music, and
+             the Bouncer keep their exact boxes — End game just
+             sits smaller, centred in the same cell. */
+          justify-self: center;
+          align-self: center;
+          font-size: 16px;
           letter-spacing: 0.01em;
-          padding: 12px 8px;
-          width: 100%;
-          height: 100%;
+          padding: 10px 8px;
+          width: 88%;
+          height: 40px;
           min-height: 0;
-          border-radius: 14px;
+          border-radius: 12px;
         }
         .toolbar #shakeBtn { grid-row: 1; grid-column: 2; }
         .toolbar #musicBtn { grid-row: 1; grid-column: 3; }
