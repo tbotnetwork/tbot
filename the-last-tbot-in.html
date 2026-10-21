@@ -2231,16 +2231,22 @@
         // player) the voice fires on Jump exactly as it always
         // has; OFF, Jump presses are silent — no voice — while
         // the jump itself, the capture ladder, the music and
-        // every other sound are untouched. The choice persists
-        // per device in localStorage, so a player who turns it
-        // off finds it off next visit. The switch is fully
+        // every other sound are untouched. The switch is fully
         // independent of Music: neither toggle reads or writes
         // the other's state.
+        // SOUND NEVER STARTS OFF (John's order, 2026-10-21: "Now
+        // all the games sound is off it should be on"): the
+        // switch is a per-session choice only. Every fresh
+        // session starts with the voice ON — an OFF from an
+        // earlier session never carries over into a silent
+        // start. Any "off" an older build stored on this device
+        // is wiped at load, and the toggle below no longer
+        // writes one: flipping it silences the voice for this
+        // visit only, and the next visit starts ON again.
         var BOUNCER_KEY = "theLastTbotInBouncer";
         var bouncerOn = true;
-        try {
-          bouncerOn = window.localStorage.getItem(BOUNCER_KEY) !== "off";
-        } catch (e) { /* storage blocked — the default (on) stands for this visit */ }
+        try { window.localStorage.removeItem(BOUNCER_KEY); }
+        catch (e) { /* storage blocked — nothing stored, the ON default stands */ }
         function setBouncerLabel() {
           bouncerBtn.textContent = bouncerOn ? "Bouncer: on" : "Bouncer: off";
         }
@@ -2248,8 +2254,6 @@
         bouncerBtn.addEventListener("click", function () {
           bouncerOn = !bouncerOn;
           setBouncerLabel();
-          try { window.localStorage.setItem(BOUNCER_KEY, bouncerOn ? "on" : "off"); }
-          catch (e) { /* storage blocked — the choice still holds for this visit */ }
         });
         // Read-only status for testing: the switch's live state.
         window.TBOTBouncer = function () { return { on: bouncerOn }; };
