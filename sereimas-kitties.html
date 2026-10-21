@@ -180,6 +180,29 @@
         z-index: 6;
       }
       .game-title[hidden] { display: none; }
+      /* The game's name where the logo would go: top centre of
+         the start screen, as clean styled text — no picture, no
+         box, no panel (John's order). It belongs to free play:
+         startGame hides it for the round (the bare .game-title
+         above carries the name in the corner then) and endGame
+         brings it back, exactly like the direction box. Sits
+         above the canvas but never intercepts taps. */
+      .brand-title {
+        position: fixed;
+        top: calc(16px + env(safe-area-inset-top));
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 40px;
+        line-height: 1.15;
+        font-weight: 900;
+        letter-spacing: 0.01em;
+        color: var(--ink);
+        text-shadow: 0 2px 14px var(--page-bg), 0 0 4px var(--page-bg);
+        white-space: nowrap;
+        pointer-events: none;
+        z-index: 6;
+      }
+      .brand-title[hidden] { display: none; }
       .toolbar {
         position: fixed;
         left: 50%;
@@ -225,8 +248,10 @@
          seat, size, or neighbours between free play and a
          round, at any width. startGame / endGame only flip the
          bar's .in-round class: Start game trades its gold hero
-         face for the End game face in the same seat at the same
-         size, and Reset / Pack ’em LEAVE the screen for the
+         face for the smaller End game button in the same seat
+         (John's order, 2026-10-20: the End game button is
+         smaller — it shrinks inside its own column, so nothing
+         beside it moves), and Reset / Pack ’em LEAVE the screen for the
          round (display: none — not dimmed, not greyed; their
          cells stay empty) and return to those same cells when
          the round ends. On a phone the bar is a fixed six-cell
@@ -254,8 +279,8 @@
          the face stays put and the light does the breathing.
          The :not(.in-round) guard is what keeps this off the
          End game button — in a round the same button keeps the
-         same seat and the same box (see the .in-round rule
-         below) and only trades the gold face for the plain one.
+         same seat but a smaller box (see the .in-round rule
+         below) and trades the gold face for the plain one.
          The pulse honours reduced-motion: no motion at all for
          players who ask for none. */
       .toolbar:not(.in-round) > #gameBtn {
@@ -277,19 +302,25 @@
           inset 0 -3px 0 rgba(120, 72, 0, 0.35);
         animation: startPulse 2.4s ease-in-out infinite;
       }
-      /* End game: Start game's seat and box, exactly — same
-         width, padding, and height, so the change of face never
-         moves the button or anything beside it. Only the paint
-         changes: the plain button face, no pulse. */
+      /* End game: Start game's seat — the bar's left edge, in
+         the same grid column — but a SMALLER button (John's
+         order, 2026-10-20: "Make the endgame smaller button"):
+         a compact plain-face control instead of the hero's
+         full box. Shrinking it moves nothing beside it: the
+         button is start-aligned inside its own 1fr column, so
+         Jump stays on the bar's centre line and the right-hand
+         group keeps its seat exactly. Only the paint differs
+         besides the size: the plain button face, no pulse. */
       .toolbar.in-round > #gameBtn {
         justify-self: start;
-        font-size: 20px;
-        font-weight: 900;
-        letter-spacing: 0.04em;
-        padding: 15px 26px;
-        width: 188px;
-        min-height: 54px;
-        border-radius: 15px;
+        align-self: center;
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        padding: 10px 16px;
+        width: 124px;
+        min-height: 40px;
+        border-radius: 12px;
         background: var(--btn-bg);
         color: var(--btn-ink);
         border: 3px solid transparent;
@@ -364,8 +395,27 @@
         align-items: stretch;
         gap: 6px;
       }
-      #musicBtn { min-width: 114px; }
-      #bouncerBtn { min-width: 130px; }
+      /* Both sound switches wear a SMALLER box (John's order,
+         2026-10-20: "Make the music in the bounce button
+         smaller") — the same treatment the End game button
+         got: reduced font, padding, and fixed widths inside
+         the stack's unchanged seat at the right-hand group's
+         end, so the stack order (Music directly over the
+         Bouncer), Jump's centre seat, and every other button
+         stay exactly where they were. The labels stay fully
+         readable at 13px, and each fixed minimum is still
+         sized for its longer label ("Music: off",
+         "Bouncer: off"), so flipping a switch never widens
+         or narrows it. On a phone the two sit smaller inside
+         their fixed grid cells instead of filling them (see
+         the phone query below). */
+      .sound-stack button {
+        font-size: 13px;
+        padding: 9px 11px;
+        border-radius: 10px;
+      }
+      #musicBtn { min-width: 98px; }
+      #bouncerBtn { min-width: 110px; }
       /* Reset and Pack ’em in a round: OFF the screen entirely
          (John's ruling, 2026-10-20: no greyed-out buttons — if
          a button cannot be used in a state, it is not on the
@@ -549,9 +599,10 @@
       }
       .over-score { font-size: 15px; margin: 8px 0 2px; }
       .over-score strong { font-size: 20px; }
-      /* The earned line renders only on a full clear (see
-         endGame): on a short round it stays hidden entirely —
-         no "You earned 0 Sun Chips." anywhere on the card. */
+      /* The earned line never renders at all (see endGame):
+         the Sun Chips jackpot is off the screen entirely
+         (John's order, 2026-10-20) — no "You earned … Sun
+         Chips." anywhere on the card. */
       .over-score[hidden] { display: none; }
       .over-best {
         font-size: 13px;
@@ -592,8 +643,8 @@
       .over-btns a.btnlink { flex: 1 1 100%; }
       .over-btns button { flex: 1 1 0; min-width: 0; }
       .over-btns a.btnlink[hidden] { display: none; }
-      /* The result line: the round's figures — TBOTs in, Sun
-         Chips, clock — in bigger, heavier type (18px, extra-bold,
+      /* The result line: the round's figures — cats in, clock —
+         in bigger, heavier type (18px, extra-bold,
          full ink rather than the soft tone) so it reads as a
          headline under the prize. At phone width it wraps cleanly
          onto two lines inside the card rather than overflowing. */
@@ -754,7 +805,8 @@
         /* Start game keeps the hero treatment on a narrow phone
            too, a touch smaller (the Garden's phone PLAY size),
            filling its cell exactly; End game takes the same
-           cell at the same size in a round. The side padding
+           cell in a round but sits smaller inside it (see the
+           .in-round rule below). The side padding
            narrows so the longer "Start game" label fits its
            column in both states. */
         .toolbar:not(.in-round) > #gameBtn {
@@ -769,23 +821,57 @@
           min-height: 0;
           border-radius: 14px;
         }
+        /* End game on a phone: the same cell (row 1, column 1)
+           but a SMALLER button inside it (John's order,
+           2026-10-20) — start-aligned and centred in the cell
+           instead of filling it, so the fixed tracks keep
+           every other button exactly where it was. */
         .toolbar.in-round > #gameBtn {
           grid-row: 1;
           grid-column: 1;
-          justify-self: stretch;
-          font-size: 19px;
+          justify-self: start;
+          align-self: center;
+          font-size: 15px;
           letter-spacing: 0.01em;
-          padding: 12px 8px;
-          width: 100%;
-          height: 100%;
+          padding: 9px 12px;
+          width: auto;
+          height: auto;
           min-height: 0;
-          border-radius: 14px;
+          border-radius: 12px;
         }
         .toolbar #shakeBtn { grid-row: 1; grid-column: 2; }
-        .toolbar #musicBtn { grid-row: 1; grid-column: 3; }
         .toolbar #addBtn { grid-row: 2; grid-column: 1; }
         .toolbar #resetBtn { grid-row: 2; grid-column: 2; }
-        .toolbar #bouncerBtn { grid-row: 2; grid-column: 3; }
+        /* Music and the Bouncer on a phone: the same cells
+           (row 1 / row 2, column 3 — Music still directly
+           OVER the Bouncer) but SMALLER buttons inside them
+           (John's order, 2026-10-20) — centred in the cell at
+           their natural size instead of filling it, exactly
+           how End game sits smaller inside its cell above.
+           The fixed tracks keep every other button exactly
+           where it was. */
+        .toolbar #musicBtn {
+          grid-row: 1;
+          grid-column: 3;
+          justify-self: center;
+          align-self: center;
+          width: auto;
+          height: auto;
+          font-size: 12.5px;
+          padding: 9px 10px;
+          border-radius: 10px;
+        }
+        .toolbar #bouncerBtn {
+          grid-row: 2;
+          grid-column: 3;
+          justify-self: center;
+          align-self: center;
+          width: auto;
+          height: auto;
+          font-size: 12.5px;
+          padding: 9px 10px;
+          border-radius: 10px;
+        }
         .sound-stack button { padding-left: 8px; padding-right: 8px; }
         /* Jump stays the big red target at this one size in
            free play and in a round alike — it fills its cell —
@@ -800,6 +886,13 @@
         .gamehud { bottom: calc(168px + env(safe-area-inset-bottom)); }
         .hint { font-size: 12.5px; }
         .game-title { font-size: 16.5px; }
+        /* On a phone the centred name drops below the direction
+           box (which owns the top-left corner at this width) so
+           the two never collide, still centred on the screen. */
+        .brand-title {
+          font-size: 27px;
+          top: calc(150px + env(safe-area-inset-top));
+        }
       }
     </style>
   </head>
@@ -816,13 +909,15 @@
 
     <div class="hint" id="hint">
       Sereima's Kitties
-      <small id="hintSub">Hit Jump and the cats fly. Start a game, then jump them into the hole in the middle of the screen. You only get all the Sun Chips if you get all of them in.</small>
+      <small id="hintSub">Hit Jump and the cats fly. Start a game, then jump them into the hole in the middle of the screen.</small>
       <small id="playsLabel" hidden></small>
       <small id="codeLabel" hidden>Player code: <strong id="codeValue"></strong> <button class="linkbtn" id="restoreToggle" type="button">Restore</button></small>
       <small id="restoreRow" hidden><input id="restoreInput" type="text" maxlength="8" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Your code" aria-label="Your player code" /><button class="linkbtn" id="restoreApply" type="button">Apply code</button> <span id="restoreMsg"></span></small>
     </div>
 
     <div class="game-title" id="gameTitle" hidden>Sereima's Kitties</div>
+
+    <div class="brand-title" id="brandTitle">Sereima's Kitties</div>
 
     <div class="toolbar">
       <button id="gameBtn" type="button">Start game</button>
@@ -841,7 +936,6 @@
 
     <div class="gamehud" id="gameHud" hidden>
       <span class="hud-chip">IN <strong id="inLabel">0/15</strong></span>
-      <span class="hud-chip">SUN CHIPS JACKPOT <strong id="scoreLabel">15</strong></span>
       <span class="hud-chip time" id="timeChip">TIME <strong id="timeLabel">35</strong></span>
     </div>
 
@@ -883,9 +977,9 @@
         var hintEl = document.getElementById("hint");
         var hintSub = document.getElementById("hintSub");
         var gameTitleEl = document.getElementById("gameTitle");
+        var brandTitleEl = document.getElementById("brandTitle");
         var gameBtn = document.getElementById("gameBtn");
         var gameHud = document.getElementById("gameHud");
-        var scoreLabel = document.getElementById("scoreLabel");
         var inLabel = document.getElementById("inLabel");
         var timeLabel = document.getElementById("timeLabel");
         var timeChip = document.getElementById("timeChip");
@@ -4232,7 +4326,6 @@
           gameScore = 0;
           inCount = 0;
           lastJoke = null;
-          scoreLabel.textContent = GAME_COUNT; // the jackpot at stake — paid only if all get in
           inLabel.textContent = "0/" + GAME_COUNT;
           timeLabel.textContent = GAME_SECONDS;
           timeChip.classList.remove("low");
@@ -4298,7 +4391,8 @@
           // endGame brings the box back for free play.
           hintEl.hidden = true;
           gameTitleEl.hidden = false;
-          hintSub.textContent = "Game on — 15 cats, 35 seconds. Hit Jump to bounce them into the hole in the middle. You only get all the Sun Chips if you get all of them in. The last cat in tells a cat joke.";
+          brandTitleEl.hidden = true;
+          hintSub.textContent = "Game on — 15 cats, 35 seconds. Hit Jump to bounce them into the hole in the middle. The last cat in tells a cat joke.";
         }
 
         function endGame(allIn) {
@@ -4346,26 +4440,17 @@
           // corner and the bare round title steps away.
           hintEl.hidden = false;
           gameTitleEl.hidden = true;
+          brandTitleEl.hidden = false;
           // All-or-nothing: every TBOT in pays the full jackpot; anything
           // short of all of them pays zero Sun Chips. The payout posts
-          // to the scorebook below unchanged. On this card the earned
-          // line under the prize shows ONLY when the player actually
-          // earned — on a full clear it reads "You earned 15 Sun
-          // Chips." exactly as before (John's order, 2026-10-18:
-          // "Keep, you earned 15 Sun Chips"), but on any short round
-          // it does not render at all (John's later order the same
-          // day: "Take out - You earned 0 Sun Chips.") — no zero
-          // earned line anywhere on the card. The result line below
-          // carries the chips between the TBOT count and the clock
-          // ONLY on a short round ("N TBOTs in · 0 Sun Chips · Ss
-          // left on the clock") — on a full clear the kept earned
-          // line above it already carries the chips, so the result
-          // line drops its Sun Chips segment entirely and reads
-          // "15 TBOTs in · Ss left on the clock" (John's order,
-          // 2026-10-18: "Take out - 15 Sun chips" — the "15 Sun
-          // Chips" string appears exactly once on the win card).
-          // Display only: the payout and its scorebook post above
-          // are unchanged.
+          // to the scorebook below unchanged. But the Sun Chips jackpot
+          // is OFF THE SCREEN entirely (John's order, 2026-10-20:
+          // "Take out the Sunship jackpot on the screen of the game"):
+          // the earned line under the prize never renders — not on a
+          // full clear, not on a short round — and the result line
+          // below drops its Sun Chips segment in both cases, reading
+          // "N cats in · Ss left on the clock". Display only: the
+          // payout and its scorebook post are unchanged.
           // Two lines were removed from the card by John's order
           // (2026-10-18): the game-name line ("The Last TBOT In" —
           // it still stands in the lobby and top-left during
@@ -4389,11 +4474,9 @@
           roundPosted = false;
           postedRound = null;
           resetRating(); // fresh stars on every round's card
-          earnedLine.hidden = gameScore !== GAME_COUNT;
-          earnedLine.textContent = gameScore === GAME_COUNT ? "You earned " + gameScore + " Sun Chips." : "";
-          resultLine.textContent = gameScore === GAME_COUNT
-            ? finalIn + " cats in · " + timeLeft + "s left on the clock"
-            : finalIn + " cats in · " + gameScore + " Sun Chips · " + timeLeft + "s left on the clock";
+          earnedLine.hidden = true;
+          earnedLine.textContent = "";
+          resultLine.textContent = finalIn + " cats in · " + timeLeft + "s left on the clock";
           // The personal best is still tracked on this device
           // (recordBest above), but its line no longer renders
           // anywhere — John's order (2026-10-18): "Take out -
