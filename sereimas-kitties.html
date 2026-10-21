@@ -1120,7 +1120,7 @@
       <div class="left-stack" id="leftStack">
         <button id="gameBtn" type="button">Start game</button>
         <div class="sound-stack" id="soundStack">
-          <button id="musicBtn" type="button">Music: off</button>
+          <button id="musicBtn" type="button">Music: on</button>
           <button id="bouncerBtn" type="button">Bouncer: on</button>
         </div>
       </div>
@@ -1941,16 +1941,21 @@
         // player) the voice fires on Jump exactly as it always
         // has; OFF, Jump presses are silent — no voice — while
         // the jump itself, the capture ladder, the music and
-        // every other sound are untouched. The choice persists
-        // per device in localStorage, so a player who turns it
-        // off finds it off next visit. The switch is fully
+        // every other sound are untouched. The switch is fully
         // independent of Music: neither toggle reads or writes
         // the other's state.
+        // John's order, 2026-10-21 ("all the games sound is off
+        // it should be on"): the switch ALWAYS starts ON in a
+        // fresh session. An OFF choice is never stored and never
+        // carried into the next session — it holds only until
+        // the page closes. (An earlier build persisted the
+        // choice in localStorage, so one tap on a past visit
+        // silenced every later visit.) Any copy stored by that
+        // earlier build is wiped on load, unread.
         var BOUNCER_KEY = "catInTheHoleBouncer";
         var bouncerOn = true;
-        try {
-          bouncerOn = window.localStorage.getItem(BOUNCER_KEY) !== "off";
-        } catch (e) { /* storage blocked — the default (on) stands for this visit */ }
+        try { window.localStorage.removeItem(BOUNCER_KEY); }
+        catch (e) { /* storage blocked — nothing stored, the default (on) stands */ }
         function setBouncerLabel() {
           bouncerBtn.textContent = bouncerOn ? "Bouncer: on" : "Bouncer: off";
         }
@@ -1958,8 +1963,7 @@
         bouncerBtn.addEventListener("click", function () {
           bouncerOn = !bouncerOn;
           setBouncerLabel();
-          try { window.localStorage.setItem(BOUNCER_KEY, bouncerOn ? "on" : "off"); }
-          catch (e) { /* storage blocked — the choice still holds for this visit */ }
+          // Session-only by John's order above: nothing is stored.
         });
         // Read-only status for testing: the switch's live state.
         window.CATBouncer = function () { return { on: bouncerOn }; };
@@ -3124,12 +3128,23 @@
         // from the same tap as a guaranteed-audible UNDERLAY at low
         // volume: the media element plays on the phone's media
         // channel, which the silent switch does not mute. If the Web
-        // Audio clock confirms, the underlay hands over — it stops
-        // and Web Audio carries the track alone at full volume. If
-        // confirmation never comes (a watchdog gives it 2.5 s), the
-        // underlay is promoted to the music itself at full volume.
-        // Either way a Start press ends with the track genuinely
-        // audible, or the button honestly saying "off".
+        // Audio clock confirms, the underlay is promoted — it takes
+        // the track at full volume and Web Audio stands down (an
+        // earlier build retired the underlay here and let Web Audio
+        // carry alone, which is exactly how the muted-route case
+        // above ended in silence under an "on" label: the player
+        // had to switch Music off and back on to hear anything —
+        // John's report, 2026-10-21). If confirmation never comes
+        // (a watchdog gives it 2.5 s), the underlay is promoted the
+        // same way. Either way a Start press ends with the track
+        // genuinely audible on the media channel, or the button
+        // honestly saying "off": the label follows the element's
+        // own playing state once a start has been requested, so it
+        // can never read "on" over silence. Before any start, the
+        // switch reads "on" — sound is armed ON for every fresh
+        // session (John's order, 2026-10-21: "all the games sound
+        // is off it should be on"), and no OFF choice is ever
+        // stored or carried into a later session.
         var musicWanted = true;   // off only when the player switches it off
         var startRequested = false; // true once Start game (or the Music switch) asks for music
         var musicPlaying = false; // true only once playback is confirmed
@@ -3145,7 +3160,14 @@
         }
 
         function setMusicLabel() {
-          musicBtn.textContent = musicPlaying ? "Music: on" : "Music: off";
+          // ON while playback is confirmed, and ON at load as the
+          // armed state of a fresh session (musicWanted, nothing
+          // requested yet — John's order: sound is ON by default).
+          // Once a start HAS been requested, only the audio's real
+          // playing state may read "on": a start that lands silent
+          // drops the label to "off" honestly, never a stored flag
+          // painting "on" over silence.
+          musicBtn.textContent = (musicPlaying || (musicWanted && !startRequested)) ? "Music: on" : "Music: off";
         }
         function confirmPlaying(on) {
           if (musicPlaying !== on) {
@@ -3230,9 +3252,19 @@
           var t0 = actx.currentTime;
           setTimeout(function () {
             if (musicNode && actx.state === "running" && actx.currentTime > t0) {
-              musicEngine = "webaudio";
-              confirmPlaying(true);
-              retireUnderlay(); // Web Audio is really rendering — it carries the track alone from here
+              // Web Audio is rendering — but a running clock cannot
+              // prove the sound reaches the player's ears (the
+              // muted-route case in the header note: the clock
+              // advances, the label said "on", the player heard
+              // nothing, and only an off→on toggle brought sound
+              // up). So the element — already sounding from the
+              // Start tap on the phone's media channel, the route
+              // that reaches the ears in every browser — is
+              // promoted to carry the track at full volume, and
+              // Web Audio stands down. From here the label follows
+              // the element's own playing/paused events, so "on"
+              // always means genuinely sounding.
+              promoteElement();
             }
           }, 400);
         }
@@ -3407,6 +3439,7 @@
         });
 
         loadBuffer(); // decode now; the first tap then starts instantly
+        setMusicLabel(); // a fresh session's switch reads "Music: on" — sound armed ON at load
 
         // Read-only status for testing: which engine is live, whether
         // playback is confirmed, and the context's state and clock.
