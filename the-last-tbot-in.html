@@ -3508,9 +3508,25 @@
           var t0 = actx.currentTime;
           setTimeout(function () {
             if (musicNode && actx.state === "running" && actx.currentTime > t0) {
-              musicEngine = "webaudio";
-              confirmPlaying(true);
-              retireUnderlay(); // Web Audio is really rendering — it carries the track alone from here
+              // The clock advancing proves Web Audio is RENDERING —
+              // it does not prove the player can HEAR it: inside
+              // some phone webviews Web Audio rides a muted route
+              // (the silent-switch case in the note above), so a
+              // start could confirm here, retire the element, and
+              // leave the button saying "on" over silence — the
+              // player's "it says on but it's really off", woken
+              // only by switching Music off and back on (a fresh
+              // start). So the clock no longer retires anything:
+              // the element — the media-channel route that reaches
+              // the player's ears in every browser — is PROMOTED
+              // to carry the track at full volume, Web Audio
+              // stops, and from here the button's word is driven
+              // by the element's own playing/pause events, so the
+              // label and the audible state cannot split. (John's
+              // order, 2026-10-21: the label and the real audio
+              // state agree; at Start the audio actually plays
+              // with the toggles untouched.)
+              promoteElement();
             }
           }, 400);
         }
