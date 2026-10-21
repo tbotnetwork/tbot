@@ -735,7 +735,7 @@
       <div class="tb-side right">
         <button id="addBtn" type="button">+ TBOT</button>
         <button id="resetBtn" type="button">Reset</button>
-        <button id="musicBtn" type="button">Music: off</button>
+        <button id="musicBtn" type="button">Music: on</button>
       </div>
     </div>
 
@@ -3574,13 +3574,17 @@
         // Start tap:
         //  1. Web Audio — the track is fetched, decoded into a
         //     buffer and played from a buffer source at full
-        //     volume. This is the primary engine whenever it
-        //     proves it is rendering.
+        //     volume. It PROVES the start: a running context
+        //     with an advancing clock means the tap unlocked
+        //     audio and the track is rendering.
         //  2. The <audio> element — started alongside as a quiet
         //     UNDERLAY on the phone's media channel, and promoted
         //     to the full-volume engine the moment Web Audio
-        //     fails to prove itself (missing, undecodable, stuck,
-        //     or dropped).
+        //     proves itself OR fails to (missing, undecodable,
+        //     stuck, or dropped): the element is the carrier
+        //     whenever a start lands, because it is the one
+        //     route that is certainly heard (see the muted-route
+        //     note below).
         // Sound can only start inside a tap, and the player
         // wants it to come on ONLY when they press PLAY — so
         // nothing else ever starts it: not TORCH, not + TBOT,
@@ -3588,10 +3592,13 @@
         // the Music button itself, the player's own switch. A
         // Start press arms the request (startRequested): if the
         // clip is still decoding at that moment, playback begins
-        // the instant it is ready. Playback is CONFIRMED before
-        // the button may say "on": for Web Audio that means the
-        // context is running and its clock is actually advancing
-        // — a start() call alone proves nothing.
+        // the instant it is ready. No separate Music tap is ever
+        // needed first: PLAY itself is the start. Playback is
+        // CONFIRMED by proof, not by a start() call: for Web
+        // Audio that means the context is running and its clock
+        // is actually advancing — and even that proof only ever
+        // hands the track to the element (below), so a confirmed
+        // "on" always rests on the element really playing.
         // One case the clock check can never prove: a context
         // that RUNS and renders into a muted route. Inside some
         // phone webviews Web Audio rides the ringer/silent
@@ -3602,14 +3609,43 @@
         // same tap as a guaranteed-audible UNDERLAY at low
         // volume: the media element plays on the phone's media
         // channel, which the silent switch does not mute. If the
-        // Web Audio clock confirms, the underlay hands over — it
-        // stops and Web Audio carries the track alone at full
-        // volume. If confirmation never comes (a watchdog gives
-        // it 2.5 s), the underlay is promoted to the music
-        // itself at full volume. Either way a Start press ends
-        // with the track genuinely audible, or the button
-        // honestly saying "off".
-        var musicWanted = true;   // off only when the player switches it off
+        // Web Audio clock confirms, the underlay is PROMOTED —
+        // it rises to full volume and carries the track alone
+        // while Web Audio stops: the clock proved rendering,
+        // never audibility, so the track is never left riding
+        // the route that might be muted. (An earlier build let
+        // a confirmed clock retire the underlay and carry the
+        // track on Web Audio alone — in a muted route that left
+        // the button reading "on" over silence until the player
+        // switched it off and back on.) If confirmation never
+        // comes (a watchdog gives it 2.5 s), the underlay is
+        // promoted the same way. Either way a Start press ends
+        // with the track genuinely audible on the media channel,
+        // or the button honestly saying "off" — "on" now always
+        // means the element is playing.
+        // THE GROUND-TRUTH RULE (the off-but-says-on repair):
+        // the element is judged ONLY by its real state — paused
+        // or sounding, and its clock advancing — never by the
+        // optimistic elementLive flag, which startElement sets
+        // before play() settles. A play() that silently never
+        // starts (a promise left hanging by a webview, playback
+        // interrupted before the "playing" event) used to leave
+        // that flag standing true forever: promotion took its
+        // "already sounding" branch, confirmed "on", and never
+        // called play() again — the button read "on" over a
+        // paused element until the player switched it off and
+        // back on (the off press was the only path that cleared
+        // the flag). The same hole swallowed a system pause
+        // mid-round: the pause was noted, nothing restarted the
+        // track, and the label stayed "on". Now promotion and
+        // every later start consult bgMusic.paused itself, and
+        // an element watchdog (armElementWatchdog) keeps
+        // verifying the carrier is actually sounding while the
+        // switch is on: it restarts a stalled element, and only
+        // when restarts are refused does the outcome turn
+        // "silent", so the button honestly reads "off" instead
+        // of lying over silence.
+        var musicWanted = true;   // ON by default in every fresh session — never read from storage, so a prior session's off can never carry over; off only when the player switches it off
         var startRequested = false; // true once PLAY (or the Music switch) asks for music
         var musicPlaying = false; // true only once playback is confirmed
         var musicEngine = "none"; // "webaudio" | "element" once a start lands
@@ -3624,15 +3660,22 @@
           try { window.navigator.audioSession.type = "playback"; } catch (e) { /* older browser — nothing to set */ }
         }
 
+        // The button reads the SWITCH, and the switch is ON from
+        // the moment the page opens — sound is on by default, so
+        // a fresh session never opens reading "off". The one
+        // exception is a start that PROVED silent (every route
+        // refused): then the button honestly reads "off" until
+        // the player switches it on again, so the label can
+        // never sit at "on" over known silence.
         function setMusicLabel() {
-          musicBtn.textContent = musicPlaying ? "Music: on" : "Music: off";
+          musicBtn.textContent = (musicWanted && musicOutcome !== "silent") ? "Music: on" : "Music: off";
         }
         function confirmPlaying(on) {
+          if (on) musicOutcome = "playing";
           if (musicPlaying !== on) {
             musicPlaying = on;
             setMusicLabel();
           }
-          if (on) musicOutcome = "playing";
         }
 
         // --- Web Audio engine ---
@@ -3706,15 +3749,22 @@
         }
 
         // Prove sound is being rendered: the context is running
-        // AND its clock moved since the check was armed.
+        // AND its clock moved since the check was armed. The
+        // clock proves RENDERING, never audibility — a context
+        // can run and advance while its route is muted (the
+        // muted-route case above) — so a confirmed clock must
+        // never leave Web Audio carrying the track alone under
+        // an "on" label. Instead, confirmation PROMOTES the
+        // element: the track hands over to the media channel at
+        // full volume and Web Audio stops, so whenever the
+        // button says "on", the element — the route that is
+        // certainly heard — is the one playing.
         function verifyClock() {
           if (!actx || !musicNode) return;
           var t0 = actx.currentTime;
           setTimeout(function () {
             if (musicNode && musicWanted && actx.state === "running" && actx.currentTime > t0) {
-              musicEngine = "webaudio";
-              confirmPlaying(true);
-              retireUnderlay(); // Web Audio is really rendering — it carries the track alone from here
+              promoteElement(); // Web Audio is rendering — hand the track to the certainly-audible element
             }
           }, 400);
         }
@@ -3760,13 +3810,13 @@
         // round exactly like the Web Audio path. It starts life
         // as the UNDERLAY described above: quiet (0.25), started
         // inside the same tap as the Web Audio attempt, so the
-        // tap's gesture covers both engines. Two fates: Web
-        // Audio confirms and the underlay stops
-        // (retireUnderlay), or the watchdog finds Web Audio
-        // unconfirmed and promotes the underlay to the music
-        // itself at full volume (promoteElement). An "element"
-        // engine label means the element is the one carrying
-        // the track at full volume.
+        // tap's gesture covers both engines. One fate, reached
+        // two ways: the underlay is PROMOTED to the music itself
+        // at full volume (promoteElement) — by verifyClock the
+        // moment Web Audio proves it is rendering, or by the
+        // watchdog when Web Audio fails to prove itself in
+        // 2.5 s. An "element" engine label means the element is
+        // the one carrying the track at full volume.
         bgMusic.loop = true;
         var UNDERLAY_VOL = 0.25;
 
@@ -3777,7 +3827,7 @@
           var p = bgMusic.play();
           if (p && p.catch) p.catch(function () {
             elementLive = false;
-            if (musicEngine === "element") { confirmPlaying(false); musicOutcome = "silent"; }
+            if (musicEngine === "element") { confirmPlaying(false); musicOutcome = "silent"; setMusicLabel(); }
           });
         }
 
@@ -3789,15 +3839,30 @@
 
         function promoteElement() {
           if (!musicWanted) return; // the toggle is law — a promotion can never sound a track the player switched off
-          if (musicEngine === "element") { bgMusic.volume = 1; return; }
+          if (musicEngine === "element") {
+            bgMusic.volume = 1;
+            // Already the engine — but if the element itself
+            // has stopped, restart it: the engine label alone
+            // never counts as sounding (the ground-truth rule).
+            if (bgMusic.paused) startElement(1);
+            armElementWatchdog();
+            return;
+          }
           musicEngine = "element";
           stopWebAudio();
-          if (elementLive || !bgMusic.paused) {
+          // Judged by the element's REAL state, never the
+          // optimistic elementLive flag: a sounding element is
+          // promoted where it stands; a paused one — including
+          // an underlay whose play() silently never started —
+          // is (re)started for real, and its "playing" event
+          // confirms.
+          if (!bgMusic.paused) {
             bgMusic.volume = 1;
             confirmPlaying(true);
           } else {
             startElement(1); // its "playing" event confirms
           }
+          armElementWatchdog();
         }
 
         // The watchdog: give Web Audio 2.5 s from a start to
@@ -3818,17 +3883,71 @@
           if (watchdogTimer) { clearTimeout(watchdogTimer); watchdogTimer = null; }
         }
 
+        // The element watchdog — the ground-truth rule's
+        // enforcer. While the element is the engine and the
+        // switch is on, it samples the element's real state:
+        // not paused AND its clock advancing means the track
+        // is genuinely sounding, and the watchdog stands down.
+        // Anything else — a play() that silently never
+        // started, a system pause mid-round, a stalled clock —
+        // earns a restart, and the restart is verified the
+        // same way. Restarts are capped: a carrier that refuses
+        // to sound after two restarts turns the outcome
+        // "silent", so the button honestly reads "off" (and
+        // the player's next Music press, a fresh tap, starts
+        // it for real) instead of sitting at "on" over
+        // silence. A confirmed "playing" resets the cap.
+        var elementWatchdogTimer = null;
+        var elementRetries = 0;
+        var elementCheckTime = -1; // the element's clock at the last sample
+        function armElementWatchdog() {
+          if (elementWatchdogTimer) return;
+          elementCheckTime = bgMusic.currentTime || 0;
+          elementWatchdogTimer = setTimeout(function () {
+            elementWatchdogTimer = null;
+            if (!musicWanted || musicEngine !== "element") return;
+            var t = bgMusic.currentTime || 0;
+            if (!bgMusic.paused && t > elementCheckTime) {
+              elementRetries = 0;
+              confirmPlaying(true);
+              return; // genuinely sounding — nothing left to prove
+            }
+            if (elementRetries >= 2) {
+              confirmPlaying(false);
+              musicOutcome = "silent";
+              setMusicLabel(); // the button honestly reads "off"
+              return;
+            }
+            elementRetries++;
+            startElement(1); // a refusal lands in startElement's rejection path, which turns the outcome "silent"
+            armElementWatchdog(); // verify the restart landed, too
+          }, 1200);
+        }
+        function disarmElementWatchdog() {
+          if (elementWatchdogTimer) { clearTimeout(elementWatchdogTimer); elementWatchdogTimer = null; }
+        }
+
         bgMusic.addEventListener("playing", function () {
           // If the element ever sounds while the player has the
           // music switched off, it is paused on the spot — the
           // toggle is law on every path, expected or not.
           if (!musicWanted) { bgMusic.pause(); return; }
           elementLive = true;
+          elementRetries = 0; // a real start clears the watchdog's restart cap
           if (musicEngine === "element") confirmPlaying(true);
         });
         bgMusic.addEventListener("pause", function () {
           elementLive = false;
-          if (musicEngine === "element") confirmPlaying(false);
+          if (musicEngine === "element") {
+            confirmPlaying(false);
+            // A pause the player did not ask for (an
+            // interruption, the webview re-routing its audio
+            // session) must not leave the track dead under an
+            // "on" label: the watchdog tries to bring the
+            // carrier back, and only a refused restart turns
+            // the label honestly to "off".
+            if (musicWanted && startRequested) armElementWatchdog();
+          }
         });
         bgMusic.addEventListener("ended", function () {
           // With looping on this never fires mid-play; kept as a
@@ -3847,8 +3966,13 @@
           if (!musicWanted) return;
           startRequested = true; // called only from PLAY / the Music switch
           musicOutcome = "starting";
+          elementRetries = 0; // a fresh start attempt earns fresh restarts
+          setMusicLabel(); // a fresh attempt clears any earlier "silent" verdict off the button
           if (musicEngine === "element") { // Web Audio already lost its turn this session
-            if (!elementLive) startElement(1);
+            // Judged by the element's real state: a paused
+            // carrier is restarted, never assumed sounding.
+            if (bgMusic.paused) startElement(1);
+            armElementWatchdog();
             return;
           }
           // The underlay goes first, inside this same tap, so
@@ -3873,12 +3997,21 @@
 
         function stopMusic() {
           disarmWatchdog();
+          disarmElementWatchdog();
+          elementRetries = 0;
           stopWebAudio();
           elementLive = false;
           bgMusic.pause();
           confirmPlaying(false);
           musicOutcome = "idle";
           startRequested = false; // switching off DISARMS any pending start — a late decode can never resurrect the track
+          // Repaint the button HERE, unconditionally: when the
+          // track was not confirmed playing (the idle street,
+          // a start still proving itself), confirmPlaying
+          // above changes nothing and so never repaints — the
+          // button would go on reading "Music: on" over a
+          // switch the player just turned off.
+          setMusicLabel();
         }
 
         // No page-wide tap listener: PLAY calls tryStartMusic()
@@ -3895,15 +4028,26 @@
           }
         });
         musicBtn.addEventListener("click", function () {
-          // The switch answers to the player's INTENT alone: if
-          // the music is wanted, this press turns it off; if it
-          // is not, this press turns it on. (Keying the
-          // off-branch on transient playback state instead made
-          // a press that landed while a start was still proving
-          // itself fall into the ON branch and start the track
-          // the player meant to keep off — the family's
-          // self-flip lesson.)
-          if (musicWanted) {
+          // The switch answers to the LABEL the player sees —
+          // the displayed state, not the raw wanted flag. The
+          // label reads "on" exactly when the music is wanted
+          // AND no start has proved silent; it reads "off" both
+          // when the player switched it off AND when a start
+          // proved silent (the honest-off verdict). Keying the
+          // press on musicWanted alone broke the second case
+          // in both directions: with a silent verdict standing,
+          // wanted was still true, so a press meant to turn the
+          // music ON fell into the off branch and did nothing
+          // audible — the player had to press off, then on.
+          // (Keying the off-branch on transient playback state
+          // instead made a press that landed while a start was
+          // still proving itself fall into the ON branch and
+          // start the track the player meant to keep off — the
+          // family's self-flip lesson.) One press now always
+          // does what the label promises: reads "on" → off;
+          // reads "off" → on, started inside this very tap.
+          var labelOn = musicWanted && musicOutcome !== "silent";
+          if (labelOn) {
             musicWanted = false;
             stopMusic();
           } else {
@@ -3912,6 +4056,7 @@
           }
         });
 
+        setMusicLabel(); // the street opens with the switch reading as it stands: on
         loadBuffer(); // decode now; the first tap then starts instantly
 
         // Read-only status for testing: which engine is live,
