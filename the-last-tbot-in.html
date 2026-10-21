@@ -740,10 +740,18 @@
         line-height: 1.15;
         text-align: center;
         text-decoration: none;
+        white-space: normal;
         padding: 10px 14px;
         min-height: 42px;
         border-radius: 14px;
         margin: 2px 0 10px;
+      }
+      /* The button's second line (John's order): "Competition"
+         stands on its own line and "Screenshot & upload here"
+         sits directly under it — the label is two stacked
+         lines, never one long line that overflows the card. */
+      .over-card a.over-compete .compete-sub {
+        display: block;
       }
       .rate-box { margin: 0 0 8px; }
       .rate-label {
@@ -986,7 +994,7 @@
         <p class="over-result" id="resultLine"></p>
         <p class="over-rank" id="rankLine" hidden></p>
         <p class="over-tier" id="tierLine" hidden></p>
-        <a class="btnlink over-compete" id="competeBtn" href="https://ig.me/m/tbotgamevr" target="_blank" rel="noopener">Screenshot &amp; upload here</a>
+        <a class="btnlink over-compete" id="competeBtn" href="https://ig.me/m/tbotgamevr" target="_blank" rel="noopener">Competition<span class="compete-sub">Screenshot &amp; upload here</span></a>
 
         <div class="rate-box">
           <p class="rate-label">Rate this game:</p>
