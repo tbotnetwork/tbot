@@ -371,6 +371,23 @@
         line-height: 1.3;
       }
       .over-score[hidden] { display: none; }
+      /* The rank line sits under the score line, exactly as
+         on TBOT Garden's card, and it HOLDS its full 20px/800
+         in every fit tier below — the tiers recover its space
+         from the other lines' spacing instead of shrinking
+         the ranking the player came to see. */
+      .over-rank {
+        font-size: 20px;
+        font-weight: 800;
+        margin: 0 0 6px;
+        line-height: 1.3;
+      }
+      .over-rank[hidden] { display: none; }
+      .over-rank.note {
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--ink-soft);
+      }
       .over-mode {
         font-size: 18px;
         font-weight: 800;
@@ -476,6 +493,7 @@
         .over-prize span { padding: 7px 14px 9px; }
         .over-result { font-size: 20px; margin-bottom: 7px; }
         .over-score { font-size: 20px; margin-bottom: 4px; }
+        .over-rank { font-size: 20px; margin-bottom: 4px; }
         .over-mode { font-size: 17px; margin-bottom: 6px; }
         .over-tier { font-size: 19px; padding: 8px 20px; margin-bottom: 6px; }
         .rate-box { margin-bottom: 7px; }
@@ -491,6 +509,8 @@
         .over-prize span { padding: 6px 12px 8px; }
         .over-result { font-size: 18px; margin-bottom: 5px; }
         .over-score { font-size: 20px; margin-bottom: 3px; }
+        .over-rank { font-size: 20px; margin-bottom: 3px; }
+        .over-rank.note { font-size: 12.5px; }
         .over-mode { font-size: 15px; margin-bottom: 4px; }
         .over-tier { font-size: 17px; padding: 6px 16px; border-width: 2px; margin-bottom: 4px; }
         .rate-box { margin-bottom: 5px; }
@@ -508,6 +528,7 @@
         .over-prize span { padding: 5px 10px 7px; }
         .over-result { font-size: 16px; margin-bottom: 4px; }
         .over-score { font-size: 20px; margin-bottom: 2px; }
+        .over-rank { font-size: 20px; margin-bottom: 2px; }
         .over-mode { font-size: 14px; margin-bottom: 3px; }
         .over-tier { font-size: 15px; padding: 5px 14px; margin-bottom: 3px; }
         .rate-box { margin-bottom: 4px; }
@@ -604,6 +625,7 @@
         <p class="over-result over-nocatch" id="noServeLine" hidden>No tables served this shift — the kitchen kept its plates.</p>
         <p class="over-result" id="resultLine"></p>
         <p class="over-score" id="scoreLine"></p>
+        <p class="over-rank" id="rankLine" hidden></p>
         <p class="over-tier" id="tierLine" hidden></p>
         <p class="over-mode" id="bestLine" hidden></p>
         <div class="rate-box">
@@ -650,6 +672,7 @@
         var noServeLine = document.getElementById("noServeLine");
         var resultLine = document.getElementById("resultLine");
         var scoreLine = document.getElementById("scoreLine");
+        var rankLine = document.getElementById("rankLine");
         var bestLine = document.getElementById("bestLine");
         var tierLine = document.getElementById("tierLine");
         var watchBtn = document.getElementById("watchBtn");
@@ -799,8 +822,10 @@
         // tag of 8 lowercase hex characters, generated on first
         // load and stored in localStorage under the same key. It
         // is a random ID only — no name, no fingerprinting — and
-        // it is never shown anywhere in the game. It is minted
-        // and stored now for the future scorebook.
+        // it is never shown anywhere in the game. Scorebook
+        // posts carry it in the Name field ("Guest-<tag>"), so
+        // individual players can be counted in the sheet
+        // without anyone ever being named.
         var DEVICE_TAG_KEY = "tbotDeviceTag";
         var deviceTag = null;
         function getDeviceTag() {
@@ -825,19 +850,434 @@
         }
         getDeviceTag(); // first load mints the tag; later loads reuse it
 
-        // ---------- Scorebook: DISABLED ----------
-        // The scorebook ships DISABLED behind this one config
-        // object: no form endpoint is configured, so no score
-        // posts are ever attempted and the end card shows NO
-        // rank line — personal best only — exactly until this
-        // game gets its OWN scorebook later. Do NOT point this
-        // at any other game's form or sheet.
-        var SCOREBOOK = {
-          // postUrl: "",  // no endpoint configured — posting disabled
-          // readUrl: ""   // no endpoint configured — ranking disabled
-        };
+        // ---------- Scorebook: the public ranking ----------
+        // This game's OWN book (TBOT Restaurant — Scores),
+        // wired exactly the way TBOT Garden wires its: every
+        // finished shift posts one row to a Google Form feeding
+        // a Sheet John owns — the player's device tag as the
+        // name ("Guest-<tag>"), tables served (the shift's
+        // count), Sun Chips 0, Time Left 0, and the player's
+        // star rating — and the game reads the whole sheet back
+        // to tell the player where they landed: "You rank #N of
+        // M players". The standing is PER PLAYER: each device
+        // tag's BEST tables-served count across the whole book,
+        // ranked among all the distinct tags in the book (M =
+        // those tags). All of it is fire-and-forget: a slow or
+        // failed scorebook never blocks, delays, or breaks the
+        // game or the trip to the show, and any failure just
+        // hides quietly.
+        //
+        // THE RANKING BREAK (TBOT Garden's lesson, found
+        // 2026-10-17): a read-back on fetch() is CORS-gated.
+        // Google's gviz endpoint answers a normal Origin with an
+        // Access-Control-Allow-Origin echo, but for Origin: null
+        // — exactly what a sandboxed iframe sends, and this game
+        // is played inside one (the Muse shell, in-app webviews)
+        // — it sends NO such header at all. So in the real player
+        // context every fetch read is refused by the browser,
+        // while the no-cors score POST lands fine. The repair is
+        // a second transport that CORS cannot gate: the same gviz
+        // read loaded as a <script> with a responseHandler
+        // callback (JSONP — the transport Google's own
+        // Visualization API uses). The rank read rotates roads —
+        // fetch, script tag, CSV, script tag — under a per-read
+        // watchdog, so one blocked or hung road can never stall
+        // the rank.
+        var SCORE_POST_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdlBlHhZ2t1NQfSj0heKLfgqbvaS_kEudTYKJhQMQJwWawG0Q/formResponse";
+        var SCORE_READ_URL = "https://docs.google.com/spreadsheets/d/1hpTnwxL_vmL0kPj6bqSQfADgqcfwwk80THrwroxH7GY/gviz/tq?tqx=out:json&sheet=Form%20Responses%201";
+        // The second road to the same sheet: its CSV export
+        // endpoint — some networks and webviews that never answer
+        // the gviz JSON read still serve the CSV, so when the JSON
+        // read has failed through its retries, the ranking tries
+        // this before giving up.
+        var SCORE_CSV_URL = "https://docs.google.com/spreadsheets/d/1hpTnwxL_vmL0kPj6bqSQfADgqcfwwk80THrwroxH7GY/gviz/tq?tqx=out:csv&sheet=Form%20Responses%201";
+        var lastShiftRound = null;    // { served } of the shift just ended
+        var shiftRoundPosted = true;  // false while a finished shift is still unposted
+        var postedShiftRound = null;  // snapshot actually sent, name included
+        // This sequence is bumped by EVERY shift-end post, and a
+        // rank read loop only ever paints while its own post is
+        // still the latest — so a slow chain from the previous
+        // card can never overwrite the rank of the shift now on
+        // screen.
+        var rankCardSeq = 0;
+        // The rank's arrival bookkeeping: the stamp of the
+        // latest shift-end post and how long its rank took to
+        // resolve (−1 while still pending — read back as
+        // TBOTRestaurantState().rankMs). There is NO hard
+        // deadline on the chain: a rank that arrives late still
+        // repaints the card, even over the fallback line.
+        var rankPostStamp = 0;
+        var rankResolvedMs = -1;
+        // THE ZERO CARD RANKS NOTHING (TBOT Garden's rule): when
+        // the shift just posted served no tables, its card
+        // crowns and ranks NOTHING — no rank line, no "You rank
+        // #…", no fallback text, no gold tier pill, no empty
+        // rank slot. The score still posts to the book and the
+        // read chain still runs exactly as always (bookkeeping
+        // unchanged); only the painting is suppressed, at every
+        // paint site below. Set fresh by every post, from that
+        // shift's served count.
+        var rankCardHidden = false;
+
         function scorebookEnabled() {
-          return !!(SCOREBOOK && SCOREBOOK.postUrl && SCOREBOOK.readUrl);
+          return !!(SCORE_POST_URL && SCORE_READ_URL);
+        }
+
+        // One scorebook cell as a number, or null. gviz types each
+        // column from the sheet's contents, so a value the form
+        // wrote as a number can come back as a STRING ("15")
+        // whenever the column reads as text — accept both, or
+        // whole rows silently vanish and the ranking never loads.
+        function cellNum(c, idx) {
+          if (!c || !c[idx]) return null;
+          var v = c[idx].v;
+          if (typeof v === "number") return v;
+          if (typeof v === "string" && v.trim() !== "") {
+            var n = Number(v);
+            if (isFinite(n)) return n;
+          }
+          return null;
+        }
+
+        // Read every posted score. cb gets an array of
+        // { name, served, sunchips, timeLeft }, or null on any
+        // failure.
+        function fetchScores(cb) {
+          // Cache-bust every read: without it the gviz endpoint
+          // (and the phone's HTTP cache in front of it) can hand
+          // back a snapshot taken BEFORE the player's own row
+          // landed, and the rank read looks broken even though
+          // the post worked.
+          var url = SCORE_READ_URL + "&_cb=" + Date.now() + Math.floor(Math.random() * 1000000);
+          fetch(url)
+            .then(function (r) { return r.text(); })
+            .then(function (text) {
+              // The answer is JS-wrapped: google.visualization
+              // .Query.setResponse({...}) — slice out the JSON and
+              // parse it.
+              var a = text.indexOf("{"), b = text.lastIndexOf("}");
+              if (a < 0 || b <= a) { cb(null); return; }
+              var data = JSON.parse(text.slice(a, b + 1));
+              // No table in the payload (an error page, a sign-in
+              // wall, a truncated answer) is a FAILED read, not an
+              // empty scorebook — say so, so the caller retries
+              // instead of ranking the player against nobody.
+              cb(scoresFromGvizData(data));
+            })
+            .catch(function () { cb(null); });
+        }
+
+        // Turn one parsed gviz payload into the score list, or
+        // null when the payload carries no table (an error page,
+        // a sign-in wall, a truncated answer) — a FAILED read,
+        // not an empty scorebook, so callers retry instead of
+        // ranking the player against nobody. Shared by the fetch
+        // read and the script-tag read below, which receive the
+        // same table. The sheet's columns are the form's:
+        // Timestamp, Name, Tables Served, Sun Chips, Time
+        // Left (then Stars).
+        function scoresFromGvizData(data) {
+          if (!data || !data.table || !data.table.rows) return null;
+          var rows = data.table.rows;
+          var out = [];
+          for (var i = 0; i < rows.length; i++) {
+            var c = rows[i] && rows[i].c;
+            if (!c || c.length < 5) continue;
+            var chips = cellNum(c, 3);
+            if (chips === null) continue; // the header row, or a rating-only row
+            out.push({
+              name: c[1] && c[1].v != null ? String(c[1].v) : "",
+              served: cellNum(c, 2) || 0,
+              sunchips: chips,
+              timeLeft: cellNum(c, 4) || 0
+            });
+          }
+          return out;
+        }
+
+        // --- The script-tag road: the same gviz read, no fetch ---
+        // The endpoint takes a responseHandler name and answers
+        // with JS that calls it with the payload — loaded as a
+        // <script>, it is not a fetch, so CORS never gets a vote.
+        // This is the road that works from inside the sandboxed
+        // iframe the game actually ships in, where the fetch read
+        // is refused for Origin: null (see the scorebook header
+        // note). Same contract as fetchScores: cb gets the score
+        // array, or null on any failure (error, or silence past
+        // the timeout).
+        var SCORE_JSONP_URL = "https://docs.google.com/spreadsheets/d/1hpTnwxL_vmL0kPj6bqSQfADgqcfwwk80THrwroxH7GY/gviz/tq?tqx=out:json%3BresponseHandler:";
+        var jsonpSeq = 0;
+        function fetchScoresJsonp(cb) {
+          var name = "__tbotRankCb" + (++jsonpSeq);
+          var script = document.createElement("script");
+          var done = false;
+          var timer = setTimeout(function () { finish(null); }, 9000);
+          function finish(scores) {
+            if (done) return;
+            done = true;
+            clearTimeout(timer);
+            try { delete window[name]; } catch (e) { window[name] = undefined; }
+            if (script.parentNode) script.parentNode.removeChild(script);
+            cb(scores);
+          }
+          window[name] = function (data) { finish(scoresFromGvizData(data)); };
+          script.onerror = function () { finish(null); };
+          script.src = SCORE_JSONP_URL + name + "&sheet=Form%20Responses%201&_cb=" +
+            Date.now() + Math.floor(Math.random() * 1000000);
+          document.head.appendChild(script);
+        }
+
+        // --- The CSV road: same sheet, export endpoint ---
+        // A small RFC-4180 parser: quoted fields, doubled quotes,
+        // commas and newlines inside quotes, CRLF endings.
+        function parseCsv(text) {
+          var rows = [], row = [], field = "", inQ = false;
+          for (var i = 0; i < text.length; i++) {
+            var ch = text.charAt(i);
+            if (inQ) {
+              if (ch === '"') {
+                if (text.charAt(i + 1) === '"') { field += '"'; i++; }
+                else inQ = false;
+              } else {
+                field += ch;
+              }
+            } else if (ch === '"') {
+              inQ = true;
+            } else if (ch === ",") {
+              row.push(field); field = "";
+            } else if (ch === "\n" || ch === "\r") {
+              if (ch === "\r" && text.charAt(i + 1) === "\n") i++;
+              row.push(field); field = "";
+              rows.push(row); row = [];
+            } else {
+              field += ch;
+            }
+          }
+          if (field !== "" || row.length) { row.push(field); rows.push(row); }
+          return rows;
+        }
+
+        function csvNum(s) {
+          if (s == null) return null;
+          var t = String(s).trim();
+          if (t === "") return null;
+          var n = Number(t);
+          return isFinite(n) ? n : null;
+        }
+
+        // Same contract as fetchScores — an array of
+        // { name, served, sunchips, timeLeft }, or null on
+        // failure — read from the CSV export. The sheet's columns
+        // are the form's: Timestamp, Name, Tables Served, Sun
+        // Chips, Time Left (then Stars) — the same indexes the
+        // gviz reader uses.
+        function fetchScoresCsv(cb) {
+          var url = SCORE_CSV_URL + "&_cb=" + Date.now() + Math.floor(Math.random() * 1000000);
+          fetch(url)
+            .then(function (r) { return r.text(); })
+            .then(function (text) {
+              // An HTML error or sign-in page is a failed read,
+              // not an empty scorebook.
+              if (!text || text.charAt(0) === "<") { cb(null); return; }
+              var rows = parseCsv(text);
+              var out = [];
+              for (var i = 0; i < rows.length; i++) {
+                var f = rows[i];
+                if (!f || f.length < 5) continue;
+                var chips = csvNum(f[3]);
+                if (chips === null) continue; // the header row, or a rating-only row
+                out.push({
+                  name: f[1] != null ? String(f[1]) : "",
+                  served: csvNum(f[2]) || 0,
+                  sunchips: chips,
+                  timeLeft: csvNum(f[4]) || 0
+                });
+              }
+              cb(out);
+            })
+            .catch(function () { cb(null); });
+        }
+
+        var RANK_RETRY_DELAYS = [2500, 3500, 4500];
+        // The attempts ROTATE through the read roads — gviz
+        // fetch, script-tag read, CSV fetch, script-tag read
+        // again — instead of hammering one road four times: in
+        // the sandboxed iframe the game ships in, the fetch roads
+        // are refused outright (see the scorebook header note),
+        // so the rank reaches the script-tag road on the second
+        // attempt instead of never. A per-read watchdog (9 s)
+        // also treats a read that never answers — a hung
+        // connection on a phone — as failed and moves on.
+        // There is NO hard deadline: the rotation runs until a
+        // road answers, and a rank that lands late still repaints
+        // the card — even one already showing the fallback.
+        // `sawRead` tracks whether ANY road has produced a
+        // field yet: the fallback line is only for the case
+        // where no road ever answered.
+        var RANK_READERS = [fetchScores, fetchScoresJsonp, fetchScoresCsv, fetchScoresJsonp];
+
+        // ---------- Posting a finished shift ----------
+        // Every finished shift posts one row to the book (the
+        // vars are declared with the scorebook block above):
+        // Name = "Guest-<device tag>", Tables Served = the
+        // shift's served count, Sun Chips = 0, Time Left = 0,
+        // Stars = the rating. There is no name field to fill
+        // in — every shift posts on its own at shift end, and
+        // the next PLAY flushes a still-unposted shift first,
+        // as a safety net (see flushPosts). The standing is PER
+        // PLAYER: a player's standing is their BEST tables
+        // served across the whole book, ranked among all the
+        // distinct tags in the book (M = those tags), with the
+        // same fallback line when the book cannot be read. The
+        // gold badge is NOT part of the standing: it keys off
+        // the shift's own served count (see serveTier below),
+        // so it paints with the card and stands however the
+        // rank read resolves — fallback included.
+        function postShiftScore() {
+          if (shiftRoundPosted || !lastShiftRound) return;
+          shiftRoundPosted = true;
+          var name = "Guest-" + getDeviceTag();
+          postedShiftRound = {
+            name: name,
+            served: lastShiftRound.served
+          };
+          var myRankSeq = ++rankCardSeq; // this card is now the latest — older rank chains go quiet
+          rankPostStamp = performance.now();
+          rankResolvedMs = -1;
+          rankCardHidden = lastShiftRound.served === 0; // a zero-serve card ranks nothing (see the note above)
+          if (rankCardHidden) {
+            rankLine.hidden = true;
+            tierLine.hidden = true;
+          } else {
+            rankLine.classList.add("note");
+            rankLine.hidden = false;
+            rankLine.textContent = "Posting your score…";
+            // The pill paints NOW, from the shift's served
+            // count — it never waits on the rank read.
+            paintServeTier(lastShiftRound.served);
+          }
+          var body = new URLSearchParams();
+          body.append("entry.1437789421", name);
+          body.append("entry.1946304897", String(lastShiftRound.served));
+          body.append("entry.1711070378", "0");
+          body.append("entry.1387946616", "0");
+          body.append("entry.1144116170", String(rating));
+          try {
+            fetch(SCORE_POST_URL, { method: "POST", mode: "no-cors", body: body })
+              .catch(function () { /* no-cors: the rank read-back is the receipt */ });
+          } catch (e) { /* the rank read-back below still runs */ }
+          // Give the new row a moment to land, then read the
+          // field back (fetchShiftRank keeps retrying with
+          // backoff from there).
+          setTimeout(function () {
+            fetchShiftRank(0, postedShiftRound, false, myRankSeq);
+          }, 2000);
+          // No hard deadline sits over the chain: the card may
+          // rest on "Posting your score…" while the roads
+          // rotate, the fallback paints only when every road
+          // has failed and no read ever landed, and a rank
+          // that arrives after that still repaints the card.
+        }
+
+        // The standing from one fetched field: each tag's best
+        // tables-served count across the WHOLE book — every
+        // posted row counts toward its tag's best; the player's
+        // own just-posted count counts in locally until their
+        // row is truly on the board. Returns whether the
+        // player's own row was found in the book.
+        function showShiftRank(scores) {
+          if (rankResolvedMs < 0) rankResolvedMs = performance.now() - rankPostStamp; // the rank arrived — stamp how long it took
+          var bestByTag = {};
+          for (var i = 0; i < scores.length; i++) {
+            var s = scores[i];
+            if (bestByTag[s.name] === undefined || s.served > bestByTag[s.name]) {
+              bestByTag[s.name] = s.served;
+            }
+          }
+          var mine = postedShiftRound;
+          var myBookBest = bestByTag[mine.name];
+          var found = myBookBest !== undefined && myBookBest >= mine.served;
+          var myBest = Math.max(myBookBest || 0, mine.served);
+          var better = 0, tags = 0;
+          for (var tag in bestByTag) {
+            if (!Object.prototype.hasOwnProperty.call(bestByTag, tag)) continue;
+            tags++;
+            if (tag !== mine.name && bestByTag[tag] > myBest) better++;
+          }
+          var rank = better + 1;
+          var total = tags + (myBookBest === undefined ? 1 : 0);
+          if (rankCardHidden) {
+            // The zero card ranks nothing: the standing was
+            // still computed (the bookkeeping stands), but no
+            // rank line and no pill ever paint on this card.
+            rankLine.hidden = true;
+            tierLine.hidden = true;
+            return found;
+          }
+          rankLine.classList.remove("note");
+          rankLine.hidden = false;
+          rankLine.textContent = rank === 1
+            ? "You rank #1 of " + total + (total === 1 ? " player" : " players") + " — top of the board!"
+            : "You rank #" + rank + " of " + total + " players";
+          // The pill is NOT painted from this rank — it keys
+          // off the shift's served count and was already
+          // painted at post time; re-assert it from the count
+          // so the card's pill always matches its own "You
+          // served N tables", never its rank.
+          paintServeTier(mine.served);
+          return found;
+        }
+
+        // The rank read loop: the rotating roads, the backoff,
+        // the per-read watchdog, and the fallback RANK line when
+        // no road ever answers. The fallback governs the rank
+        // line only — the tier pill keys off the served count
+        // and is untouched by it.
+        function fetchShiftRank(attempt, mine, sawRead, seq) {
+          if (!postedShiftRound || postedShiftRound !== mine || seq !== rankCardSeq) return;
+          var reader = RANK_READERS[Math.min(attempt, RANK_READERS.length - 1)];
+          var answered = false;
+          var watchdog = setTimeout(function () { handle(null); }, 9000);
+          reader(function (scores) { handle(scores); });
+          function handle(scores) {
+            if (answered) return;
+            answered = true;
+            clearTimeout(watchdog);
+            if (!postedShiftRound || postedShiftRound !== mine || seq !== rankCardSeq) return;
+            var ok = !!sawRead || !!scores;
+            if (scores) {
+              var found = showShiftRank(scores);
+              if (found) return; // the player's own row is on the board — done
+            }
+            if (attempt < RANK_RETRY_DELAYS.length) {
+              setTimeout(function () { fetchShiftRank(attempt + 1, mine, ok, seq); }, RANK_RETRY_DELAYS[attempt]);
+            } else if (!ok) {
+              // Every road failed — the fallback is the last resort.
+              if (rankResolvedMs < 0) rankResolvedMs = performance.now() - rankPostStamp;
+              if (rankCardHidden) {
+                // The zero card ranks nothing — not even the
+                // fallback line paints on it.
+                rankLine.hidden = true;
+                tierLine.hidden = true;
+              } else {
+                rankLine.classList.add("note");
+                rankLine.hidden = false;
+                rankLine.textContent = "Score posted — the ranking couldn't be loaded just now.";
+                // The pill stands on the count even here — the
+                // fallback speaks for the rank line alone.
+                paintServeTier(mine.served);
+              }
+            }
+            // If reads landed but the row never appeared, the rank
+            // on the card already counts the player's own count in
+            // — it stands as shown.
+          }
+        }
+
+        // Flush any finished shift that never posted (the
+        // safety net, called at the top of every PLAY).
+        function flushPosts() {
+          if (!shiftRoundPosted && lastShiftRound) postShiftScore();
         }
 
         // ---------- Personal best (this device, best shift) ----------
@@ -870,10 +1310,21 @@
           return isNew;
         }
 
-        // ---------- Star rating (stored on this device for now) ----------
-        // Five tappable gold stars on the end card. With the
-        // scorebook disabled, the rating is kept only on this
-        // device until a scorebook is wired later.
+        // ---------- Star rating (end-of-shift card) ----------
+        // Five tappable gold stars on the end card. The rating
+        // is remembered on this device and the card opens with
+        // it filled in; tapping a star sets the rating again.
+        // The value also reaches the scorebook two ways, TBOT
+        // Garden's ways: it rides the shift's own row when the
+        // shift posts (see postShiftScore), and a tap posts it
+        // to the SAME scorebook form as its own submission
+        // carrying the Stars field plus the same "Guest-<tag>"
+        // Name the score posts with — so a rating tapped after
+        // the shift's row has gone still lands in the book, and
+        // ratings can be counted per player just like scores.
+        // Fire-and-forget, exactly like the score posting: a
+        // failure stays silent and nothing on the card ever
+        // waits on it.
         var RATING_KEY = "tbotRestaurantRating";
         var rating = 0; // 0 = not rated yet
         try {
@@ -898,9 +1349,13 @@
           try {
             window.localStorage.setItem(RATING_KEY, String(n));
           } catch (e) { /* storage blocked — the rating stands for the session */ }
-          // No scorebook post: the scorebook is disabled (see
-          // SCOREBOOK) — the rating stays on this device for now.
-          if (scorebookEnabled()) { /* a future scorebook post lands here */ }
+          var body = new URLSearchParams();
+          body.append("entry.1437789421", "Guest-" + getDeviceTag());
+          body.append("entry.1144116170", String(n));
+          try {
+            fetch(SCORE_POST_URL, { method: "POST", mode: "no-cors", body: body })
+              .catch(function () { /* silent — the card never waits on the scorebook */ });
+          } catch (e) { /* silent, same as the score posting */ }
         }
         for (var sb = 0; sb < starBtns.length; sb++) {
           starBtns[sb].addEventListener("click", function () {
@@ -1786,6 +2241,7 @@
         // (new shuffle, new numbers), and the kitchen prints
         // the first ticket.
         function startGame() {
+          flushPosts();
           tryStartMusic();
           primeSfx();
           var nowMs = performance.now();
@@ -1831,10 +2287,9 @@
         // pressed). One ending per round. The card is the
         // family prize-first pattern: the tip plate ("Your
         // Tip:" + the show), the result line, the score line,
-        // the gold badge from the round's served count, the
-        // local best line, the stars, and the buttons. The
-        // scorebook is disabled (see SCOREBOOK), so the card
-        // carries NO rank line — personal best only.
+        // the rank line from the book, the gold badge from the
+        // round's served count, the local best line, the
+        // stars, and the buttons.
         function endGame() {
           if (!gameOn) return;
           var finalScore = score;
@@ -1884,9 +2339,20 @@
           // The badge paints with the card, from the round's
           // own served count.
           paintServeTier(finalServed);
-          // No scorebook post: the scorebook is disabled (see
-          // SCOREBOOK) — this game gets its own book later.
-          if (scorebookEnabled()) { /* a future scorebook post lands here */ }
+          // The book: this shift posts its row (Tables Served
+          // = the shift's served count, Sun Chips 0, Time
+          // Left 0) and the card shows the ranking once the
+          // field is read back. On a zero-serve card,
+          // postShiftScore suppresses every rank paint (see
+          // rankCardHidden in the scorebook block), so no rank
+          // line ever appears there — the score still posts
+          // to the book exactly as always.
+          lastShiftRound = { served: finalServed };
+          shiftRoundPosted = false;
+          postedShiftRound = null;
+          rankLine.classList.remove("note");
+          rankLine.hidden = true;
+          postShiftScore();
           if (finalServed > 0) {
             noServeLine.hidden = true;
             resultLine.hidden = false;
@@ -2129,6 +2595,7 @@
             best: storedBest,
             seenEpisodes: seenCount,
             scorebookEnabled: scorebookEnabled(),
+            rankMs: rankResolvedMs,
             musicWanted: musicWanted,
             musicPlaying: !bgMusic.paused
           };
