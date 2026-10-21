@@ -3560,25 +3560,38 @@
           return true;
         }
 
-        // ---------- Scorebook: DISABLED ----------
-        // The scorebook ships DISABLED behind this one config
-        // object: no form endpoint is configured, so no score
-        // posts are ever attempted, no sheet reads ever run,
-        // and the end card shows NO rank line — exactly until
-        // this game gets its OWN scorebook later. Do NOT point
-        // this at any other game's form or sheet — above all
-        // not The Last TBOT In's book: this game's engine was
-        // copied from that game, and its scorebook endpoints
-        // came along in the copy; they are GONE from this file,
-        // so nothing here can read or write that book. Every
-        // transport below checks scorebookEnabled() first and
-        // answers null without touching the network while the
-        // config is empty, and the drivers (postScore,
-        // warmBook) stand down entirely — no rank is computed,
-        // no "couldn't be loaded" fallback note is painted.
+        // ---------- Scorebook: Sereima's Kitties' OWN book ----------
+        // This game has its OWN scorebook now — its own Google
+        // Form feeding its own Sheet — wired through this one
+        // config object. It is NOT The Last TBOT In's book and
+        // nothing here reads or writes that one: the posting and
+        // reading mechanics below are the main game's, copied
+        // from its implementation, but every endpoint and field
+        // code in this file is THIS game's own. Every finished
+        // round posts one row as "Guest-<tag>" (the per-device
+        // tag above — no names, ever), then the game reads the
+        // whole sheet back (gviz JSON) to tell the player where
+        // they landed: "You rank #N of M players" over DISTINCT
+        // players — each player stands once, on their BEST
+        // round — ranked by Sun Chips, then TBOTs In, then time
+        // left on the clock, wearing the stretched badge ladder
+        // (see rankTier). All of it is fire-and-forget: a slow
+        // or failed scorebook never blocks, delays, or breaks
+        // the game or the joke on the card, and any failure just
+        // hides quietly. (The read-back runs over the same
+        // rotating roads as the main game — gviz fetch, the
+        // script-tag read CORS cannot gate, CSV — because inside
+        // the sandboxed iframe this game ships in, a plain fetch
+        // read is refused for Origin: null; see the transport
+        // notes below.) Every transport checks
+        // scorebookEnabled() first and answers null without
+        // touching the network while the config is empty, and
+        // the drivers (postScore, warmBook) stand down entirely
+        // — no rank is computed, no "couldn't be loaded"
+        // fallback note is painted.
         var SCOREBOOK = {
-          // postUrl: "",  // no endpoint configured — posting disabled
-          // readUrl: ""   // no endpoint configured — ranking disabled
+          postUrl: "https://docs.google.com/forms/d/e/1FAIpQLSfh70fnQXmxIcn94ak-qtJ6XM8XRymDDwTc_TRhb1ckKImSFQ/formResponse",
+          readUrl: "https://docs.google.com/spreadsheets/d/1jIgsXR5In1mjZ2fMDA3rZ_HaC9gYX7OTRv0LYNjrzNo/gviz/tq?tqx=out:json&sheet=Form%20Responses%201"
         };
         function scorebookEnabled() {
           return !!(SCOREBOOK && SCOREBOOK.postUrl && SCOREBOOK.readUrl);
@@ -3764,24 +3777,52 @@
           return a.timeLeft > b.timeLeft;
         }
 
-        // Rank and field size for the posted round against a fetched
-        // field. If the player's own row hasn't landed in the sheet
-        // yet, it is counted in locally: M includes their play.
-        function computeRank(scores) {
-          var better = 0, ownFound = false;
+        // One player's best round in a fetched field, in ranking
+        // order (strictlyBetter above): the single row of theirs
+        // that no other row of theirs beats.
+        function bestOf(scores, name) {
+          var best = null;
           for (var i = 0; i < scores.length; i++) {
-            var s = scores[i];
-            if (!ownFound && s.name === postedRound.name &&
-                s.tbotIn === postedRound.tbotIn &&
-                s.sunchips === postedRound.sunchips &&
-                s.timeLeft === postedRound.timeLeft) {
-              ownFound = true;
-            }
-            if (strictlyBetter(s, postedRound)) better++;
+            if (scores[i].name !== name) continue;
+            if (!best || strictlyBetter(scores[i], best)) best = scores[i];
+          }
+          return best;
+        }
+
+        // Rank and field size for the posted round against a fetched
+        // field — DISTINCT players: every player stands ONCE in
+        // the standings, on their BEST round (the ranking rule
+        // The Last TBOT In runs: Sun Chips, then TBOTs In, then
+        // Time Left). If the player's own row hasn't landed in
+        // the sheet yet, this round still counts as their
+        // candidate best and they are counted into the field:
+        // M includes their play.
+        function computeRank(scores) {
+          var names = {};
+          var order = [];
+          for (var i = 0; i < scores.length; i++) {
+            if (!names[scores[i].name]) { names[scores[i].name] = true; order.push(scores[i].name); }
+          }
+          var mine = bestOf(scores, postedRound.name);
+          var ownFound = !!mine;
+          var ownBest = mine;
+          var thisRound = {
+            name: postedRound.name,
+            tbotIn: postedRound.tbotIn,
+            sunchips: postedRound.sunchips,
+            timeLeft: postedRound.timeLeft
+          };
+          if (!ownBest || strictlyBetter(thisRound, ownBest)) ownBest = thisRound;
+          if (!ownFound && !names[postedRound.name]) order.push(postedRound.name);
+          var better = 0;
+          for (var oi = 0; oi < order.length; oi++) {
+            if (order[oi] === postedRound.name) continue;
+            var theirBest = bestOf(scores, order[oi]);
+            if (theirBest && strictlyBetter(theirBest, ownBest)) better++;
           }
           return {
             rank: better + 1,
-            total: scores.length + (ownFound ? 0 : 1),
+            total: order.length,
             ownFound: ownFound
           };
         }
@@ -3933,8 +3974,8 @@
         // next Start also flushes a still-unposted round first, as
         // a safety net.
         function postScore() {
-          // Scorebook disabled (see SCOREBOOK): no post, no rank
-          // read, no rank line — the round simply counts as
+          // Scorebook unconfigured (see SCOREBOOK): no post, no
+          // rank read, no rank line — the round simply counts as
           // settled and the card keeps the rank line hidden.
           if (!scorebookEnabled()) { roundPosted = true; return; }
           if (roundPosted || !lastRound) return;
@@ -3947,27 +3988,37 @@
             timeLeft: lastRound.timeLeft,
             baseCount: typeof lastRound.baseCount === "number" ? lastRound.baseCount : null
           };
-          rankLine.classList.add("note");
-          rankLine.hidden = false;
-          rankLine.textContent = "Posting your score…";
-          tierLine.hidden = true;
+          // A zero-in round posts its row like any other, but the
+          // honest zero card stands alone: no "Posting…" line, no
+          // rank read, no rank line or badge ever paints for it.
+          var showRankPipe = lastRound.tbotIn > 0;
+          if (showRankPipe) {
+            rankLine.classList.add("note");
+            rankLine.hidden = false;
+            rankLine.textContent = "Posting your score…";
+            tierLine.hidden = true;
+          }
           var body = new URLSearchParams();
-          body.append("entry.1149347497", name);
-          body.append("entry.1173722520", String(lastRound.tbotIn));
-          body.append("entry.1265531560", String(lastRound.sunchips));
-          body.append("entry.605001134", String(lastRound.timeLeft));
+          body.append("entry.1488453997", name);
+          body.append("entry.1632141452", String(lastRound.tbotIn));
+          body.append("entry.1354855586", String(lastRound.sunchips));
+          body.append("entry.377693416", String(lastRound.timeLeft));
           try {
             fetch(SCOREBOOK.postUrl, { method: "POST", mode: "no-cors", body: body })
               .catch(function () { /* no-cors: the rank read-back is the receipt */ });
           } catch (e) { /* the rank read-back below still runs */ }
           // Give the new row a moment to land, then read the field
-          // (fetchRank keeps retrying with backoff from there, and
-          // the total's own loop reconciles the Sun Chips line
-          // until the row is confirmed in the book).
-          setTimeout(function () {
-            fetchRank(0, postedRound);
-            reconcileTotal(0, postedRound);
-          }, 2000);
+          // — scoring rounds only; a zero-in round's post is the
+          // whole of its scorebook business (fetchRank keeps
+          // retrying with backoff from there, and the total's own
+          // loop reconciles the Sun Chips line until the row is
+          // confirmed in the book).
+          if (showRankPipe) {
+            setTimeout(function () {
+              fetchRank(0, postedRound);
+              reconcileTotal(0, postedRound);
+            }, 2000);
+          }
         }
 
         // Total plays on the start panel, fetched lazily on load. A
@@ -4091,10 +4142,7 @@
         // ratings can be counted per player just like scores.
         // Fire-and-forget,
         // exactly like the score posting: a failure stays silent and
-        // nothing on the card ever waits on it. With the scorebook
-        // disabled (see SCOREBOOK), no post is attempted at all —
-        // the rating lives on the card for the round, on this
-        // device only, until this game gets its own book.
+        // nothing on the card ever waits on it.
         var rating = 0; // 0 = not rated yet this round
 
         function paintStars() {
@@ -4118,12 +4166,13 @@
           paintStars();
           rateThanks.textContent = "Thanks! You rated " + n + (n === 1 ? " star." : " stars.");
           rateThanks.hidden = false;
-          // No scorebook post: the scorebook is disabled (see
-          // SCOREBOOK) — the rating stays on this device for now.
+          // The rating posts to this game's own scorebook (see
+          // SCOREBOOK), as its own submission: the Stars field
+          // plus the same "Guest-<tag>" Name the score posts with.
           if (scorebookEnabled()) {
             var body = new URLSearchParams();
-            body.append("entry.1149347497", "Guest-" + getDeviceTag());
-            body.append("entry.81396176", String(n));
+            body.append("entry.1488453997", "Guest-" + getDeviceTag());
+            body.append("entry.2054745240", String(n));
             try {
               fetch(SCOREBOOK.postUrl, { method: "POST", mode: "no-cors", body: body })
                 .catch(function () { /* silent — the card never waits on the scorebook */ });
