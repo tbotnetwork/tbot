@@ -910,11 +910,14 @@
         paintStars();
 
         // ---------- The badge ladder ----------
-        // Keyed to the round's own count of tables served RIGHT
-        // — the family's count-based ladder, in the Garden's
-        // banding: pairs up the ladder, topping out at 25+.
-        // A round with no correct table earns no badge at all:
-        // a zero card shows no pill.
+        // TBOT Garden's badge system, verbatim in structure:
+        // keyed to the round's own count — here, tables served
+        // RIGHT — fourteen bands in even pairs tiling 1–26,
+        // the top band open at 27+, and no "Top N" prefix: the
+        // pill carries the phrase alone. The names are the
+        // restaurant's own, set on the Garden's slots in the
+        // Garden's order. A round with no correct table earns
+        // no badge at all: a zero card shows no pill.
         function serveTier(served) {
           if (typeof served !== "number" || !isFinite(served) || served < 1) return null;
           if (served <= 2) return "Every Table Counts";
@@ -923,12 +926,13 @@
           if (served <= 8) return "Keep Serving";
           if (served <= 10) return "Don't Drop the Plate";
           if (served <= 12) return "Still Learning the Floor";
-          if (served <= 14) return "You Got Some Running to Do";
-          if (served <= 16) return "You're Gonna Be Tired";
-          if (served <= 18) return "Yummy";
-          if (served <= 20) return "Let's Eat";
-          if (served <= 22) return "Is that a tip on your tray";
-          if (served <= 24) return "The Best";
+          if (served <= 14) return "Still Getting Seasoned";
+          if (served <= 16) return "You Got Some Running to Do";
+          if (served <= 18) return "You're Gonna Be Tired";
+          if (served <= 20) return "Yummy";
+          if (served <= 22) return "Let's Eat";
+          if (served <= 24) return "Is that a tip on your tray";
+          if (served <= 26) return "The Best";
           return "Head Waiter";
         }
         function paintServeTier(served) {
