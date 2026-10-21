@@ -1120,7 +1120,7 @@
       <div class="left-stack" id="leftStack">
         <button id="gameBtn" type="button">Start game</button>
         <div class="sound-stack" id="soundStack">
-          <button id="musicBtn" type="button">Music: on</button>
+          <button id="musicBtn" type="button">Music: off</button>
           <button id="bouncerBtn" type="button">Bouncer: on</button>
         </div>
       </div>
@@ -3138,13 +3138,18 @@
         // (a watchdog gives it 2.5 s), the underlay is promoted the
         // same way. Either way a Start press ends with the track
         // genuinely audible on the media channel, or the button
-        // honestly saying "off": the label follows the element's
-        // own playing state once a start has been requested, so it
-        // can never read "on" over silence. Before any start, the
-        // switch reads "on" — sound is armed ON for every fresh
-        // session (John's order, 2026-10-21: "all the games sound
-        // is off it should be on"), and no OFF choice is ever
-        // stored or carried into a later session.
+        // honestly saying "off": the label follows confirmed
+        // playback at all times, so it can never read "on" over
+        // silence — not after a failed start, and not before one
+        // either (a fresh session's switch reads "off" until Start
+        // brings the sound up, because nothing is playing yet and
+        // pre-tap audio is blocked anyway). Sound is still ON by
+        // default for every fresh session (John's order,
+        // 2026-10-21: "all the games sound is off it should be
+        // on") in the way that matters: musicWanted starts true,
+        // Start starts the music with no separate Music tap, and
+        // no OFF choice is ever stored or carried into a later
+        // session.
         var musicWanted = true;   // off only when the player switches it off
         var startRequested = false; // true once Start game (or the Music switch) asks for music
         var musicPlaying = false; // true only once playback is confirmed
@@ -3160,14 +3165,20 @@
         }
 
         function setMusicLabel() {
-          // ON while playback is confirmed, and ON at load as the
-          // armed state of a fresh session (musicWanted, nothing
-          // requested yet — John's order: sound is ON by default).
-          // Once a start HAS been requested, only the audio's real
-          // playing state may read "on": a start that lands silent
-          // drops the label to "off" honestly, never a stored flag
-          // painting "on" over silence.
-          musicBtn.textContent = (musicPlaying || (musicWanted && !startRequested)) ? "Music: on" : "Music: off";
+          // The label is the audio's REAL playing state and nothing
+          // else — "on" only while playback is confirmed, at load
+          // and after a start alike. An earlier formula also read
+          // "on" for the fresh session's armed wish (musicWanted,
+          // nothing requested yet): that is precisely the state
+          // John reported — "saying on, but it's really off" —
+          // because before Start nothing is playing at all (and
+          // browsers forbid pre-tap audio, so nothing could be).
+          // Sound is still ON by default in every way that matters:
+          // musicWanted starts true and Start brings the music up
+          // on its own tap with no separate Music tap first — the
+          // switch just refuses to claim "on" over silence, and
+          // flips to "on" the moment the sound is really there.
+          musicBtn.textContent = musicPlaying ? "Music: on" : "Music: off";
         }
         function confirmPlaying(on) {
           if (musicPlaying !== on) {
@@ -3339,7 +3350,15 @@
           if (musicEngine === "element") { bgMusic.volume = 1; return; }
           musicEngine = "element";
           stopWebAudio();
-          if (elementLive || !bgMusic.paused) {
+          // Confirm only on the element's REAL state: elementLive is
+          // set optimistically when play() is issued, before the
+          // browser settles it — an element whose play() was refused
+          // sits paused under a "live" flag, and confirming on the
+          // flag alone paints "on" over exactly that silence (the
+          // off→on dance in the header note). A paused element is
+          // re-issued a real play() instead; its "playing" event is
+          // what confirms.
+          if (!bgMusic.paused) {
             bgMusic.volume = 1;
             confirmPlaying(true);
           } else {
@@ -3386,7 +3405,10 @@
           if (!musicWanted) return;
           musicOutcome = "starting";
           if (musicEngine === "element") { // Web Audio already lost its turn this session
-            if (!elementLive) startElement(1);
+            // Restart on the element's real state, not the optimistic
+            // flag: a paused element under a stale "live" flag is
+            // silent, and only a fresh play() brings it back.
+            if (bgMusic.paused) startElement(1);
             return;
           }
           // The underlay goes first, inside this same tap, so the
@@ -3417,17 +3439,37 @@
           musicOutcome = "idle";
         }
 
-        // No page-wide tap listener: Start game calls tryStartMusic()
-        // from inside its own tap (see startGame), which is the gesture
-        // that unlocks audio, and the Music button handles itself below.
-        // Coming back to the tab (or the phone unlocking the session)
-        // is another chance to get confirmed sound going.
+        // No page-wide tap listener STARTS the music: Start game calls
+        // tryStartMusic() from inside its own tap (see startGame),
+        // which is the gesture that unlocks audio, and the Music
+        // button handles itself below. Coming back to the tab (or the
+        // phone unlocking the session) is another chance to get
+        // confirmed sound going.
         document.addEventListener("visibilitychange", function () {
           if (!document.hidden && musicWanted && musicNode) {
             if (actx && actx.state !== "running") actx.resume();
             verifyClock();
           }
         });
+        // The last door on "says on but it's really off": a start
+        // whose play() the browser refused outright — some webviews
+        // drop the Start tap's gesture before it reaches the audio —
+        // leaves every engine stood down with nothing sounding, and
+        // until now the only recovery was the player switching Music
+        // off and back on by hand (John's report, 2026-10-21). So
+        // while a requested start is still UNCONFIRMED — or the
+        // element engine's track is found paused under a confirmed
+        // label — the player's next tap anywhere re-runs the start
+        // inside that tap's own gesture: the first Jump press brings
+        // the music up by itself, no toggle dance. The listener can
+        // only ever retry a start Start game or the Music switch
+        // already requested; it never starts music on its own, and
+        // confirmed playback (or switching Music off) disarms it.
+        document.addEventListener("pointerdown", function () {
+          if (!musicWanted || !startRequested) return;
+          if (!musicPlaying) { tryStartMusic(); return; }
+          if (musicEngine === "element" && bgMusic.paused) tryStartMusic();
+        }, true);
         musicBtn.addEventListener("click", function () {
           if (musicWanted && (musicPlaying || musicNode || elementLive)) {
             musicWanted = false;
@@ -3439,7 +3481,7 @@
         });
 
         loadBuffer(); // decode now; the first tap then starts instantly
-        setMusicLabel(); // a fresh session's switch reads "Music: on" — sound armed ON at load
+        setMusicLabel(); // paints the real state at load: nothing playing yet, so "Music: off" until Start
 
         // Read-only status for testing: which engine is live, whether
         // playback is confirmed, and the context's state and clock.
