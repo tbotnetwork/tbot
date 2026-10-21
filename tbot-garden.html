@@ -669,7 +669,7 @@
       <div class="tb-side right">
         <button id="addBtn" type="button">+ TBOT</button>
         <button id="resetBtn" type="button">Reset</button>
-        <button id="musicBtn" type="button">Music: off</button>
+        <button id="musicBtn" type="button">Music: on</button>
       </div>
     </div>
 
@@ -3421,14 +3421,29 @@
         // ---------- Background music ----------
         // "Velvet Rot" loops behind the game (a 17 s clip repeating
         // across the 15 s round, so the music never runs out
-        // mid-round). Two engines run from the same Start tap:
-        //  1. Web Audio — the track is fetched, decoded into a buffer
-        //     and played from a buffer source at full volume. This is
-        //     the primary engine whenever it proves it is rendering.
-        //  2. The <audio> element — started alongside as a quiet
-        //     UNDERLAY on the phone's media channel, and promoted to
-        //     the full-volume engine the moment Web Audio fails to
-        //     prove itself (missing, undecodable, stuck, or dropped).
+        // mid-round). Two engines can carry the track, and a Start
+        // tap gives them their turns in this order:
+        //  1. The <audio> element — it rides the phone's media
+        //     channel, the one route a silent switch or a webview's
+        //     Web Audio routing can never swallow, so it leads: a
+        //     Start press sounds it at full volume, inside the tap
+        //     itself, and its advancing clock is the proof behind
+        //     the button's "on".
+        //  2. Web Audio — the track fetched and decoded into a
+        //     buffer, played from a buffer source at full volume.
+        //     It takes the track whenever the element cannot carry
+        //     it (rejected, stalled, missing), and once it has
+        //     proved itself in a session it stays that session's
+        //     engine.
+        // The order matters (John's ruling, 2026-10-21: the button
+        // said "on" over silence, and only an off→on dance brought
+        // the sound up): Web Audio used to lead, and its proof —
+        // a running context with an advancing clock — can pass
+        // while the context renders into a muted route, so the
+        // button read "on" over a silent game. A muted render is
+        // indistinguishable from a loud one from in here; the
+        // media channel has no such blind spot, so the element
+        // leads now and Web Audio is the fallback, not the proof.
         // Sound can only start inside a tap, and the player wants it
         // to come on ONLY when they press PLAY — so nothing else
         // ever starts it: not CATCH, not + TBOT, not a stray tap on the
@@ -3436,22 +3451,10 @@
         // player's own switch. A Start press arms the request
         // (startRequested): if the clip is still decoding at that
         // moment, playback begins the instant it is ready. Playback is
-        // CONFIRMED before the button may say "on": for Web Audio that
-        // means the context is running and its clock is actually
-        // advancing — a start() call alone proves nothing.
-        // One case the clock check can never prove: a context that
-        // RUNS and renders into a muted route. Inside some phone
-        // webviews Web Audio rides the ringer/silent switch, so the
-        // clock advances, the button says "on", and the player hears
-        // nothing at all. A muted render is indistinguishable from a
-        // loud one from in here, so every start ALSO runs the <audio>
-        // element from the same tap as a guaranteed-audible UNDERLAY
-        // at low volume: the media element plays on the phone's media
-        // channel, which the silent switch does not mute. If the Web
-        // Audio clock confirms, the underlay hands over — it stops
-        // and Web Audio carries the track alone at full volume. If
-        // confirmation never comes (a watchdog gives it 2.5 s), the
-        // underlay is promoted to the music itself at full volume.
+        // CONFIRMED before the button may say "on": for the element
+        // that means it is unpaused with its clock actually
+        // advancing; for Web Audio, the context running with its
+        // clock advancing — a start() call alone proves nothing.
         // Either way a Start press ends with the track genuinely
         // audible, or the button honestly saying "off".
         var musicWanted = true;   // off only when the player switches it off
@@ -3459,6 +3462,8 @@
         var musicPlaying = false; // true only once playback is confirmed
         var musicEngine = "none"; // "webaudio" | "element" once a start lands
         var musicOutcome = "idle"; // "starting" | "playing" | "silent" — fate of the latest start attempt
+        var elementTried = false; // the element has had its turn in the current start attempt
+        var waTried = false;      // Web Audio has had its turn in the current start attempt
 
         // On iPhone, web audio otherwise uses the "ambient" session and
         // the silent switch swallows it whole — the game plays but
@@ -3469,7 +3474,19 @@
         }
 
         function setMusicLabel() {
-          musicBtn.textContent = musicPlaying ? "Music: on" : "Music: off";
+          // THE LABEL TELLS THE TRUTH (John's ruling, 2026-10-21:
+          // never "on" over silence). Before the first start is
+          // ever requested it reads the setting itself — and the
+          // setting is ON at load, every session: musicWanted
+          // starts true and is never stored, so a prior session's
+          // OFF can never carry into this one. Once a start IS
+          // requested, the label is the audio's real state —
+          // "on" only while playback is confirmed, "off" while
+          // it is not — so it can never sit at "on" over a
+          // silent game, and no off→on dance is ever needed to
+          // make it honest.
+          var on = musicPlaying || (musicWanted && !startRequested);
+          musicBtn.textContent = on ? "Music: on" : "Music: off";
         }
         function confirmPlaying(on) {
           if (musicPlaying !== on) {
@@ -3486,7 +3503,7 @@
         var musicNode = null;   // the buffer source, while started
         var bufferFailed = false;
         var waStartedAt = 0;    // wall-clock ms when the current Web Audio start began
-        var elementLive = false; // the element is (or should be) sounding — underlay or main engine
+        var elementLive = false; // the element is (or should be) sounding
 
         function ensureCtx() {
           if (actx) return actx;
@@ -3502,7 +3519,7 @@
               // (silent switch, tab switch, call) — the music is no
               // longer audible on this engine, so hand the track to
               // the element, whose media channel stays up.
-              if (actx.state !== "running" && musicNode && musicWanted) { confirmPlaying(false); promoteElement(); }
+              if (actx.state !== "running" && musicNode && musicWanted) { confirmPlaying(false); handToElement(); }
             });
           } catch (e) {
             actx = null;
@@ -3530,7 +3547,7 @@
                 bufferFailed = true;
                 // Decode is hopeless — if PLAY is already waiting
                 // on sound, hand the request to the element engine.
-                if (startRequested && musicWanted && !musicPlaying) promoteElement();
+                if (startRequested && musicWanted && !musicPlaying) handToElement();
               };
               var p;
               try {
@@ -3543,7 +3560,7 @@
             })
             .catch(function () {
               bufferFailed = true;
-              if (startRequested && musicWanted && !musicPlaying) promoteElement();
+              if (startRequested && musicWanted && !musicPlaying) handToElement();
             });
         }
 
@@ -3596,29 +3613,73 @@
           }
         }
 
-        // --- <audio> element: underlay first, engine if needed ---
+        // --- <audio> element: the lead engine (2026-10-21) ---
         // The element loops too, so it covers the full 15 s round
-        // exactly like the Web Audio path. It starts life as the
-        // UNDERLAY described above: quiet (0.25), started inside the
-        // same tap as the Web Audio attempt, so the tap's gesture
-        // covers both engines. Two fates: Web Audio confirms and the
-        // underlay stops (retireUnderlay), or the watchdog finds Web
-        // Audio unconfirmed and promotes the underlay to the music
-        // itself at full volume (promoteElement). An "element"
-        // engine label means the element is the one carrying the
-        // track at full volume.
+        // exactly like the Web Audio path. It starts inside the
+        // Start tap at full volume, so the tap's gesture covers
+        // it, and it carries the track unless it proves it cannot
+        // (see armElementCheck) — then Web Audio takes its turn,
+        // and once Web Audio has proved itself it stays the
+        // session's engine. An "element" engine label means the
+        // element is the one carrying the track at full volume.
         bgMusic.loop = true;
-        var UNDERLAY_VOL = 0.25;
 
         function startElement(vol) {
+          elementTried = true;
           elementLive = true;
           bgMusic.muted = false;
           bgMusic.volume = vol;
           var p = bgMusic.play();
           if (p && p.catch) p.catch(function () {
             elementLive = false;
-            if (musicEngine === "element") { confirmPlaying(false); musicOutcome = "silent"; }
+            if (musicEngine !== "element") return;
+            // The element could not start. If Web Audio has not
+            // had its turn in this start, it takes the track now;
+            // if both engines have failed, the start is honestly
+            // silent and the button says so.
+            if (startRequested && musicWanted && !musicPlaying && !waTried) {
+              musicEngine = "none";
+              startWebAudioEngine();
+            } else {
+              musicOutcome = "silent";
+              confirmPlaying(false);
+              setMusicLabel();
+            }
           });
+        }
+
+        // The element's proof: shortly after it is asked to carry
+        // the track it must be unpaused with its clock actually
+        // advancing (a loop wrap counts — the clock ran past the
+        // end and came around). A "playing" event alone can fire
+        // for a stream that then stalls; a moving clock cannot
+        // lie. If the proof fails, Web Audio takes its turn.
+        var elementCheckTimer = null;
+        function armElementCheck() {
+          disarmElementCheck();
+          var t0 = bgMusic.currentTime || 0;
+          elementCheckTimer = setTimeout(function () {
+            elementCheckTimer = null;
+            if (!musicWanted || musicEngine !== "element") return;
+            var t1 = bgMusic.currentTime || 0;
+            if (!bgMusic.paused && (t1 > t0 || t0 - t1 > 5)) {
+              confirmPlaying(true); // the "playing" event normally lands this first; this is its backstop
+              return;
+            }
+            elementLive = false;
+            try { bgMusic.pause(); } catch (e) { /* already still */ }
+            if (startRequested && !musicPlaying && !waTried) {
+              musicEngine = "none";
+              startWebAudioEngine();
+            } else {
+              musicOutcome = "silent";
+              confirmPlaying(false);
+              setMusicLabel();
+            }
+          }, 1200);
+        }
+        function disarmElementCheck() {
+          if (elementCheckTimer) { clearTimeout(elementCheckTimer); elementCheckTimer = null; }
         }
 
         function retireUnderlay() {
@@ -3640,10 +3701,20 @@
           }
         }
 
+        // Hand the track to the element (from a Web Audio dead
+        // end), and put its proof on the clock like any element
+        // start.
+        function handToElement() {
+          if (musicEngine === "element") return;
+          promoteElement();
+          armElementCheck();
+        }
+
         // The watchdog: give Web Audio 2.5 s from a start to prove
         // itself. If it still hasn't, Web Audio is not reaching the
         // player's ears in this browser — hand the track to the
-        // element for the rest of the session.
+        // element if it has not had its turn in this start; if both
+        // engines have failed, the start is honestly silent.
         var watchdogTimer = null;
         function armWatchdog() {
           if (watchdogTimer || musicEngine === "element") return;
@@ -3651,7 +3722,10 @@
             watchdogTimer = null;
             if (!musicWanted) return;
             if (musicPlaying && musicEngine === "webaudio") return; // confirmed — nothing to do
-            promoteElement();
+            if (!elementTried) { handToElement(); return; }
+            musicOutcome = "silent";
+            confirmPlaying(false);
+            setMusicLabel();
           }, 2500);
         }
         function disarmWatchdog() {
@@ -3687,16 +3761,40 @@
           if (!musicWanted) return;
           startRequested = true; // called only from PLAY / the Music switch
           musicOutcome = "starting";
-          if (musicEngine === "element") { // Web Audio already lost its turn this session
-            if (!elementLive) startElement(1);
+          setMusicLabel(); // while the start proves itself, the button reads the real state, not the wish
+          if (musicPlaying) return; // already sounding — nothing to restart
+          if (musicEngine === "webaudio" || waTried) {
+            // Web Audio is this session's proven engine, or the
+            // element already failed inside this same start (a
+            // decode finishing mid-start lands here): Web Audio
+            // takes the turn.
+            startWebAudioEngine();
             return;
           }
-          // The underlay goes first, inside this same tap, so the
-          // player's gesture authorizes it — when it is needed, it
-          // is already sounding; no second gesture is ever required.
-          if (!elementLive && !musicPlaying) startElement(UNDERLAY_VOL);
-          if (musicPlaying) { retireUnderlay(); return; }
-          if (bufferFailed) { promoteElement(); return; } // decode is hopeless — the underlay becomes the music
+          // THE ELEMENT GOES FIRST (2026-10-21): it goes inside
+          // this same tap, so the player's gesture authorizes
+          // it — no second gesture is ever required — and its
+          // moving clock, checked in armElementCheck, is the
+          // proof behind the button's "on". Web Audio keeps its
+          // turn as the fallback if the element cannot carry
+          // the track (see armElementCheck / startWebAudioEngine).
+          musicEngine = "element";
+          if (!elementLive) startElement(1);
+          armElementCheck();
+        }
+
+        // Web Audio's turn at the track: the fallback since
+        // 2026-10-21, and still the engine a start returns to
+        // once it has proved itself this session.
+        function startWebAudioEngine() {
+          waTried = true;
+          if (bufferFailed) { // decode is hopeless — the element is the only other turn
+            if (!elementTried) { handToElement(); return; }
+            musicOutcome = "silent";
+            confirmPlaying(false);
+            setMusicLabel();
+            return;
+          }
           if (ensureCtx()) {
             if (actx.state !== "running") {
               var rp = actx.resume();
@@ -3707,17 +3805,25 @@
             else armWatchdog(); // still decoding — the watchdog covers a decode that never lands
             return;
           }
-          promoteElement(); // no Web Audio in this browser at all
+          // No Web Audio in this browser at all.
+          if (!elementTried) { handToElement(); return; }
+          musicOutcome = "silent";
+          confirmPlaying(false);
+          setMusicLabel();
         }
 
         function stopMusic() {
           disarmWatchdog();
+          disarmElementCheck();
           stopWebAudio();
           elementLive = false;
           bgMusic.pause();
           confirmPlaying(false);
           musicOutcome = "idle";
           startRequested = false; // switching off DISARMS any pending start — a late decode can never resurrect the track
+          elementTried = false; // the next start gives both engines their turns fresh
+          waTried = false;
+          setMusicLabel();
         }
 
         // No page-wide tap listener: PLAY calls tryStartMusic()
@@ -3751,6 +3857,7 @@
         });
 
         loadBuffer(); // decode now; the first tap then starts instantly
+        setMusicLabel(); // the button opens on the setting itself: ON, every fresh session
 
         // Read-only status for testing: which engine is live, whether
         // playback is confirmed, and the context's state and clock.
