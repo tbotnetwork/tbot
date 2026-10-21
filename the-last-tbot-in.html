@@ -212,6 +212,7 @@
         transform: translateX(-50%);
         display: grid;
         grid-template-columns: 1fr auto 1fr;
+        grid-template-rows: 54px 44px;
         align-items: center;
         gap: 8px;
         width: min(780px, calc(100vw - 20px));
@@ -224,53 +225,113 @@
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
         z-index: 7;
       }
-      /* The bar's shape (John's orders, 2026-10-21: Pack ’em
-         on top as a larger button with Reset underneath it a
-         little smaller; "End game at the lower part of the
-         Bar and music and bounce on the other side of the
-         jump at the Bottom"): a
-         three-column grid — left column, middle, right
-         column. The middle holds Jump ALONE, dead centre of
-         the bar (John's order, 2026-10-20: "Jump button is
-         supposed to be in the middle") — the grid's two side
-         columns are both 1fr, so the auto-width middle track
-         sits exactly on the bar's centre line and Jump, its
-         only content, sits on that line with it. The LEFT
-         column (.left-stack) holds Start game alone (the
-         gold hero, below). The RIGHT column (.pack-stack)
-         stacks Pack ’em ON TOP as a LARGER button, Reset
-         underneath it a little smaller, and the two sound
-         switches at the BOTTOM of the column as one unit —
-         Music directly over the Bouncer, the two over each
-         other.
-         FIXED SEATS (John's order,
-         later 2026-10-20: "Fix control buttons they all seemed
-         to move"; and his ruling the same day: no greyed-out
-         buttons — a button that cannot be used in a state is
-         not on the screen in that state at all): the bar NEVER
-         rearranges — no button that stays on screen changes
-         seat, size, or neighbours between free play and a
-         round, at any width. startGame / endGame only flip the
-         bar's .in-round class: Start game trades its gold hero
-         face for the End game face — the two faces share one
-         compact box in the same left column, but the End face
-         sits at the LOWER part of the bar (John's order,
-         2026-10-21) — and Reset / Pack ’em LEAVE the screen
-         for the
-         round (display: none — not dimmed, not greyed; their
-         cells stay empty) and return to those same cells when
-         the round ends. On a phone the bar is a fixed grid
-         (see the phone query below) whose tracks never
-         depend on which buttons are showing, so nothing
-         re-wraps or re-flows when they leave or return; on
-         desktop the two sit in the right-hand column, whose
-         grid track (1fr) does not depend on them either.
-         Every button that stays also carries a fixed width, so
-         a label flipping between "Music: on" and "Music: off"
-         cannot nudge a neighbour. And the physics floor is
-         measured straight off the bar's top edge (floorInset
-         in resize), so the pile sits ON TOP of the bar — no
-         gap of sky under it — in both states, at any width. */
+      /* The bar's shape (John's reference screenshots,
+         2026-10-21 — "This is the Bar" for the lobby and "In
+         game Bar" for a round, the same bar he ordered for
+         every game): a three-column grid — left column,
+         middle, right column. The middle holds Jump ALONE,
+         dead centre of the bar (John's order, 2026-10-20:
+         "Jump button is supposed to be in the middle") — the
+         grid's two side columns are both 1fr, so the
+         auto-width middle track sits exactly on the bar's
+         centre line and Jump, its only content, sits on that
+         line with it. The LEFT column holds Start game (the
+         gold hero, below) with the two sound switches
+         DIRECTLY UNDERNEATH it as one unit — Music directly
+         over the Bouncer, the two over each other. The RIGHT
+         column (.pack-stack) stacks Pack ’em ON TOP as a
+         LARGER button with Reset underneath it, a little
+         smaller.
+         IN A ROUND the bar reads as John's second picture:
+         the End game face sits LOW in the left column, at
+         the lower part of the bar, and the sound stack
+         crosses to the BOTTOM of the right column, under
+         where Pack ’em and Reset stood — those two LEAVE
+         the screen for the round (John's ruling, 2026-10-20:
+         no greyed-out buttons — a button that cannot be
+         used in a state is not on the screen in that state
+         at all; display: none, their seats stand empty) and
+         return to those same seats when the round ends.
+         FIXED SEATS (John's order, later 2026-10-20: "Fix
+         control buttons they all seemed to move"): every
+         seat above is fixed — startGame / endGame only flip
+         the bar's .in-round class, no button changes size
+         in either state at any width, and Start game / End
+         game share one compact box in the left column.
+         On a phone the bar is a fixed grid (see the phone
+         query below) whose tracks never depend on which
+         buttons are showing, so nothing re-wraps or
+         re-flows when they leave or return; on desktop the
+         columns' grid tracks (1fr) do not depend on their
+         contents either. Every button also carries a fixed
+         width, so a label flipping between "Music: on" and
+         "Music: off" cannot nudge a neighbour. COMPACT
+         HEIGHT (John's addendum, 2026-10-21: "The Bar is
+         too wide now from top to Bottom" — and for game
+         mode, "make the Bar thiner"): the bar is TWO ROWS
+         tall and no taller — the desktop rows are fixed at
+         their contents' height (54px / 44px), so the bar's
+         total is just the two rows, one 8px gap, and its
+         padding (122px), IDENTICAL in the lobby and
+         mid-round: in a round the bottom row (End game
+         left, sound stack right) tucks directly beneath
+         the Jump row with no void between, and the top
+         row's vacated seats simply stand empty inside the
+         same compact bar. On a phone the two rows are
+         54px / 48px (124px total — see the phone query).
+         The compacting closes empty space only — no button
+         shrinks or moves for it; Pack ’em keeps its exact
+         size and seat. And the
+         physics floor is measured straight off the bar's
+         top edge (floorInset in resize), so the pile sits
+         ON TOP of the bar — no gap of sky under it — in
+         both states, at any width.
+         RESTING ITEMS (John's order, 2026-10-21: "The
+         items should rest on the Bar"): every control in
+         the bar sits ON the bar — its bottom edge settled
+         on the bar's bottom edge — the way the pile rests
+         on the bar's top. Nothing floats in the middle of
+         the bar and nothing hangs from its top with air
+         beneath it: Jump's bottom edge rests on the bar's
+         floor in both states (see .mid-stack), Reset rests
+         on the floor under Pack ’em (see .pack-stack), the
+         sound stack already settles on the bottom edge,
+         and in the lobby each side column reads as one
+         resting unit — Start game over the stack on the
+         left, Pack ’em over Reset on the right. IN A ROUND
+         the bar goes THINNER still (John's order,
+         2026-10-21: "When you start the game make the Bar
+         thiner"): the top row collapses away entirely
+         (.toolbar.in-round below), and the three controls
+         that stay — End game low on the left, Jump dead
+         centre, the sound stack at the right — rest side
+         by side on the bar's floor in a single row, the
+         bar exactly as tall as Jump plus its padding. No
+         button changes size for any of this; only the
+         empty space above the resting row is gone. */
+      /* In a round the bar goes thinner (John's orders,
+         2026-10-21 — "When you start the game make the Bar
+         thiner", "The items should rest on the Bar"): the
+         top row collapses to nothing and the bottom row
+         takes Jump's exact height, so the bar is one
+         resting row tall (0 + 8px gap + 68px, plus its
+         padding: 92px against the lobby's 122px). Every
+         control left in a round already settles on the
+         bar's floor inside that row — End game at the
+         bottom of the stretched left column, Jump at the
+         bottom of the middle group, the sound stack
+         end-aligned in this row — so no seat moves and
+         no button resizes; the vacated top row simply
+         stops taking up bar. The physics floor rides on
+         the bar's top edge (floorInset in resize, kept
+         current by the bar's ResizeObserver), so the pile
+         re-rests on the thinner bar the moment a round
+         starts, and back on the full bar when it ends.
+         The HUD lifts only as far as the thinner bar
+         needs: it keeps the same small gap over the bar's
+         top edge it has in the lobby bar's measure. */
+      .toolbar.in-round { grid-template-rows: 0 68px; }
+      .toolbar.in-round ~ .gamehud { bottom: calc(112px + env(safe-area-inset-bottom)); }
       /* Start game in free play wears the TBOT Garden PLAY
          treatment: a polished gold gradient face, a strong
          dark border, and a warm glow that breathes with a
@@ -365,27 +426,41 @@
          with it, in free play and in a round alike. (The
          sound switches used to ride in this group beside
          Jump, which pushed Jump itself a stack's width off
-         centre; they now ride at the bottom of the
-         right-hand column — see .pack-stack and
+         centre; they now ride in the side columns — see
          .sound-stack below.) Jump keeps
          this seat at the one size the unscoped #shakeBtn
-         rule below gives it. */
+         rule below gives it. The group spans the bar's two
+         grid rows — and RESTS on the bar (John's order,
+         2026-10-21: "The items should rest on the Bar"):
+         the group settles at the bottom of its span
+         (align-self: end below), so Jump's bottom edge
+         sits on the bar's bottom edge in the lobby and
+         in a round alike, instead of floating at the
+         bar's vertical middle with air above and below
+         it. Dead centre horizontally, resting on the
+         floor vertically. */
       .mid-stack {
         display: flex;
         flex-direction: row;
         align-items: center;
+        align-self: end;
         gap: 8px;
         min-width: 0;
+        grid-column: 2;
+        grid-row: 1 / span 2;
       }
-      /* The left column: Start game alone. The column hugs
-         the bar's left edge and stretches the bar's full
-         height (align-self in the rule below): Start game
-         sits at the top in the lobby, and in a round the
-         End game face — the same button at the same size —
-         drops to the column's bottom, the lower part of
-         the bar (John's order, 2026-10-21). Its contents
-         keep their own fixed widths, left-aligned, so
-         nothing in the column can widen it. */
+      /* The left column: the game button, spanning the
+         bar's two grid rows. The column hugs the bar's
+         left edge and stretches the bar's full height
+         (align-self in the rule below): Start game sits at
+         the top in the lobby — with the sound stack seated
+         directly underneath it in the same column's lower
+         cell (see .sound-stack) — and in a round the End
+         game face, the same button at the same size, drops
+         to the column's bottom, the lower part of the bar
+         (John's reference screenshots, 2026-10-21). Its
+         contents keep their own fixed widths, left-aligned,
+         so nothing in the column can widen it. */
       .left-stack {
         display: flex;
         flex-direction: column;
@@ -394,6 +469,8 @@
         min-width: 0;
         justify-self: start;
         align-self: stretch;
+        grid-column: 1;
+        grid-row: 1 / span 2;
       }
       /* In a round the End game face drops to the LOWER part
          of the bar on the left side (John's order,
@@ -407,26 +484,38 @@
          column — Music directly OVER the Bouncer, the two
          over each other (John's order, 2026-10-20: "the
          music should be over the bouncer ... so they should
-         be over each other"). The stack's home is the BOTTOM
-         of the RIGHT column (John's order, 2026-10-21:
-         music and bounce on the other side of the jump, at
-         the bottom): it rides in .pack-stack below Reset,
-         in the lobby and mid-round alike — when Pack ’em
-         and Reset leave the screen for a round, an auto top
-         margin keeps it pinned to the column's bottom edge,
-         so it never moves. The column stretches both
-         switches to one shared width, and each carries a
-         fixed minimum sized for its longer label ("Music:
+         be over each other"). The stack has two fixed homes,
+         both from John's reference screenshots (2026-10-21):
+         in the LOBBY it sits in the bar's LEFT column,
+         DIRECTLY UNDERNEATH Start game — the grid's second
+         row of the first column, settled on the bar's
+         bottom edge under Start; IN A ROUND it crosses to
+         the BOTTOM of the RIGHT column, under the seats
+         Pack ’em and Reset vacated. The stack is a direct
+         grid child of the bar (not nested in either side
+         column), so the .in-round class alone moves it
+         between those two cells — its size, its order, and
+         its switches never change. The column stretches
+         both switches to one shared width, and each carries
+         a fixed minimum sized for its longer label ("Music:
          off", "Bouncer: off"), so flipping a switch never
          widens or narrows it and nothing beside it shifts.
          On a phone the stack stays a unit in the phone
-         grid's right column, bottom row (see the phone
-         query below). */
+         grid: under Start game in the lobby, bottom-right
+         in a round (see the phone query below). */
       .sound-stack {
         display: flex;
         flex-direction: column;
         align-items: stretch;
         gap: 4px;
+        grid-column: 1;
+        grid-row: 2;
+        justify-self: start;
+        align-self: end;
+      }
+      .toolbar.in-round .sound-stack {
+        grid-column: 3;
+        justify-self: end;
       }
       #musicBtn { min-width: 80px; }
       #bouncerBtn { min-width: 90px; }
@@ -448,10 +537,10 @@
          (John's ruling, 2026-10-20: no greyed-out buttons — if
          a button cannot be used in a state, it is not on the
          screen in that state). display: none takes them out
-         without moving anything else: the right column
-         (.pack-stack) keeps only the sound stack, pinned to
-         its bottom in its fixed 1fr track, the left column
-         is untouched, and on a phone their grid
+         without moving anything else: the sound stack holds
+         its round seat at the bottom of the right column in
+         its fixed 1fr track, the left column is untouched,
+         and on a phone their grid
          cells stand empty (the tracks come from the grid
          template, never from content). startGame / endGame
          flip the class and the
@@ -462,32 +551,34 @@
       .toolbar.in-round #addBtn { display: none; }
       button:disabled { cursor: default; }
       /* The right column: Pack ’em ON TOP as a LARGER button,
-         Reset underneath it, a little smaller, and the
-         sound stack at the BOTTOM (John's orders,
-         2026-10-21). The column hugs the bar's right end,
-         its buttons right-aligned so the smaller Reset
-         tucks under Pack ’em's right edge. In a round
-         Pack ’em and Reset leave the screen (above) and
-         the column — 1fr of the grid — holds only the
-         sound stack at its bottom, so nothing else in the
-         bar moves. */
+         Reset underneath it, a little smaller (John's
+         reference screenshots, 2026-10-21). The column hugs
+         the bar's right end and spans the bar's two grid
+         rows, its buttons right-aligned so the smaller
+         Reset tucks under Pack ’em's right edge. In a round
+         Pack ’em and Reset leave the screen (above) and the
+         column stands empty — the sound stack at the bottom
+         of the right side in a round is its own grid item
+         in the column's lower cell (see .sound-stack), not
+         a child of this column — so nothing else in the
+         bar moves. The column RESTS on the bar (John's
+         order, 2026-10-21: "The items should rest on the
+         Bar"): space-between keeps Pack ’em in its top
+         seat and settles Reset on the bar's bottom edge,
+         so the whole column stands on the bar's floor —
+         Pack ’em over Reset, Reset resting on the bar. */
       .pack-stack {
         display: flex;
         flex-direction: column;
         align-items: flex-end;
+        justify-content: space-between;
         gap: 8px;
         min-width: 0;
         justify-self: end;
         align-self: stretch;
+        grid-column: 3;
+        grid-row: 1 / span 2;
       }
-      /* The sound stack rides at the BOTTOM of the right
-         column (John's order, 2026-10-21: music and bounce on
-         the other side of the jump, at the bottom): in the
-         lobby it simply follows Reset in the column's flow;
-         mid-round, with Pack ’em and Reset off the screen,
-         the auto top margin pins it to the column's bottom
-         edge so it holds the same low seat. */
-      .pack-stack .sound-stack { margin-top: auto; }
       /* Reset: the smaller button under Pack ’em (John's
          final word, 2026-10-21) — compact type and padding,
          a step down from the plain button size, still wide
@@ -852,34 +943,59 @@
       @media (max-width: 480px) {
         button { padding: 11px 13px; font-size: 13.5px; }
         /* Phone: the bar is a FIXED grid — three columns,
-           three rows of fixed height — and the desktop
+           TWO rows of fixed height — and the desktop
            columns dissolve (display: contents) so each
            button sits in its own cell at the explicit
-           grid-row / grid-column seat below:
+           grid-row / grid-column seat below. The seats are
+           John's reference screenshots (2026-10-21 — "This
+           is the Bar" / "In game Bar"):
              row 1: Start game · Jump · Pack ’em
-             row 2: (End game's span) · (empty) · Reset
-             row 3: End game, in a round · (empty) · Music over Bouncer
+             row 2: Music over Bouncer · (empty) · Reset
+           Jump spans both rows in the centre column and
+           RESTS on the bar's floor at the bottom of the
+           span (see its seat rule below). In a round the
+           top row collapses (see the in-round rows below)
+           and the single bottom row reads: End game ·
+           Jump · Music over Bouncer, all resting on the
+           bar's floor.
+           COMPACT (John's addendum, 2026-10-21: "The Bar is
+           too wide now from top to Bottom" — and, of the
+           in-game bar, "Even in these pics the Bar is too
+           wide in the game mode"): the bar is exactly two
+           rows tall — 54px + 48px, one 6px gap, 8px
+           padding: 124px in total, the SAME in the lobby
+           and mid-round. There is no third row and no dead
+           vertical space inside the bar: the bottom row is
+           the lower row of the compact bar, never the foot
+           of a stretched one (an earlier three-row grid
+           left a tall void above End game mid-round — the
+           empty middle in John's in-game screenshot — and
+           that is what he rejected; "End at the lower part"
+           means this lower row). Nothing about Pack ’em
+           changes to get there: its row-1 cell is the same
+           54px it always was — only the empty space below
+           the top row is gone.
            The grid carries the desktop bar's two side
-           columns down the screen (John's orders,
-           2026-10-21): the LEFT column is Start game alone
-           in row 1, and the RIGHT column is Pack ’em on top
-           in row 1, LARGER (it fills the tall row-1 cell),
-           with Reset underneath it in row 2, a little
-           smaller (the short row-2 cell), and the sound
-           stack at the BOTTOM in row 3 as ONE unit — Music
-           directly OVER the Bouncer. The stack does NOT
-           dissolve here: it keeps its flex column inside its
-           row-3 cell (two compact switches, ~48px of stack
-           in the 48px row), so the pair holds one fixed seat
-           in the lobby and in a round alike, while Pack ’em's
-           and Reset's cells stand empty mid-round. In a round
-           the End game face drops to the LOWER part of the
-           bar: it spans the left column's rows 2–3, settled
-           at the bottom of that span, at the same compact
-           size; Start game itself never moves: it keeps the
-           row-1 cell in the lobby, and the bar returns to
-           that layout after the round. Both switches sit
-           smaller than their stack (see their rule below).
+           columns down the screen: the LEFT column is Start
+           game in row 1 with the sound stack DIRECTLY
+           UNDERNEATH it in the lobby, filling row 2 — the
+           stack does NOT dissolve here: it keeps its flex
+           column (Music directly OVER the Bouncer, two
+           compact switches, ~48px of stack). The RIGHT
+           column is Pack ’em on top in row 1, LARGER (it
+           fills the tall row-1 cell), with Reset underneath
+           it in row 2, a little smaller — Reset keeps its
+           compact 30px height, resting on the row's bottom
+           edge on the bar's floor (see its rule below). In a round Pack ’em's
+           cell stands empty and Reset leaves the screen
+           with it, the End game face takes the left of
+           row 2 settled at its bottom (the lower part of
+           the bar) at the same compact size, and the stack
+           holds row 2 of the right column; Start game
+           itself never moves: it keeps the row-1 cell in
+           the lobby, and the bar returns to that layout
+           after the round. Both switches sit smaller than
+           their stack (see their rule below).
            The two side tracks are EQUAL fractions (1.15fr
            each), so Jump's middle cell is centred on the bar
            exactly (John's order, 2026-10-20: "Jump button is
@@ -900,20 +1016,38 @@
            see the .in-round rule above) and their two cells
            simply stand empty; every button that stays keeps
            the exact box it had in the lobby — the game button
-           included, whose End game face drops to the left
-           column's lower rows at the same size (see its rule
+           included, whose End game face drops to the left of
+           the bottom row at the same size (see its rule
            below) — and a label flip (Music
            on/off, Bouncer on/off) changes nothing but the
            words. */
         .toolbar {
           display: grid;
           grid-template-columns: 1.15fr 1.3fr 1.15fr;
-          grid-template-rows: 54px 30px 48px;
+          grid-template-rows: 54px 48px;
           gap: 6px;
           padding: 8px;
           align-items: stretch;
           justify-items: stretch;
         }
+        /* In a round the phone bar goes thinner and its
+           items rest on the bar (John's orders, 2026-10-21
+           — "When you start the game make the Bar thiner",
+           "The items should rest on the Bar"): the top row
+           collapses to nothing, the bottom row takes the
+           phone Jump's exact 54px height, and End game,
+           Jump, and the sound stack rest side by side on
+           the bar's floor in that one row (Jump takes the
+           bottom row below; End game and the stack already
+           sit in it, bottom-settled). The bar is 76px in a
+           round against the lobby's 124px — no button
+           changes size, only the empty top row is gone —
+           and the HUD keeps its gap over the thinner bar.
+           In the lobby the two rows stand as pictured, with
+           Start game and Reset settled on their resting
+           edges below. */
+        .toolbar.in-round { grid-template-rows: 0 54px; }
+        .toolbar.in-round ~ .gamehud { bottom: calc(106px + env(safe-area-inset-bottom)); }
         .toolbar .left-stack,
         .toolbar .mid-stack,
         .toolbar .pack-stack { display: contents; }
@@ -933,31 +1067,18 @@
            2026-10-21 — the same treatment End game gets
            below): the fixed tracks don't change, so Jump and
            Pack ’em keep their exact boxes — Start game just
-           sits smaller, centred in the same cell, its full
-           label inside the button. End game takes the same
-           cell at the same size in a round. */
+           sits smaller in the same cell, its full label
+           inside the button, RESTING on the cell's bottom
+           edge (John's order, 2026-10-21: "The items should
+           rest on the Bar") — settled directly on top of
+           the sound stack beneath it, so the left column
+           stands on the bar's floor as one resting unit
+           instead of Start game floating at the cell's
+           middle. End game takes the bottom row at the
+           same size in a round. */
         .toolbar:not(.in-round) #gameBtn {
           grid-row: 1;
           grid-column: 1;
-          justify-self: center;
-          align-self: center;
-          font-size: 13px;
-          letter-spacing: 0;
-          padding: 8px 4px;
-          width: 96%;
-          height: 34px;
-          min-height: 0;
-          border-radius: 12px;
-        }
-        .toolbar.in-round #gameBtn {
-          grid-row: 2 / span 2;
-          grid-column: 1;
-          /* The LOWER part of the bar (John's order,
-             2026-10-21): in a round End game drops out of
-             Start game's row-1 cell into the left column's
-             lower rows, settled at the bottom of that span
-             at the same compact size. The fixed tracks don't
-             change, so Jump keeps its exact box. */
           justify-self: center;
           align-self: end;
           font-size: 13px;
@@ -968,12 +1089,74 @@
           min-height: 0;
           border-radius: 12px;
         }
-        .toolbar #shakeBtn { grid-row: 1; grid-column: 2; }
+        .toolbar.in-round #gameBtn {
+          grid-row: 2;
+          grid-column: 1;
+          /* The LOWER part of the bar (John's orders,
+             2026-10-21): in a round End game drops out of
+             Start game's row-1 cell into the bottom row —
+             the lower row of the compact two-row bar,
+             directly beneath the Jump row — settled at the
+             bottom of that row at the same compact size.
+             The fixed tracks don't change, so Jump keeps
+             its exact box and the bar keeps its exact
+             height. */
+          justify-self: center;
+          align-self: end;
+          font-size: 13px;
+          letter-spacing: 0;
+          padding: 8px 4px;
+          width: 96%;
+          height: 34px;
+          min-height: 0;
+          border-radius: 12px;
+        }
+        /* Jump RESTS on the bar's floor on a phone too
+           (John's order, 2026-10-21: "The items should rest
+           on the Bar"): it spans the bar's two rows in the
+           centre column and settles at the bottom of the
+           span, so its bottom edge sits on the bar's bottom
+           edge like every other control — not floating in
+           the top row with a band of empty bar beneath it.
+           Same centre column, same 54px box (the fixed
+           height in its sizing rule below): only the air
+           under it is gone. */
+        .toolbar #shakeBtn {
+          grid-row: 1 / span 2;
+          grid-column: 2;
+          align-self: end;
+        }
+        /* In a round Jump rests in the bar's bottom row
+           with End game and the sound stack (see the
+           in-round rows above): same 54px box, same centre
+           column — the thinner bar's single row is its
+           seat for the round. */
+        .toolbar.in-round #shakeBtn { grid-row: 2; }
+        /* The sound stack's two phone seats (John's
+           reference screenshots, 2026-10-21): both are the
+           bar's bottom row — in the LOBBY the LEFT column's
+           row 2, directly underneath Start game, its
+           switches left-aligned; IN A ROUND the RIGHT
+           column's row 2 at the bar's bottom-right, its
+           switches right-aligned. Either way the pair
+           fills the 48px row exactly as it always has. */
         .toolbar #soundStack {
-          grid-row: 3;
+          grid-row: 2;
+          grid-column: 1;
+          align-items: flex-start;
+          align-self: stretch;
+        }
+        .toolbar.in-round #soundStack {
+          grid-row: 2;
           grid-column: 3;
           align-items: flex-end;
-          justify-content: center;
+          /* The pair rests on the bar's floor in a round
+             (John's order, 2026-10-21: "The items should
+             rest on the Bar"): settled at the bottom of
+             the thinner bar's single row, not centred in
+             it with air beneath. */
+          justify-content: flex-end;
+          align-self: stretch;
         }
         .toolbar #addBtn {
           grid-row: 1;
@@ -995,7 +1178,21 @@
           min-width: 0;
           min-height: 0;
         }
-        .toolbar #resetBtn { grid-row: 2; grid-column: 3; }
+        /* Reset in the bottom row at its compact height,
+           RESTING on the bar's bottom edge (John's order,
+           2026-10-21: "The items should rest on the Bar") —
+           settled on the bar's floor at the foot of the
+           right column, level with the Bouncer switch's
+           bottom across from it; it does not stretch to
+           fill the taller row the stack sets, and it no
+           longer hangs from the row's top with air
+           beneath it. */
+        .toolbar #resetBtn {
+          grid-row: 2;
+          grid-column: 3;
+          height: 30px;
+          align-self: end;
+        }
         .sound-stack button { padding-left: 8px; padding-right: 8px; }
         /* The sound switches sit SMALLER than their stack
            on a phone too (John's orders,
@@ -1013,16 +1210,20 @@
           border-radius: 8px;
         }
         /* Jump stays the big red target at this one size in
-           free play and in a round alike — it fills its cell —
-           and the HUD lifts clear of the bar's fixed height. */
+           free play and in a round alike — one fixed 54px
+           box: in the lobby it rests at the bottom of its
+           two-row span, in a round it fills the thinner
+           bar's single 54px row — and the HUD lifts clear
+           of the bar's fixed height. */
         #shakeBtn {
           font-size: 22px;
           padding: 14px 10px;
           border-radius: 15px;
           min-width: 0;
           min-height: 0;
+          height: 54px;
         }
-        .gamehud { bottom: calc(188px + env(safe-area-inset-bottom)); }
+        .gamehud { bottom: calc(154px + env(safe-area-inset-bottom)); }
         .hint { font-size: 12.5px; }
         .game-title { font-size: 16.5px; }
       }
@@ -1061,10 +1262,10 @@
       <div class="pack-stack" id="packStack">
         <button id="addBtn" type="button">Pack ’em</button>
         <button id="resetBtn" type="button">Reset</button>
-        <div class="sound-stack" id="soundStack">
-          <button id="musicBtn" type="button">Music: off</button>
-          <button id="bouncerBtn" type="button">Bouncer: on</button>
-        </div>
+      </div>
+      <div class="sound-stack" id="soundStack">
+        <button id="musicBtn" type="button">Music: off</button>
+        <button id="bouncerBtn" type="button">Bouncer: on</button>
       </div>
     </div>
 
@@ -2568,6 +2769,26 @@
                 c.va += vt / (c.r * 60);
               }
             }
+          }
+
+          // Final floor pass (John's orders, 2026-10-21:
+          // "Please have items rest on the top of the Bar"
+          // and "They should not fall behind the Bar"): the
+          // pair pass above can shove a body a few pixels
+          // below the floor line while it separates a pile,
+          // and the wall clamp earlier in the step has
+          // already run by then — so a rendered frame could
+          // show a TBOT sunk past the bar's top edge,
+          // hidden behind the bar panel (the canvas sits
+          // under it). This last pass runs after every
+          // other mover in the step, so no body is ever
+          // DRAWN below the floor: every TBOT rests on top
+          // of the bar, base on its top edge, fully in
+          // front of it — during play and at rest, in the
+          // lobby and in a round alike.
+          for (i = 0; i < bodies.length; i++) {
+            b = bodies[i];
+            if (b.y > floorY() - b.r) b.y = floorY() - b.r;
           }
         }
 
