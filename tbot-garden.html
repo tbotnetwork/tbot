@@ -669,7 +669,7 @@
       <div class="tb-side right">
         <button id="addBtn" type="button">+ TBOT</button>
         <button id="resetBtn" type="button">Reset</button>
-        <button id="musicBtn" type="button">Music: on</button>
+        <button id="musicBtn" type="button">Music: off</button>
       </div>
     </div>
 
@@ -3475,18 +3475,19 @@
 
         function setMusicLabel() {
           // THE LABEL TELLS THE TRUTH (John's ruling, 2026-10-21:
-          // never "on" over silence). Before the first start is
-          // ever requested it reads the setting itself — and the
-          // setting is ON at load, every session: musicWanted
-          // starts true and is never stored, so a prior session's
-          // OFF can never carry into this one. Once a start IS
-          // requested, the label is the audio's real state —
-          // "on" only while playback is confirmed, "off" while
-          // it is not — so it can never sit at "on" over a
-          // silent game, and no off→on dance is ever needed to
-          // make it honest.
-          var on = musicPlaying || (musicWanted && !startRequested);
-          musicBtn.textContent = on ? "Music: on" : "Music: off";
+          // never "on" over silence). The label is painted SOLELY
+          // from confirmed playback — musicPlaying, which is set
+          // only by a proof (the element unpaused with its clock
+          // advancing, or the Web Audio clock advancing) and
+          // cleared the moment playback stops. It is NEVER read
+          // off the setting: musicWanted starts true every fresh
+          // session (in memory only, never stored, so a prior
+          // session's OFF can never carry into this one), but
+          // before PLAY confirms real sound the button honestly
+          // reads "off" — an armed setting is not playing music,
+          // and saying "on" before any sound exists is the exact
+          // lie that forced the old off→on dance.
+          musicBtn.textContent = musicPlaying ? "Music: on" : "Music: off";
         }
         function confirmPlaying(on) {
           if (musicPlaying !== on) {
@@ -3838,18 +3839,30 @@
           }
         });
         musicBtn.addEventListener("click", function () {
-          // The switch answers to the player's INTENT alone
-          // (2026-10-18): if the music is wanted, this press
-          // turns it off; if it is not, this press turns it on.
-          // The shipped toggle keyed the off-branch on transient
-          // playback state (playing / node / element live), so a
-          // press that landed while a start was still proving
-          // itself — or after a start had failed silently —
-          // fell into the ON branch and started the track the
-          // player meant to keep off: the court's self-flip.
-          if (musicWanted) {
+          // THE SWITCH ANSWERS TO REAL PLAYBACK (John's ruling,
+          // 2026-10-21): a tap while sound is genuinely playing
+          // turns it off — this session only; the OFF is never
+          // stored. A tap while the game wants sound but nothing
+          // is actually playing — a start refused, the element
+          // found paused, a start still proving itself — STARTS
+          // the music inside this tap's own gesture; it never
+          // cancels the setting. The old handler keyed the
+          // off-branch on musicWanted alone, so a tap on a
+          // silent-but-"on" switch silently flipped the setting
+          // off and the player had to tap again to get sound:
+          // the off→on dance. Keying the off-branch on confirmed
+          // playback makes that dance impossible — the first tap
+          // on a silent switch is always a start.
+          if (musicPlaying) {
             musicWanted = false;
             stopMusic();
+          } else if (musicWanted) {
+            // Wanted but silent: give both engines fresh turns
+            // and start again, right here inside the tap.
+            elementTried = false;
+            waTried = false;
+            if (musicEngine === "element" && (bgMusic.paused || !elementLive)) musicEngine = "none";
+            tryStartMusic(); // inside this tap, so the browser allows it
           } else {
             musicWanted = true;
             tryStartMusic(); // inside this tap, so the browser allows it
@@ -3857,7 +3870,7 @@
         });
 
         loadBuffer(); // decode now; the first tap then starts instantly
-        setMusicLabel(); // the button opens on the setting itself: ON, every fresh session
+        setMusicLabel(); // the button opens on the truth: nothing is playing yet, so "off" — while the setting behind it stands armed ON, in memory only, every fresh session
 
         // Read-only status for testing: which engine is live, whether
         // playback is confirmed, and the context's state and clock.
