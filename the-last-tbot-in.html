@@ -3464,7 +3464,11 @@
           if (!bgMusic.paused) { confirmPlaying(true); return; } // already sounding — nothing to restart
           musicOutcome = "starting";
           bgMusic.muted = false;
-          bgMusic.volume = 1;
+          // Music level: down 30% from full (John's order,
+          // 2026-10-21 — the same cut as the PFP homes and every
+          // other game): 1.0 → 0.7. Sound effects (capture chimes,
+          // the Bounce voice) keep their own levels — untouched.
+          bgMusic.volume = 0.7;
           var p = bgMusic.play();
           if (p && p.catch) p.catch(function () {
             // Rejected (no qualifying gesture yet, or the browser
