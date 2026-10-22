@@ -308,7 +308,28 @@
          by side on the bar's floor in a single row, the
          bar exactly as tall as Jump plus its padding. No
          button changes size for any of this; only the
-         empty space above the resting row is gone. */
+         empty space above the resting row is gone.
+         THE GREAT SWAP (John's direct order, 2026-10-21,
+         ~21:45 EDT — "SWITCH THE START GAME AND JUMP
+         BUTTONS — positions AND sizes"): Start game and
+         Jump exchanged seats AND sizes, in the lobby and
+         in a round alike. Jump now sits in the LEFT seat
+         at Start/End's compact box (top of the left column
+         in the lobby; the column's bottom in a round),
+         and the Start/End button sits DEAD CENTRE at
+         Jump's big box (the mid-stack in the lobby; the
+         thinner bar's single row in a round, its 68px
+         height now set by End game's box). The faces
+         travel with their buttons: Start keeps its gold
+         hero face and pulse, End its plain face, Jump its
+         red face. Nothing else moved: the sound stack's
+         two seats, Pack 'em and Reset, the bar's heights
+         in both states, and the pile resting on the bar's
+         top edge are exactly as they stood. On a phone
+         the same exchange runs through the grid cells:
+         the Start/End button takes Jump's centre cells
+         and 54px box, Jump takes Start/End's left cells
+         and 34px box. */
       /* In a round the bar goes thinner (John's orders,
          2026-10-21 — "When you start the game make the Bar
          thiner", "The items should rest on the Bar"): the
@@ -355,13 +376,13 @@
          The pulse honours reduced-motion: no motion at all for
          players who ask for none. */
       .toolbar:not(.in-round) #gameBtn {
-        font-size: 14.5px;
+        font-size: 26px;
         font-weight: 800;
-        letter-spacing: 0.03em;
-        padding: 8px 10px;
-        width: 114px;
-        min-height: 32px;
-        border-radius: 12px;
+        letter-spacing: 0.01em;
+        padding: 17px 34px;
+        min-width: 134px;
+        min-height: 68px;
+        border-radius: 17px;
         color: #221a04;
         background: linear-gradient(180deg, #ffe082 0%, #ffc21f 52%, #eda200 100%);
         border: 3px solid #14181f;
@@ -388,13 +409,13 @@
          to its bottom — same side, same size, same tap as
          Start game; only its height in the column drops. */
       .toolbar.in-round #gameBtn {
-        font-size: 14.5px;
+        font-size: 26px;
         font-weight: 800;
-        letter-spacing: 0.03em;
-        padding: 8px 10px;
-        width: 114px;
-        min-height: 32px;
-        border-radius: 12px;
+        letter-spacing: 0.01em;
+        padding: 17px 34px;
+        min-width: 134px;
+        min-height: 68px;
+        border-radius: 17px;
         background: var(--btn-bg);
         color: var(--btn-ink);
         border: 3px solid transparent;
@@ -625,13 +646,14 @@
          (floorInset in resize), so the pile rests on the bar under
          this button, in free play and in a round alike. */
       #shakeBtn {
-        font-size: 26px;
+        font-size: 14.5px;
         font-weight: 800;
-        letter-spacing: 0.01em;
-        padding: 20px 34px;
-        border-radius: 17px;
-        min-width: 134px;
-        min-height: 68px;
+        letter-spacing: 0.03em;
+        padding: 8px 10px;
+        border-radius: 12px;
+        border: 3px solid transparent;
+        width: 114px;
+        min-height: 32px;
       }
       /* Pack ’em is a LARGER button (John's final word,
          2026-10-21: "The Pack'em should be on top and a
@@ -1077,21 +1099,22 @@
            middle. End game takes the bottom row at the
            same size in a round. */
         .toolbar:not(.in-round) #gameBtn {
-          grid-row: 1;
-          grid-column: 1;
-          justify-self: center;
+          grid-row: 1 / span 2;
+          grid-column: 2;
+          justify-self: stretch;
           align-self: end;
-          font-size: 13px;
-          letter-spacing: 0;
-          padding: 8px 4px;
-          width: 96%;
-          height: 34px;
+          font-size: 18px;
+          letter-spacing: 0.01em;
+          padding: 14px 10px;
+          width: 100%;
+          height: 54px;
+          min-width: 0;
           min-height: 0;
-          border-radius: 12px;
+          border-radius: 15px;
         }
         .toolbar.in-round #gameBtn {
           grid-row: 2;
-          grid-column: 1;
+          grid-column: 2;
           /* The LOWER part of the bar (John's orders,
              2026-10-21): in a round End game drops out of
              Start game's row-1 cell into the bottom row —
@@ -1101,15 +1124,16 @@
              The fixed tracks don't change, so Jump keeps
              its exact box and the bar keeps its exact
              height. */
-          justify-self: center;
+          justify-self: stretch;
           align-self: end;
-          font-size: 13px;
-          letter-spacing: 0;
-          padding: 8px 4px;
-          width: 96%;
-          height: 34px;
+          font-size: 18px;
+          letter-spacing: 0.01em;
+          padding: 14px 10px;
+          width: 100%;
+          height: 54px;
+          min-width: 0;
           min-height: 0;
-          border-radius: 12px;
+          border-radius: 15px;
         }
         /* Jump RESTS on the bar's floor on a phone too
            (John's order, 2026-10-21: "The items should rest
@@ -1122,16 +1146,18 @@
            height in its sizing rule below): only the air
            under it is gone. */
         .toolbar #shakeBtn {
-          grid-row: 1 / span 2;
-          grid-column: 2;
+          grid-row: 1;
+          grid-column: 1;
+          justify-self: center;
           align-self: end;
+          width: 96%;
         }
         /* In a round Jump rests in the bar's bottom row
            with End game and the sound stack (see the
            in-round rows above): same 54px box, same centre
            column — the thinner bar's single row is its
            seat for the round. */
-        .toolbar.in-round #shakeBtn { grid-row: 2; }
+        .toolbar.in-round #shakeBtn { grid-row: 2; grid-column: 1; justify-self: center; align-self: end; width: 96%; }
         /* The sound stack's two phone seats (John's
            reference screenshots, 2026-10-21): both are the
            bar's bottom row — in the LOBBY the LEFT column's
@@ -1216,12 +1242,12 @@
            bar's single 54px row — and the HUD lifts clear
            of the bar's fixed height. */
         #shakeBtn {
-          font-size: 22px;
-          padding: 14px 10px;
-          border-radius: 15px;
+          font-size: 13px;
+          padding: 8px 4px;
+          border-radius: 12px;
           min-width: 0;
           min-height: 0;
-          height: 54px;
+          height: 34px;
         }
         .gamehud { bottom: calc(154px + env(safe-area-inset-bottom)); }
         .hint { font-size: 12.5px; }
@@ -1259,10 +1285,10 @@
 
     <div class="toolbar">
       <div class="left-stack" id="leftStack">
-        <button id="gameBtn" type="button">Start game</button>
+        <button class="primary" id="shakeBtn" type="button">Jump</button>
       </div>
       <div class="mid-stack" id="midStack">
-        <button class="primary" id="shakeBtn" type="button">Jump</button>
+        <button id="gameBtn" type="button">Start game</button>
       </div>
       <div class="pack-stack" id="packStack">
         <button id="addBtn" type="button">Pack ’em</button>
