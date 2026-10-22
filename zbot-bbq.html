@@ -476,9 +476,12 @@
         line-height: 1.3;
         margin: 0 0 10px;
       }
-      /* The best-count line, under the rank and its tier
-         badge: the player's local best torched count for the
-         game, updated on the card whenever a round beats it. */
+      /* The best line, under the rank and its tier badge:
+         the player's local best for the game — the best
+         torched count AND the seconds that best round had
+         left on the clock ("Your best: B in · Ts left") —
+         updated on the card whenever a round beats the count
+         or ties it with more seconds left. */
       .over-mode {
         font-size: 18px;
         font-weight: 800;
@@ -1522,9 +1525,18 @@
         // The game's local best: the most zombies this device
         // has torched in one round, kept in localStorage beside
         // the other local records and shown on the card as "Your
-        // best: B". Never posted anywhere itself — the book
-        // keeps the rows it is derived from.
+        // best: B in · Ts left" — the count AND the seconds that
+        // best round had left on the clock (John's word,
+        // 2026-10-21 — "it says your best. It should also have
+        // your best seconds as well"), mirroring Pack'em's best
+        // line. The seconds belong to the round that set the
+        // standing best: a new best count takes its own round's
+        // seconds with it, and a round that only TIES the best
+        // count with more seconds left takes over the seconds.
+        // Never posted anywhere itself — the book keeps the
+        // rows it is derived from.
         var COUNT_BEST_KEY = "tbotZombieBbqCountBest";
+        var COUNT_BEST_SECONDS_KEY = "tbotZombieBbqCountBestSecondsLeft";
         // ---------- ONE-TIME BEST RESET ----------
         // John's ruling: the standing best is erased ONCE.
         // The first time THIS version of the game loads on a
@@ -1538,6 +1550,7 @@
         try {
           if (!window.localStorage.getItem(COUNT_BEST_RESET_KEY)) {
             window.localStorage.setItem(COUNT_BEST_KEY, "0");
+            window.localStorage.setItem(COUNT_BEST_SECONDS_KEY, "0");
             window.localStorage.setItem(COUNT_BEST_RESET_KEY, "1");
           }
         } catch (e) { /* storage blocked — nothing to reset or stamp */ }
@@ -1549,6 +1562,20 @@
         function saveCountBest() {
           try {
             window.localStorage.setItem(COUNT_BEST_KEY, String(countBest));
+          } catch (e) { /* storage blocked — the session copy stands */ }
+        }
+        // The best round's seconds left, stored beside the
+        // best count. A device whose best predates the seconds
+        // simply reads 0 until a round ties or beats the count
+        // and stamps its own seconds (see endGame).
+        var countBestSecondsLeft = 0;
+        try {
+          var storedCountBestSeconds = parseInt(window.localStorage.getItem(COUNT_BEST_SECONDS_KEY), 10);
+          if (storedCountBestSeconds > 0) countBestSecondsLeft = storedCountBestSeconds;
+        } catch (e) { /* no storage — the seconds live for the session */ }
+        function saveCountBestSeconds() {
+          try {
+            window.localStorage.setItem(COUNT_BEST_SECONDS_KEY, String(countBestSecondsLeft));
           } catch (e) { /* storage blocked — the session copy stands */ }
         }
 
@@ -3610,7 +3637,7 @@
         // volume: the media element plays on the phone's media
         // channel, which the silent switch does not mute. If the
         // Web Audio clock confirms, the underlay is PROMOTED —
-        // it rises to full volume and carries the track alone
+        // it rises to the main music level and carries the track alone
         // while Web Audio stops: the clock proved rendering,
         // never audibility, so the track is never left riding
         // the route that might be muted. (An earlier build let
@@ -3646,6 +3673,7 @@
         // "silent", so the button honestly reads "off" instead
         // of lying over silence.
         var musicWanted = true;   // ON by default in every fresh session — never read from storage, so a prior session's off can never carry over; off only when the player switches it off
+        var MUSIC_VOL = 0.7;      // music level — turned down 30% from full volume (1) on every music path; the fire/zombie sound effects ride their own gains and are unchanged
         var startRequested = false; // true once PLAY (or the Music switch) asks for music
         var musicPlaying = false; // true only once playback is confirmed
         var musicEngine = "none"; // "webaudio" | "element" once a start lands
@@ -3694,7 +3722,7 @@
           try {
             actx = new AC();
             musicGain = actx.createGain();
-            musicGain.gain.value = 1;
+            musicGain.gain.value = MUSIC_VOL;
             musicGain.connect(actx.destination);
             actx.addEventListener("statechange", function () {
               // iOS drops the context to "interrupted"/"suspended"
@@ -3756,7 +3784,7 @@
         // never leave Web Audio carrying the track alone under
         // an "on" label. Instead, confirmation PROMOTES the
         // element: the track hands over to the media channel at
-        // full volume and Web Audio stops, so whenever the
+        // the main music level and Web Audio stops, so whenever the
         // button says "on", the element — the route that is
         // certainly heard — is the one playing.
         function verifyClock() {
@@ -3808,17 +3836,17 @@
         // --- <audio> element: underlay first, engine if needed ---
         // The element loops too, so it covers the full 30 s
         // round exactly like the Web Audio path. It starts life
-        // as the UNDERLAY described above: quiet (0.25), started
+        // as the UNDERLAY described above: quiet (0.175), started
         // inside the same tap as the Web Audio attempt, so the
         // tap's gesture covers both engines. One fate, reached
         // two ways: the underlay is PROMOTED to the music itself
-        // at full volume (promoteElement) — by verifyClock the
+        // at the main music level (promoteElement) — by verifyClock the
         // moment Web Audio proves it is rendering, or by the
         // watchdog when Web Audio fails to prove itself in
         // 2.5 s. An "element" engine label means the element is
-        // the one carrying the track at full volume.
+        // the one carrying the track at the main music level.
         bgMusic.loop = true;
-        var UNDERLAY_VOL = 0.25;
+        var UNDERLAY_VOL = 0.175; // 0.25 underlay level scaled by the same 30% music cut
 
         function startElement(vol) {
           elementLive = true;
@@ -3840,11 +3868,11 @@
         function promoteElement() {
           if (!musicWanted) return; // the toggle is law — a promotion can never sound a track the player switched off
           if (musicEngine === "element") {
-            bgMusic.volume = 1;
+            bgMusic.volume = MUSIC_VOL;
             // Already the engine — but if the element itself
             // has stopped, restart it: the engine label alone
             // never counts as sounding (the ground-truth rule).
-            if (bgMusic.paused) startElement(1);
+            if (bgMusic.paused) startElement(MUSIC_VOL);
             armElementWatchdog();
             return;
           }
@@ -3857,10 +3885,10 @@
           // is (re)started for real, and its "playing" event
           // confirms.
           if (!bgMusic.paused) {
-            bgMusic.volume = 1;
+            bgMusic.volume = MUSIC_VOL;
             confirmPlaying(true);
           } else {
-            startElement(1); // its "playing" event confirms
+            startElement(MUSIC_VOL); // its "playing" event confirms
           }
           armElementWatchdog();
         }
@@ -3919,7 +3947,7 @@
               return;
             }
             elementRetries++;
-            startElement(1); // a refusal lands in startElement's rejection path, which turns the outcome "silent"
+            startElement(MUSIC_VOL); // a refusal lands in startElement's rejection path, which turns the outcome "silent"
             armElementWatchdog(); // verify the restart landed, too
           }, 1200);
         }
@@ -3971,7 +3999,7 @@
           if (musicEngine === "element") { // Web Audio already lost its turn this session
             // Judged by the element's real state: a paused
             // carrier is restarted, never assumed sounding.
-            if (bgMusic.paused) startElement(1);
+            if (bgMusic.paused) startElement(MUSIC_VOL);
             armElementWatchdog();
             return;
           }
@@ -4360,8 +4388,9 @@
         // and gold tier badge from each tag's best torched
         // count across the whole book (see the scorebook
         // block) — directly under the result, exactly as on
-        // TBOT Garden's card, with the "Your best: B" line
-        // beneath the ranking, then the stars, and the buttons.
+        // TBOT Garden's card, with the "Your best: B in · Ts
+        // left" line beneath the ranking, then the stars, and
+        // the buttons.
         function endGame() {
           if (!gameOn) return;
           var finalCount = torchedCount;
@@ -4395,12 +4424,27 @@
           resetRating(); // the card opens with the stored local rating filled in
           resultLine.textContent = "You torched " + finalCount +
             (finalCount === 1 ? " zombie" : " zombies") + " in 30 seconds";
-          // The game's local best, updated when beaten.
+          // The game's local best, updated when beaten — and
+          // its seconds with it (John's word, 2026-10-21):
+          // the line carries BOTH figures, the best count and
+          // the seconds that best round had left on the clock.
+          // A new best count takes this round's seconds along;
+          // a round that ties the count with more seconds left
+          // takes over the seconds alone. A round that ran to
+          // the buzzer honestly reads 0s left.
+          var finalSecondsLeft = clamp(Math.ceil(timeLeftMs / 1000), 0, GAME_SECONDS);
           if (finalCount > countBest) {
             countBest = finalCount;
+            countBestSecondsLeft = finalSecondsLeft;
             saveCountBest();
+            saveCountBestSeconds();
+          } else if (finalCount === countBest &&
+                     finalSecondsLeft > countBestSecondsLeft) {
+            countBestSecondsLeft = finalSecondsLeft;
+            saveCountBestSeconds();
           }
-          countBestLine.textContent = "Your best: " + countBest;
+          countBestLine.textContent = "Your best: " + countBest +
+            " in · " + countBestSecondsLeft + "s left";
           countBestLine.hidden = false;
           // The book: this round posts its row (Zombies
           // Torched = the count, Sun Chips 0, Time Left 0) and
@@ -4632,6 +4676,7 @@
             descVisible: !!(streetDescEl && streetDescEl.parentNode),
             mode: "street",
             countBest: countBest,
+            countBestSecondsLeft: countBestSecondsLeft,
             torched: torchedCount,
             crossings: lineCrossings,
             ramp: Math.round(rampFactorNow * 100) / 100,
