@@ -95,17 +95,50 @@
         text-shadow: 0 2px 14px rgba(0, 0, 0, 0.8);
         white-space: nowrap;
       }
-      /* The toolbar is a three-column grid — left controls,
-         middle, right controls — in a bar centred on the
-         screen. TORCH exists ONLY inside a played round: the
-         script seats it in the left group for the round, in
-         the seat End game holds on the street, while End game
-         takes TORCH's old middle seat dead-centre (THE SWITCH,
-         see clearRoundChrome) — and TORCH is removed from the
-         document entirely on the idle street, whose bar is
-         PLAY / + TBOT / Reset / Music across the two side
-         columns (the right group is pinned to column 3, so it
-         keeps its spot whether or not TORCH is seated). */
+      /* THE BAR SYSTEM (John's order, 2026-10-22 — The Last
+         TBOT In's current live bar, the same one Sereima's
+         Kitties carries, applied here to the buttons ZBOT
+         actually carries in each state): a three-column
+         grid — left column, middle, right column — in a bar
+         centred on the screen, TWO ROWS tall in the lobby
+         (54px / 44px, one 8px gap, 8px padding: 124px).
+         LOBBY: PLAY (the start button) sits DEAD CENTRE at
+         the big box (205×68) — the grid's two side columns
+         are both 1fr, so the auto-width middle track sits
+         exactly on the bar's centre line and PLAY, spanning
+         both rows and resting on the bar's floor, sits on
+         that line with it. The Music switch sits BOTTOM-LEFT
+         in the left column's lower cell, directly under the
+         small box's seat (114×36.5 — the seat the round's
+         End game face takes; ZBOT carries no action button
+         on the idle street, so that seat stands empty in
+         the lobby and TORCH is not on the screen at all).
+         The remaining lobby buttons sit in the RIGHT
+         column: + TBOT on top as the larger button, Reset
+         underneath it, a little smaller, resting on the
+         floor.
+         IN A ROUND the bar THINS (94px): the top row
+         collapses away and the controls that stay rest side
+         by side on the bar's floor in a single row — TORCH
+         (the action button) takes the SAME big centre box
+         (205×68, dead centre), End game takes the small box
+         at the BOTTOM-LEFT (114×36.5), the Music switch
+         crosses to the BOTTOM-RIGHT, and + TBOT / Reset
+         LEAVE the screen (no greyed-out buttons). This
+         supersedes ZBOT's Oct 19 in-round TORCH / End game
+         seat trade: TORCH now holds the centre and End
+         game the small bottom-left box. startGame /
+         endGame only flip the bar's .inround class — no
+         button is added, removed, relabelled, or resized
+         beyond the two boxes the system trades between
+         PLAY / TORCH and the End game face. On a phone the
+         bar is the same fixed grid at phone tracks (see
+         the phone query below): big box ~123×54, small box
+         104×34, lobby 126px, in-round 78px. The street's
+         ground is measured straight off the bar's top edge
+         (floorInset in resize, kept current by the bar's
+         ResizeObserver), so it re-rests on the thinner bar
+         the moment a round starts. */
       .toolbar {
         position: fixed;
         left: 50%;
@@ -113,6 +146,7 @@
         transform: translateX(-50%);
         display: grid;
         grid-template-columns: 1fr auto 1fr;
+        grid-template-rows: 54px 44px;
         align-items: center;
         gap: 8px;
         width: min(780px, calc(100vw - 20px));
@@ -125,14 +159,118 @@
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
         z-index: 7;
       }
-      .tb-side {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-        min-width: 0;
+      /* In a round the bar goes thinner: the top row
+         collapses to nothing and the bottom row takes the
+         big centre box's exact height, so the bar is one
+         resting row tall (0 + 8px gap + 68px, plus its
+         padding: 94px against the lobby's 124px). */
+      .toolbar.inround { grid-template-rows: 0 68px; }
+      /* The grouping wrappers dissolve on the bar
+         (display: contents): every button is a direct grid
+         item of the bar and takes its seat from the seat
+         rules below, so the .inround class alone deals the
+         seats for each state. The wrappers stay in the
+         markup only as grouping — they lay nothing out. */
+      .left-stack,
+      .mid-stack,
+      .pack-stack { display: contents; }
+      /* THE SEATS (the bar system, both states — see the
+         bar comment above). The centre box spans the bar's
+         two grid rows and RESTS on the bar: it settles at
+         the bottom of its span, dead centre horizontally,
+         resting on the floor vertically — PLAY wears it in
+         the lobby, TORCH in a round. */
+      .toolbar:not(.inround) #gameBtn {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        justify-self: center;
+        align-self: end;
       }
-      .tb-side.right { justify-content: flex-end; grid-column: 3; }
+      .toolbar.inround #gameBtn {
+        grid-column: 1;
+        grid-row: 2;
+        justify-self: start;
+        align-self: end;
+      }
+      .toolbar.inround #torchBtn {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        justify-self: center;
+        align-self: end;
+      }
+      #addBtn {
+        grid-column: 3;
+        grid-row: 1;
+        justify-self: end;
+        align-self: start;
+      }
+      #resetBtn {
+        grid-column: 3;
+        grid-row: 2;
+        justify-self: end;
+        align-self: end;
+      }
+      /* The sound stack: ZBOT carries ONE sound switch —
+         Music — seated as the system's stack: in the
+         LOBBY in the bar's LEFT column, directly underneath
+         the small box's seat, settled on the bar's bottom
+         edge; IN A ROUND it crosses to the BOTTOM of the
+         RIGHT column, under the seats + TBOT and Reset
+         vacated. The stack is a direct grid child of the
+         bar, so the .inround class alone moves it between
+         those two cells. The switch is the bar's smallest
+         button — compact type and padding, with a fixed
+         minimum sized for its longer label ("Music: off"),
+         so flipping it never nudges a neighbour. */
+      .sound-stack {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+        grid-column: 1;
+        grid-row: 2;
+        justify-self: start;
+        align-self: end;
+      }
+      .toolbar.inround .sound-stack {
+        grid-column: 3;
+        justify-self: end;
+      }
+      .sound-stack button {
+        font-size: 11px;
+        padding: 4px 7px;
+        border-radius: 8px;
+      }
+      #musicBtn { min-width: 80px; }
+      /* + TBOT and Reset in a round: OFF the screen
+         entirely — the right-column lobby buttons leave
+         with the round and return to these same seats when
+         it ends. Their click handlers also refuse mid-round,
+         so the street can neither grow nor reset while a
+         round runs. */
+      .toolbar.inround #resetBtn,
+      .toolbar.inround #addBtn { display: none; }
+      /* + TBOT: the right column's larger top button —
+         bigger type, padding, and box than the plain
+         button size, with the smaller Reset tucked
+         underneath it. */
+      #addBtn {
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: 0.01em;
+        padding: 15px 24px;
+        border-radius: 14px;
+        min-width: 156px;
+        min-height: 52px;
+      }
+      /* Reset: the smaller button under + TBOT — compact
+         type and padding, a step down from the plain
+         button size. */
+      .pack-stack #resetBtn {
+        font-size: 13px;
+        padding: 9px 14px;
+        border-radius: 10px;
+      }
       /* The game's description line: shown with the street on
          entry, it hangs above the toolbar for a few seconds,
          fades out, and is removed from the document entirely — a
@@ -142,7 +280,7 @@
       .game-desc {
         position: fixed;
         left: 50%;
-        bottom: calc(118px + env(safe-area-inset-bottom));
+        bottom: calc(148px + env(safe-area-inset-bottom));
         transform: translateX(-50%);
         margin: 0;
         padding: 8px 16px;
@@ -196,19 +334,29 @@
         background: var(--accent);
         color: var(--accent-ink);
       }
-      /* The TORCH button, enlarged — the same treatment as the
-         family's canonical action button: roughly one-and-a-half
-         times the plain buttons' footprint, so it is an easy,
-         confident tap target mid-round on a phone. Big and red:
-         it is the fire button. */
+      /* The TORCH button wears the bar system's BIG CENTRE
+         box in a round — 205×68, dead centre, the same box
+         PLAY wears in the lobby: the enlarged footprint is
+         an easy, confident tap target mid-round, big and
+         red — it is the fire button. On the idle street
+         TORCH is not on the screen at all: ZBOT carries no
+         action button in the lobby and firing exists only
+         inside a played round (pressTorch refuses there
+         too), so the lobby rule below takes it off the bar
+         entirely — no greyed-out button. */
       #torchBtn {
-        font-size: 22px;
         font-weight: 800;
         letter-spacing: 0.01em;
-        padding: 17px 26px;
-        border-radius: 16px;
-        min-width: 118px;
-        min-height: 56px;
+      }
+      .toolbar:not(.inround) #torchBtn { display: none; }
+      .toolbar.inround #torchBtn {
+        font-size: 26px;
+        padding: 20px 34px;
+        border-radius: 17px;
+        width: 205px;
+        height: 68px;
+        min-width: 0;
+        min-height: 0;
       }
       #torchBtn.cooling { opacity: 0.55; }
       /* The PLAY button is the hero of the idle street: clearly
@@ -220,17 +368,22 @@
          is the first thing a player sees. The treatment is
          scoped to the idle street: the toolbar carries .inround
          during a round, where this same button reads "End game"
-         and keeps its plain size beside TORCH. + TBOT / Reset /
-         Music keep their existing size and style, so PLAY stands
-         alone as the star. The pulse honours reduced-motion: no
-         motion at all for players who ask for none. */
+         and takes the small box at the bottom-left (see the
+         .inround rule below). PLAY wears the bar system's big
+         centre box, 205×68, and the pulse moves only the glow,
+         never the button's box, so the box holds its exact
+         measure while it breathes. The pulse honours
+         reduced-motion: no motion at all for players who ask
+         for none. */
       .toolbar:not(.inround) #gameBtn {
-        font-size: 20px;
+        font-size: 22px;
         font-weight: 900;
         letter-spacing: 0.06em;
-        padding: 15px 28px;
-        min-width: 142px;
-        min-height: 54px;
+        padding: 14px 18px;
+        width: 205px;
+        height: 68px;
+        min-width: 0;
+        min-height: 0;
         border-radius: 15px;
         color: #221a04;
         background: linear-gradient(180deg, #ffe082 0%, #ffc21f 52%, #eda200 100%);
@@ -242,9 +395,30 @@
           inset 0 -3px 0 rgba(120, 72, 0, 0.35);
         animation: playPulse 2.4s ease-in-out infinite;
       }
+      /* End game: the SMALL box, 114×36.5 — the seat at the
+         BOTTOM-LEFT of the bar for the round (see the seat
+         rules above), traded from PLAY's big centre box
+         under the bar system (John's order, 2026-10-22,
+         superseding the Oct 19 seat trade). Plain button
+         face, no pulse — only PLAY wears the gold hero.
+         The seat is the left column's lower cell, settled
+         on the bar's floor — same button, same tap; only
+         its seat and box change with the state. */
+      .toolbar.inround #gameBtn {
+        font-size: 14.5px;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+        padding: 8px 10px;
+        width: 114px;
+        height: 36.5px;
+        min-height: 0;
+        border-radius: 12px;
+        background: var(--btn-bg);
+        color: var(--btn-ink);
+        border: 3px solid transparent;
+      }
       @keyframes playPulse {
         0%, 100% {
-          transform: scale(1);
           box-shadow:
             0 8px 22px rgba(240, 165, 0, 0.42),
             0 4px 10px rgba(0, 0, 0, 0.4),
@@ -252,7 +426,6 @@
             inset 0 -3px 0 rgba(120, 72, 0, 0.35);
         }
         50% {
-          transform: scale(1.045);
           box-shadow:
             0 14px 36px rgba(240, 165, 0, 0.75),
             0 6px 14px rgba(0, 0, 0, 0.4),
@@ -679,40 +852,156 @@
       @media (max-width: 480px) {
         .game-title { font-size: 24px; }
         button { padding: 11px 13px; font-size: 13.5px; }
-        /* PLAY stays the hero on a narrow phone too: a touch
-           smaller than the desktop treatment so it still fits
-           its grid column, but clearly the largest control on
-           the street. */
+        /* Phone: the bar system at phone tracks — a FIXED
+           grid, three columns (the two side tracks EQUAL
+           fractions, so the centre track sits exactly on
+           the bar's centre line) and TWO rows of fixed
+           height (54px / 48px, one 6px gap, 8px padding:
+           126px in the lobby). The seats are the desktop
+           seats at phone size:
+             row 1: (small seat, empty in the lobby) · PLAY · + TBOT
+             row 2: Music · (empty) · Reset
+           PLAY spans both rows in the centre column at the
+           big phone box (~123×54) and RESTS on the bar's
+           floor at the bottom of the span. In a round the
+           top row collapses (see the in-round rows below)
+           and the single bottom row reads: End game at the
+           small phone box (104×34) · TORCH at the big box ·
+           Music, all resting on the bar's floor — the bar
+           is 78px in a round against the lobby's 126px.
+           Buttons are sized by their cells and the explicit
+           boxes below (min-width / min-height 0), never by
+           their contents, so the grid cannot re-wrap or
+           re-flow in any state, and a label flip (Music
+           on/off) changes nothing but the words. */
+        .toolbar {
+          display: grid;
+          grid-template-columns: 1.15fr 1.3fr 1.15fr;
+          grid-template-rows: 54px 48px;
+          gap: 6px;
+          padding: 8px;
+          align-items: stretch;
+          justify-items: stretch;
+        }
+        .toolbar.inround { grid-template-rows: 0 54px; }
+        .toolbar button {
+          width: 100%;
+          height: 100%;
+          min-width: 0;
+          min-height: 0;
+          justify-self: stretch;
+          align-self: stretch;
+        }
+        #musicBtn { min-width: 0; }
+        /* PLAY at the big centre phone box: it spans the
+           bar's two rows in the centre column at the centre
+           track's full width and the fixed 54px height,
+           resting on the bar's floor. */
         .toolbar:not(.inround) #gameBtn {
-          font-size: 19px;
-          padding: 14px 24px;
-          min-width: 132px;
-          min-height: 52px;
-          border-radius: 14px;
-        }
-        #torchBtn {
-          font-size: 20px;
-          padding: 16px 24px;
+          grid-row: 1 / span 2;
+          grid-column: 2;
+          justify-self: stretch;
+          align-self: end;
+          font-size: 17px;
+          letter-spacing: 0.03em;
+          padding: 14px 8px;
+          width: 100%;
+          height: 54px;
+          min-height: 0;
           border-radius: 15px;
-          min-width: 110px;
-          min-height: 52px;
         }
-        /* Narrow street: the four idle controls cannot share
-           one row, so the side groups wrap over two rows in a
-           taller bar (left group left, right group right) —
-           there is no TORCH here at any width. In a round
-           (.inround) the three controls (TORCH / End game /
-           Music) keep the single symmetric row at every width,
-           End game dead-centre. */
-        .toolbar:not(.inround) {
-          grid-template-columns: 1fr 1fr;
-          grid-template-areas: "left right";
+        /* End game at the small phone box, bottom-left: in
+           a round it takes the bottom row's left cell,
+           settled at its bottom at 96% of the track
+           (~104×34). */
+        .toolbar.inround #gameBtn {
+          grid-row: 2;
+          grid-column: 1;
+          justify-self: center;
+          align-self: end;
+          font-size: 13px;
+          letter-spacing: 0;
+          padding: 8px 4px;
+          width: 96%;
+          height: 34px;
+          min-height: 0;
+          border-radius: 12px;
         }
-        .toolbar:not(.inround) .tb-side.left { grid-area: left; }
-        .toolbar:not(.inround) .tb-side.right { grid-area: right; }
-        /* The street bar is two rows tall at this width, so the
-           description floats higher to clear it. */
-        .game-desc { bottom: calc(134px + env(safe-area-inset-bottom)); }
+        /* TORCH at the big centre phone box in a round: the
+           centre column's bottom row at the track's full
+           width and the fixed 54px height, resting on the
+           bar's floor with End game and Music. The size is
+           restated here at the seat rule's own specificity:
+           the desktop in-round rule carries the 205×68 box
+           at this same selector weight, so the phone box
+           must be re-declared here or the desktop box would
+           win the tie and burst the phone track. */
+        .toolbar.inround #torchBtn {
+          grid-row: 2;
+          grid-column: 2;
+          width: 100%;
+          height: 54px;
+          font-size: 22px;
+          padding: 14px 10px;
+          border-radius: 15px;
+        }
+        /* The Music switch's two phone seats: the bottom
+           row — in the LOBBY the LEFT column, directly
+           underneath the small seat; IN A ROUND the RIGHT
+           column at the bar's bottom-right. */
+        .toolbar #soundStack {
+          grid-row: 2;
+          grid-column: 1;
+          align-items: flex-start;
+          align-self: stretch;
+          /* ZBOT's stack is the single Music switch: it
+             settles on the bar's floor at the bottom of
+             the row, directly under the small seat. */
+          justify-content: flex-end;
+        }
+        .toolbar.inround #soundStack {
+          grid-row: 2;
+          grid-column: 3;
+          align-items: flex-end;
+          justify-content: flex-end;
+          align-self: stretch;
+        }
+        .toolbar #musicBtn {
+          width: 96px;
+          height: 22px;
+          justify-self: center;
+          align-self: center;
+          font-size: 11px;
+          padding: 4px 6px;
+          border-radius: 8px;
+        }
+        /* + TBOT fills the tall row-1 cell on the right,
+           larger type than the plain phone button; its
+           desktop min-width / min-height are zeroed by the
+           .toolbar button rule above, so the cell does the
+           sizing and the side tracks stay equal. */
+        .toolbar #addBtn {
+          grid-row: 1;
+          grid-column: 3;
+          font-size: 16px;
+          font-weight: 800;
+          min-width: 0;
+          min-height: 0;
+        }
+        /* Reset in the bottom row at its compact height,
+           resting on the bar's bottom edge at the foot of
+           the right column. */
+        .toolbar #resetBtn {
+          grid-row: 2;
+          grid-column: 3;
+          height: 30px;
+          align-self: end;
+          font-size: 13px;
+          padding: 8px 12px;
+        }
+        /* The street bar is two rows tall at this width, so
+           the description floats higher to clear it. */
+        .game-desc { bottom: calc(148px + env(safe-area-inset-bottom)); }
       }
     </style>
   </head>
@@ -732,13 +1021,17 @@
     </div>
 
     <div class="toolbar">
-      <div class="tb-side left">
+      <div class="left-stack" id="leftStack">
         <button id="gameBtn" type="button">PLAY</button>
       </div>
-      <button class="primary" id="torchBtn" type="button">TORCH</button>
-      <div class="tb-side right">
+      <div class="mid-stack" id="midStack">
+        <button class="primary" id="torchBtn" type="button">TORCH</button>
+      </div>
+      <div class="pack-stack" id="packStack">
         <button id="addBtn" type="button">+ TBOT</button>
         <button id="resetBtn" type="button">Reset</button>
+      </div>
+      <div class="sound-stack" id="soundStack">
         <button id="musicBtn" type="button">Music: on</button>
       </div>
     </div>
@@ -809,8 +1102,6 @@
         var rateThanks = document.getElementById("rateThanks");
         var starBtns = document.querySelectorAll(".star-btn");
         var toolbarEl = document.querySelector(".toolbar");
-        var toolbarLeftEl = toolbarEl.querySelector(".tb-side.left");
-        var toolbarRightEl = toolbarEl.querySelector(".tb-side.right");
         var streetDescEl = document.getElementById("streetDesc");
 
         var W = 0, H = 0, DPR = 1;
@@ -4203,50 +4494,46 @@
 
         // ---------- Round flow ----------
         var steerKeys = {}; // ArrowLeft / ArrowRight currently held
-        // The street gets its idle buttons back, in their exact
-        // old spots: Reset back in the right group before Music,
-        // then + TBOT before Reset — and PLAY back in the left
-        // group, out of the centre seat it held as End game
-        // during the round (see THE SWITCH in clearRoundChrome).
-        // The bar leaves its in-round layout — and TORCH leaves
-        // the document with it: the idle street has NO fire
-        // button and no way to fire. The street's idle controls
-        // are PLAY / + TBOT / Reset / Music only.
+        // The street gets its idle bar back: the .inround
+        // class comes off and the bar system's CSS deals the
+        // lobby seats again — PLAY back at the big centre box,
+        // + TBOT / Reset back in the right column, Music back
+        // at the bottom-left — and TORCH leaves the screen
+        // with the class: the idle street has NO fire button
+        // on it and no way to fire (pressTorch refuses there
+        // too). The street's idle controls are PLAY / + TBOT /
+        // Reset / Music only. No button moves in the document
+        // — the class alone deals every seat in both states.
         function restoreStreetButtons() {
           toolbarEl.classList.remove("inround");
-          if (torchBtn.parentNode) torchBtn.parentNode.removeChild(torchBtn);
-          if (gameBtn.parentNode !== toolbarLeftEl) toolbarLeftEl.appendChild(gameBtn);
-          if (!resetBtn.parentNode) toolbarRightEl.insertBefore(resetBtn, musicBtn);
-          if (!addBtn.parentNode) toolbarRightEl.insertBefore(addBtn, resetBtn);
         }
         // The round screen is clean: no +TBOT, no Reset, no
-        // masthead — those controls and the brand block leave
-        // the document for the whole round, not hidden, GONE,
-        // so while a round is running nothing can add a zombie
-        // or refill the street. The round toolbar is TORCH /
-        // End game / Music only.
+        // masthead — the brand block leaves the document for
+        // the whole round, and + TBOT / Reset leave the screen
+        // under the .inround CSS, so while a round is running
+        // nothing on the bar can add a zombie or refill the
+        // street (their handlers refuse mid-round as well).
+        // The round toolbar is TORCH / End game / Music only.
         function clearRoundChrome() {
           toolbarEl.classList.add("inround");
-          // THE SWITCH (John's order): End game and TORCH trade
-          // seats for the round. End game — the game button,
-          // already labelled — moves out of the left group into
-          // the middle seat between the two side groups,
-          // dead-centre, where TORCH used to sit; TORCH joins
-          // the bar in the left group, in the seat End game
-          // held. Each button keeps its own size, styling,
-          // label, and behaviour from its new seat — only the
-          // seats change — and restoreStreetButtons puts both
-          // back when the round ends. The Music toggle, pinned
-          // in the right group, does not move.
-          toolbarEl.insertBefore(gameBtn, toolbarRightEl);
-          if (!torchBtn.parentNode) toolbarLeftEl.appendChild(torchBtn);
+          // THE BAR SYSTEM (John's order, 2026-10-22 —
+          // superseding the Oct 19 TORCH / End game seat
+          // trade): the class alone deals the round's seats —
+          // TORCH takes the big centre box (205×68 desktop,
+          // ~123×54 phone), End game — the game button,
+          // already labelled — takes the small box at the
+          // bottom-left (114×36.5 desktop, 104×34 phone),
+          // the Music switch crosses to the bottom-right,
+          // and the bar thins (94px desktop, 78px phone).
+          // Each button keeps its own label and behaviour —
+          // only the seats and the two traded boxes change —
+          // and restoreStreetButtons deals the lobby back
+          // when the round ends.
           // The description is NOT taken out here: if it is
           // still up when the round starts, it finishes its own
           // fade on its own timers while the round's clock
           // holds (see startGame) — it is never re-shown by a
           // round start.
-          if (addBtn.parentNode) addBtn.parentNode.removeChild(addBtn);
-          if (resetBtn.parentNode) resetBtn.parentNode.removeChild(resetBtn);
           if (brandLogoEl.parentNode) brandLogoEl.parentNode.removeChild(brandLogoEl);
         }
         // THE LAST ZOMBIE STANDING picks the show: the most
@@ -4541,8 +4828,8 @@
           pressTorch();
         });
         addBtn.addEventListener("click", function () {
-          // Belt and braces beside the round-time removal
-          // above: even a programmatic click on the detached
+          // Belt and braces beside the round-time absence
+          // above: even a programmatic click on the off-screen
           // button can never add a zombie mid-round. On the idle
           // street it adds ONE, up to the street's cap.
           if (gameOn) return;
@@ -4566,7 +4853,7 @@
           ));
         });
         resetBtn.addEventListener("click", function () {
-          // Belt and braces beside the round-time removal above:
+          // Belt and braces beside the round-time absence above:
           // on the idle street it settles the street back to the
           // starting few.
           if (gameOn) return;
@@ -4649,6 +4936,13 @@
         }
         window.addEventListener("resize", resize);
         window.addEventListener("load", resize);
+        // The bar's own height is a floor input: when the
+        // .inround class thins the bar at a round's start (or
+        // restores it at its end), the street's ground
+        // re-rests on the bar's new top edge at once.
+        if (toolbarEl && window.ResizeObserver) {
+          new ResizeObserver(function () { resize(); }).observe(toolbarEl);
+        }
 
         // ---------- Read-only status for testing ----------
         // The shows the zombies currently on the street are
