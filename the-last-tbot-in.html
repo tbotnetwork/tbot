@@ -408,17 +408,49 @@
          bar's full height in a round and pushes this face
          to its bottom — same side, same size, same tap as
          Start game; only its height in the column drops. */
+      @media (min-width: 481px) {
       .toolbar.in-round #gameBtn {
+        position: absolute;
+        left: 8px;
+        bottom: 8px;
+        font-size: 14.5px;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+        padding: 8px 10px;
+        width: 114px;
+        min-height: 32px;
+        border-radius: 12px;
+        background: var(--btn-bg);
+        color: var(--btn-ink);
+        border: 3px solid transparent;
+      }
+      /* The IN-ROUND TRADE (John's direct order, 2026-10-22,
+         ~07:11 EDT: "switch, end game and jump buttons and
+         size in the last TBOT In game only"): IN A ROUND
+         ONLY, End game and Jump trade seats and boxes. End
+         game (rule above) sits in Jump's in-round seat —
+         the bar's lower-left, resting on its floor — at
+         Jump's compact box (114 x 36.5), and Jump (rule
+         below) sits in End game's in-round seat — dead
+         centre — at End game's box (205 x 68, the width
+         pinned so the traded box is exact). Both pin to
+         the bar's floor (bottom: 8px, the bar's own
+         padding) where their predecessors rested. The
+         lobby is untouched: every rule here is scoped
+         .in-round, and Jump's centre pin centres on the
+         bar's padding box (left: calc(50% - 102.5px)). */
+      .toolbar.in-round #shakeBtn {
+        position: absolute;
+        left: calc(50% - 102.5px);
+        bottom: 8px;
         font-size: 26px;
         font-weight: 800;
         letter-spacing: 0.01em;
         padding: 17px 34px;
-        min-width: 134px;
+        width: 205px;
         min-height: 68px;
         border-radius: 17px;
-        background: var(--btn-bg);
-        color: var(--btn-ink);
-        border: 3px solid transparent;
+      }
       }
       @keyframes startPulse {
         0%, 100% {
@@ -1114,7 +1146,7 @@
         }
         .toolbar.in-round #gameBtn {
           grid-row: 2;
-          grid-column: 2;
+          grid-column: 1;
           /* The LOWER part of the bar (John's orders,
              2026-10-21): in a round End game drops out of
              Start game's row-1 cell into the bottom row —
@@ -1124,16 +1156,16 @@
              The fixed tracks don't change, so Jump keeps
              its exact box and the bar keeps its exact
              height. */
-          justify-self: stretch;
+          justify-self: center;
           align-self: end;
-          font-size: 18px;
-          letter-spacing: 0.01em;
-          padding: 14px 10px;
-          width: 100%;
-          height: 54px;
+          font-size: 13px;
+          letter-spacing: 0;
+          padding: 8px 4px;
+          width: 96%;
+          height: 34px;
           min-width: 0;
           min-height: 0;
-          border-radius: 15px;
+          border-radius: 12px;
         }
         /* Jump RESTS on the bar's floor on a phone too
            (John's order, 2026-10-21: "The items should rest
@@ -1157,7 +1189,7 @@
            in-round rows above): same 54px box, same centre
            column — the thinner bar's single row is its
            seat for the round. */
-        .toolbar.in-round #shakeBtn { grid-row: 2; grid-column: 1; justify-self: center; align-self: end; width: 96%; }
+        .toolbar.in-round #shakeBtn { grid-row: 2; grid-column: 2; justify-self: stretch; align-self: end; width: 100%; font-size: 18px; letter-spacing: 0.01em; padding: 14px 10px; height: 54px; min-width: 0; min-height: 0; border-radius: 15px; }
         /* The sound stack's two phone seats (John's
            reference screenshots, 2026-10-21): both are the
            bar's bottom row — in the LOBBY the LEFT column's
