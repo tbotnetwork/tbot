@@ -766,6 +766,52 @@
       .over-btns a.btnlink { flex: 1 1 100%; }
       .over-btns button { flex: 1 1 0; min-width: 0; }
       .over-btns a.btnlink[hidden] { display: none; }
+      /* The Randomize Show deal (John's order, 2026-10-21): on
+         top of Cat Pack / Play again on the winner card
+         (John's correction, 2026-10-21: "It should be on top
+         of play again and Pack'em" — it sat at the very bottom
+         of the card at first) — a full-width button that deals
+         a random TBOT show onto the card, and every tap
+         re-rolls. The dealt show lands on its own plate
+         directly above the button, in the joke plate's
+         navy-and-gold family so the card reads as one piece;
+         the plate stays hidden until the first deal of the
+         card, and a deal never repeats the show already up.
+         Both pieces are sized compactly like the rest of the
+         card, so the whole card still fits one phone screen. */
+      .over-show {
+        margin: 2px 0 0;
+        background: #0b1026;
+        color: #ffbe1a;
+        border-radius: 14px;
+        padding: 8px 12px 10px;
+        box-shadow: 0 4px 14px rgba(4, 6, 16, 0.45);
+      }
+      .over-show[hidden] { display: none; }
+      .over-show .show-label {
+        display: block;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        color: rgba(255, 255, 255, 0.65);
+      }
+      .over-show .show-name {
+        display: block;
+        font-size: 19px;
+        font-weight: 800;
+        line-height: 1.25;
+        overflow-wrap: break-word;
+      }
+      .over-show-btn { margin-top: 8px; margin-bottom: 8px; }
+      .over-show-btn button {
+        width: 100%;
+        font-size: 16px;
+        font-weight: 800;
+        padding: 11px 14px;
+        min-height: 46px;
+        border-radius: 14px;
+        white-space: nowrap;
+      }
       /* The result line: the round's figures — cats in, clock —
          in bigger, heavier type (18px, extra-bold,
          full ink rather than the soft tone) so it reads as a
@@ -1120,7 +1166,7 @@
       <div class="left-stack" id="leftStack">
         <button id="gameBtn" type="button">Start game</button>
         <div class="sound-stack" id="soundStack">
-          <button id="musicBtn" type="button">Music: off</button>
+          <button id="musicBtn" type="button">Music: on</button>
           <button id="bouncerBtn" type="button">Bouncer: on</button>
         </div>
       </div>
@@ -1157,6 +1203,10 @@
           </div>
           <p class="rate-thanks" id="rateThanks" hidden></p>
         </div>
+        <p class="over-show" id="showLine" hidden><span class="show-label">NOW SHOWING</span><span class="show-name" id="showName"></span></p>
+        <div class="over-show-btn">
+          <button id="showBtn" type="button">Randomize Show</button>
+        </div>
         <div class="over-btns">
           <button id="freeBtn" type="button">Cat Pack</button>
           <button class="primary" id="againBtn" type="button">Play again</button>
@@ -1188,6 +1238,9 @@
 
         var againBtn = document.getElementById("againBtn");
         var freeBtn = document.getElementById("freeBtn");
+        var showLine = document.getElementById("showLine");
+        var showName = document.getElementById("showName");
+        var showBtn = document.getElementById("showBtn");
         var resultLine = document.getElementById("resultLine");
         var earnedLine = document.getElementById("earnedLine");
         var rankLine = document.getElementById("rankLine");
@@ -1226,8 +1279,11 @@
         // before the 35 seconds run out. The LAST cat into the hole
         // tells its joke on the winner card (see showJoke in
         // endGame): the joke is the whole prize — it lives on the
-        // card and nowhere else. There are no shows, no episodes,
-        // and no links anywhere in this game.
+        // card and nowhere else. There are no episodes and no
+        // links anywhere in this game; the one show-shaped piece
+        // is the winner card's Randomize Show deal (John's order,
+        // 2026-10-21 — see the SHOWS block below), which deals a
+        // show NAME onto the card and goes nowhere.
         // The jokes themselves: family-friendly cat jokes, each
         // short enough to sit on the winner card's plate. A round
         // deals 15 of them — one per cat, no doubles — off a fresh
@@ -1269,6 +1325,32 @@
         // outside that deal it is null, and every cat made then is
         // a free-play cat carrying no joke.
         var roundDeck = null;
+        // ---------- The Randomize Show deal ----------
+        // John's order (2026-10-21): a Randomize Show button on
+        // the winner card, on top of Cat Pack / Play again. It deals one show from
+        // the TBOT lineup onto the card's show plate; every tap
+        // re-rolls, and a re-roll never lands on the show already
+        // up. The deal is card-local and session-only: nothing is
+        // stored, nothing is posted, and each new winner card
+        // starts with the plate hidden again (see endGame).
+        var SHOWS = [
+          "The Last TBOT In",
+          "ZBOT BBQ",
+          "ZBOT — White House",
+          "TBOT Restaurant",
+          "Sereima's Kitties",
+          "TBOT Garden",
+          "Sereima Cakes",
+          "PFP Beds",
+          "GINGERAIDE",
+          "Laundry Run",
+          "The TBOT Nursery",
+          "The TBOT Tree",
+          "Play PFP: Great Stay",
+          "Play PFP: A Stylish Stay",
+          "Play PFP: Chic & Clean"
+        ];
+        var currentShow = null; // the show currently dealt on the card (null = none yet)
         var GAME_SECONDS = 35;
         var GAME_COUNT = 15; // a round is played with exactly 15 cats
         var gameOn = false;
@@ -3137,19 +3219,17 @@
         // John's report, 2026-10-21). If confirmation never comes
         // (a watchdog gives it 2.5 s), the underlay is promoted the
         // same way. Either way a Start press ends with the track
-        // genuinely audible on the media channel, or the button
-        // honestly saying "off": the label follows confirmed
-        // playback at all times, so it can never read "on" over
-        // silence — not after a failed start, and not before one
-        // either (a fresh session's switch reads "off" until Start
-        // brings the sound up, because nothing is playing yet and
-        // pre-tap audio is blocked anyway). Sound is still ON by
-        // default for every fresh session (John's order,
-        // 2026-10-21: "all the games sound is off it should be
-        // on") in the way that matters: musicWanted starts true,
-        // Start starts the music with no separate Music tap, and
-        // no OFF choice is ever stored or carried into a later
-        // session.
+        // genuinely audible on the media channel. The switch reads
+        // the player's SETTING (see setMusicLabel): sound is ON by
+        // default for every fresh session (John's order, 2026-10-21:
+        // "The sound is off when you open the game. It should be
+        // on") — musicWanted starts true, the switch reads
+        // "Music: on" from open, Start starts the music with no
+        // separate Music tap, and no OFF choice is ever stored or
+        // carried into a later session. Confirmed playback is still
+        // tracked internally (musicPlaying / musicOutcome) so the
+        // engines, the watchdog and the next-tap retry all know the
+        // real state; the label just no longer waits on it.
         var musicWanted = true;   // off only when the player switches it off
         var startRequested = false; // true once Start game (or the Music switch) asks for music
         var musicPlaying = false; // true only once playback is confirmed
@@ -3165,20 +3245,25 @@
         }
 
         function setMusicLabel() {
-          // The label is the audio's REAL playing state and nothing
-          // else — "on" only while playback is confirmed, at load
-          // and after a start alike. An earlier formula also read
-          // "on" for the fresh session's armed wish (musicWanted,
-          // nothing requested yet): that is precisely the state
-          // John reported — "saying on, but it's really off" —
-          // because before Start nothing is playing at all (and
-          // browsers forbid pre-tap audio, so nothing could be).
-          // Sound is still ON by default in every way that matters:
-          // musicWanted starts true and Start brings the music up
-          // on its own tap with no separate Music tap first — the
-          // switch just refuses to claim "on" over silence, and
-          // flips to "on" the moment the sound is really there.
-          musicBtn.textContent = musicPlaying ? "Music: on" : "Music: off";
+          // The label is the player's SETTING — sound ON or OFF —
+          // and sound is ON by default: a fresh session opens with
+          // the switch already reading "Music: on" (John's order,
+          // 2026-10-21: "The sound is off when you open the game.
+          // It should be on."). Browsers forbid audio before the
+          // first tap, so nothing can actually sound before Start
+          // game is pressed — but the setting is on from open, and
+          // Start's own tap brings the music up with no separate
+          // Music tap first (musicWanted starts true and startGame
+          // calls tryStartMusic). The switch flips to "off" only
+          // when the player switches it off, and that choice is
+          // never stored: every fresh session opens with sound on
+          // again. (An earlier formula painted the confirmed-playing
+          // state instead, so the switch read "off" at open until
+          // Start — the exact state John reported. The engine below
+          // still tracks confirmed playback internally through
+          // musicPlaying / musicOutcome; only the label's meaning
+          // changed, back to the setting.)
+          musicBtn.textContent = musicWanted ? "Music: on" : "Music: off";
         }
         function confirmPlaying(on) {
           if (musicPlaying !== on) {
@@ -3481,7 +3566,7 @@
         });
 
         loadBuffer(); // decode now; the first tap then starts instantly
-        setMusicLabel(); // paints the real state at load: nothing playing yet, so "Music: off" until Start
+        setMusicLabel(); // paints the setting at load: sound ON by default, so "Music: on" from open
 
         // Read-only status for testing: which engine is live, whether
         // playback is confirmed, and the context's state and clock.
@@ -4815,6 +4900,12 @@
           roundPosted = false;
           postedRound = null;
           resetRating(); // fresh stars on every round's card
+          // Fresh show plate on every round's card too: the deal
+          // from the last card never carries over (see the
+          // Randomize Show block above).
+          currentShow = null;
+          showName.textContent = "";
+          showLine.hidden = true;
           earnedLine.hidden = true;
           earnedLine.textContent = "";
           resultLine.textContent = finalIn + " cats in · " + timeLeft + "s left on the clock";
@@ -4876,6 +4967,20 @@
           if (gameOn) { endGame(false); } else { startGame(); }
         });
         againBtn.addEventListener("click", startGame);
+        // The Randomize Show deal: pick a show at random from the
+        // lineup — never the one already on the plate — and put it
+        // on the card. Pure card furniture: it touches nothing
+        // about the round, the score, or the joke above it.
+        function randomizeShow() {
+          var pick = currentShow;
+          while (pick === currentShow) {
+            pick = SHOWS[Math.floor(Math.random() * SHOWS.length)];
+          }
+          currentShow = pick;
+          showName.textContent = pick;
+          showLine.hidden = false;
+        }
+        showBtn.addEventListener("click", randomizeShow);
         freeBtn.addEventListener("click", function () {
           overOverlay.hidden = true;
           // Free play deals the FULL crowd back onto the stage —
@@ -4937,6 +5042,14 @@
             e.preventDefault(); // a Space click fires on keyup — never let it reach a button mid-round
           }
         });
+
+        // Read-only status for testing: the show currently dealt
+        // on the winner card by Randomize Show (null until the
+        // first deal of the card), so the deal and its no-repeat
+        // re-roll can be checked at a glance.
+        window.CATShow = function () {
+          return { current: currentShow, shows: SHOWS.slice(), plateHidden: showLine.hidden };
+        };
 
         // Read-only status for testing: the cat joke each cat
         // currently on stage is carrying (null for free-play cats,
