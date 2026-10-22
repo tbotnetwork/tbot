@@ -3989,10 +3989,22 @@
         }
 
         // Rank and field size for the posted round against a fetched
-        // field. If the player's own row hasn't landed in the sheet
-        // yet, it is counted in locally: M includes their play.
+        // field. DISTINCT PLAYERS (John's order, 2026-10-21): the
+        // field is players, not rounds. The book is grouped by the
+        // Name field's player tag and each player stands ONCE, on
+        // their BEST round — ranking order unchanged (Sunchips,
+        // then TBOTs in, then time left, each descending, applied
+        // to best rounds). The pre-tag rows named plain "Guest"
+        // share one name, so they group together as ONE legacy
+        // player on their best round. N is where the player's own
+        // best round stands in that table; M is the number of
+        // distinct players. If the player's own row hasn't landed
+        // in the sheet yet, their group is counted in locally: M
+        // includes their play. The scorebook itself is untouched —
+        // every round still posts its own row as always; only this
+        // read-side computation changed.
         function computeRank(scores) {
-          var better = 0, ownFound = false;
+          var best = {}, ownFound = false;
           for (var i = 0; i < scores.length; i++) {
             var s = scores[i];
             if (!ownFound && s.name === postedRound.name &&
@@ -4001,11 +4013,24 @@
                 s.timeLeft === postedRound.timeLeft) {
               ownFound = true;
             }
-            if (strictlyBetter(s, postedRound)) better++;
+            var b = best[s.name];
+            if (!b || strictlyBetter(s, b)) best[s.name] = s;
+          }
+          // The player's own best: their tag's best in the book,
+          // or the round just posted when it beats that best (or
+          // when their tag isn't in the book yet at all).
+          var mine = best[postedRound.name] || null;
+          if (!mine || strictlyBetter(postedRound, mine)) mine = postedRound;
+          var better = 0, total = 0;
+          for (var name in best) {
+            if (!Object.prototype.hasOwnProperty.call(best, name)) continue;
+            total++;
+            if (name === postedRound.name) continue;
+            if (strictlyBetter(best[name], mine)) better++;
           }
           return {
             rank: better + 1,
-            total: scores.length + (ownFound ? 0 : 1),
+            total: total + (best[postedRound.name] ? 0 : 1),
             ownFound: ownFound
           };
         }
