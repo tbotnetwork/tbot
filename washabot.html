@@ -866,7 +866,7 @@
     </style>
   </head>
   <body>
-    <canvas id="stage" aria-label="The real U.S. Capitol, an American flag flying on it, over a swamp, where politicians caked in campaign mud — with torn campaign bills stuck in the mud — wade toward the stone steps and their red, white and blue flag carpet, and a wash rig wrapped with TCLEAN on its back at the bottom answers your hand during a round"></canvas>
+    <canvas id="stage" aria-label="The real U.S. Capitol, an American flag flying on it, over a swamp, where politicians caked in campaign mud — with torn campaign bills stuck in the mud — wade toward the stone steps and their red, white and blue flag carpet, and the TBOT works a wash rig wrapped with TCLEAN on its back at the bottom, answering your hand during a round"></canvas>
 
     <!-- Background music: the series track ("Velvet Rot" by
          Kimo, the last 17 seconds), looped behind the game.
@@ -3178,7 +3178,11 @@
         // hand horizontally with tight tracking — in a round
         // and in Free Wash alike; behind the end card it sits
         // at rest at centre. A tap fires ONE SUDS BLAST; a held
-        // press sprays the HOSE STREAM up the field.
+        // press sprays the HOSE STREAM up the field. TBOT
+        // OPERATES the rig (John's order, 2026-10-23): the
+        // mascot stands at the machine with its grip hand on
+        // the nozzle — crew, never a washable bot (see the
+        // operator block inside drawRig).
         var rigX = 0;
         var steerTargetX = null;
         var steerActive = false;
@@ -3258,6 +3262,93 @@
           ctx.fillRect(bx - bw * 0.72, by + 2, bw * 1.44, 2.5);
           ctx.fillStyle = "rgba(0,0,0,0.4)";
           ctx.beginPath(); ctx.ellipse(bx, by + 4, bw * 0.52, 6, 0, 0, Math.PI * 2); ctx.fill();
+          // THE OPERATOR — TBOT works the rig (John's order,
+          // 2026-10-23): the game's own mascot in its glossy
+          // black-metal look — rounded pot head, red eyes,
+          // sprout antenna — stands ON the dock BEHIND the
+          // machine, feet planted by the tank, and works the
+          // TCLEAN: its working arm (drawn over the rig at
+          // the end of this function) is clamped on the
+          // nozzle, so every suds blast and the whole hose
+          // stream visibly leave from the TBOT-held washer.
+          // It rides the rig wherever the rig appears — the
+          // lobby, Free Wash, and rounds. CREW, NEVER A
+          // TARGET: it is not a bot — nothing deals it from
+          // the roster, it never wades, never gets muddy or
+          // washed, and never counts in any washed count,
+          // best, or winner pose.
+          var tx = bx - bw * 0.10; // the operator's centre line
+          var metal = ctx.createLinearGradient(tx - bw * 0.30, 0, tx + bw * 0.30, 0);
+          metal.addColorStop(0, "#05070a");
+          metal.addColorStop(0.32, "#3a4149");
+          metal.addColorStop(0.52, "#14181e");
+          metal.addColorStop(1, "#05070a");
+          // Legs and feet, planted on the dock.
+          ctx.fillStyle = "#0b0e12";
+          ctx.fillRect(tx - bw * 0.17, by - bw * 0.20, bw * 0.11, bw * 0.20);
+          ctx.fillRect(tx + bw * 0.06, by - bw * 0.20, bw * 0.11, bw * 0.20);
+          ctx.beginPath(); ctx.ellipse(tx - bw * 0.115, by + 1, bw * 0.085, bw * 0.03, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(tx + bw * 0.115, by + 1, bw * 0.085, bw * 0.03, 0, 0, Math.PI * 2); ctx.fill();
+          // Torso: a rounded black-metal shell (the rig body
+          // covers its lower half — it stands behind the
+          // machine it works).
+          ctx.fillStyle = metal;
+          ctx.beginPath();
+          if (ctx.roundRect) ctx.roundRect(tx - bw * 0.27, by - bw * 0.66, bw * 0.54, bw * 0.50, bw * 0.16);
+          else ctx.rect(tx - bw * 0.27, by - bw * 0.66, bw * 0.54, bw * 0.50);
+          ctx.fill();
+          // A small red chest lamp, matching the eyes.
+          ctx.fillStyle = "#e5322d";
+          ctx.beginPath(); ctx.arc(tx, by - bw * 0.58, bw * 0.026, 0, Math.PI * 2); ctx.fill();
+          // The far arm hangs at its side.
+          ctx.strokeStyle = "#10141a";
+          ctx.lineWidth = bw * 0.085;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(tx - bw * 0.26, by - bw * 0.58);
+          ctx.quadraticCurveTo(tx - bw * 0.36, by - bw * 0.40, tx - bw * 0.32, by - bw * 0.22);
+          ctx.stroke();
+          ctx.lineCap = "butt";
+          // Head: the mascot's rounded pot, glossy black metal.
+          var headGrad = ctx.createLinearGradient(tx - bw * 0.30, 0, tx + bw * 0.30, 0);
+          headGrad.addColorStop(0, "#05070a");
+          headGrad.addColorStop(0.30, "#454e58");
+          headGrad.addColorStop(0.52, "#171b21");
+          headGrad.addColorStop(1, "#05070a");
+          ctx.fillStyle = headGrad;
+          ctx.beginPath();
+          if (ctx.roundRect) ctx.roundRect(tx - bw * 0.29, by - bw * 1.08, bw * 0.58, bw * 0.46, bw * 0.17);
+          else ctx.rect(tx - bw * 0.29, by - bw * 1.08, bw * 0.58, bw * 0.46);
+          ctx.fill();
+          // The sprout antenna: a stem with a three-prong tuft.
+          ctx.strokeStyle = "#0b0e12";
+          ctx.lineWidth = bw * 0.045;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(tx, by - bw * 1.08);
+          ctx.lineTo(tx, by - bw * 1.17);
+          ctx.moveTo(tx, by - bw * 1.17);
+          ctx.quadraticCurveTo(tx - bw * 0.09, by - bw * 1.13, tx - bw * 0.10, by - bw * 1.23);
+          ctx.moveTo(tx, by - bw * 1.17);
+          ctx.lineTo(tx, by - bw * 1.26);
+          ctx.moveTo(tx, by - bw * 1.17);
+          ctx.quadraticCurveTo(tx + bw * 0.09, by - bw * 1.13, tx + bw * 0.10, by - bw * 1.23);
+          ctx.stroke();
+          ctx.lineCap = "butt";
+          // Red eyes — glowing, with the mascot's slow blink.
+          var tbotBlink = (nowMs % 4300) < 130;
+          ctx.fillStyle = "#ff3b30";
+          ctx.save();
+          ctx.shadowColor = "rgba(255, 59, 48, 0.85)";
+          ctx.shadowBlur = tbotBlink ? 0 : bw * 0.06;
+          if (tbotBlink) {
+            ctx.fillRect(tx - bw * 0.165, by - bw * 0.865, bw * 0.09, bw * 0.014);
+            ctx.fillRect(tx + bw * 0.075, by - bw * 0.865, bw * 0.09, bw * 0.014);
+          } else {
+            ctx.beginPath(); ctx.arc(tx - bw * 0.12, by - bw * 0.86, bw * 0.047, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(tx + bw * 0.12, by - bw * 0.86, bw * 0.047, 0, Math.PI * 2); ctx.fill();
+          }
+          ctx.restore();
           // The suds tank behind the body: pale blue, foaming
           // at the cap, with a brass band.
           ctx.fillStyle = "#bcd9ea";
@@ -3353,6 +3444,36 @@
             ctx.beginPath(); ctx.arc(bx + bw * 0.21, nozzleY() - mh * 0.32, mh * 0.3, 0, Math.PI * 2); ctx.fill();
             ctx.restore();
           }
+          // The operator's working arm — drawn OVER the rig:
+          // it reaches from TBOT's shoulder to a black grip
+          // hand clamped on the nozzle, so the suds blasts
+          // (which leave from this same nozzle point) and the
+          // hose stream visibly fire from the TBOT-held
+          // TCLEAN. The grip braces a touch while a blast
+          // leaves, and trembles with the hose while it sprays.
+          var firing = sprayOn || muzzleT >= 0;
+          var gripX = bx + bw * 0.11;
+          var gripY = by - bw * 0.70 - (firing ? bw * 0.018 : 0);
+          if (sprayOn) gripX += Math.sin(t * 90) * 1.2;
+          ctx.strokeStyle = "#10141a";
+          ctx.lineWidth = bw * 0.095;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(tx + bw * 0.25, by - bw * 0.57);
+          ctx.quadraticCurveTo(bx + bw * 0.30, by - bw * 0.60, gripX, gripY);
+          ctx.stroke();
+          ctx.strokeStyle = "rgba(130, 145, 160, 0.55)";
+          ctx.lineWidth = bw * 0.03;
+          ctx.beginPath();
+          ctx.moveTo(tx + bw * 0.25, by - bw * 0.605);
+          ctx.quadraticCurveTo(bx + bw * 0.29, by - bw * 0.635, gripX, gripY - bw * 0.032);
+          ctx.stroke();
+          ctx.lineCap = "butt";
+          // The grip hand on the nozzle, with its red knuckle lamp.
+          ctx.fillStyle = "#05070a";
+          ctx.beginPath(); ctx.arc(gripX, gripY, bw * 0.062, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#e5322d";
+          ctx.beginPath(); ctx.arc(gripX, gripY, bw * 0.018, 0, Math.PI * 2); ctx.fill();
         }
 
         // ---------- The hand ----------
@@ -4896,6 +5017,9 @@
             steerTarget: steerTargetX === null ? null : Math.round(steerTargetX),
             steerActive: steerActive,
             rigX: Math.round(rigX),
+            tbotOperating: true,
+            tbotGripX: Math.round(rigX + rigW() * 0.11),
+            tbotGripY: Math.round(rigBaseY() - rigW() * 0.70),
             nozzleY: Math.round(nozzleY()),
             shots: shots.length,
             cooldown: Math.round(cooldownT * 1000),
