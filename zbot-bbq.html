@@ -3306,6 +3306,34 @@
           for (var rvi = -1; rvi <= 1; rvi++) {
             ctx.beginPath(); ctx.arc(bx + rvi * bw * 0.28, by - bw * 0.12, bw * 0.028, 0, Math.PI * 2); ctx.fill();
           }
+          // THE WRAP: the blaster carries its brand on the face
+          // toward the viewer — a deep charcoal band with an
+          // orange trim across the body's front, and T-Blaster
+          // in cream block letters sized to the band, so the
+          // name reads clear wherever the blaster rides (the
+          // idle street and in rounds alike — this one draw
+          // serves both).
+          var wrapW = bw * 0.80, wrapH = bw * 0.205;
+          var wrapX = bx - wrapW / 2, wrapY = by - bw * 0.235;
+          ctx.fillStyle = "#101318";
+          ctx.beginPath();
+          if (ctx.roundRect) ctx.roundRect(wrapX, wrapY, wrapW, wrapH, bw * 0.04);
+          else ctx.rect(wrapX, wrapY, wrapW, wrapH);
+          ctx.fill();
+          ctx.strokeStyle = "#ff7a1f";
+          ctx.lineWidth = Math.max(1.2, bw * 0.014);
+          ctx.stroke();
+          var brandSize = bw * 0.135;
+          ctx.font = "800 " + brandSize + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+          while (ctx.measureText("T-Blaster").width > wrapW - bw * 0.08 && brandSize > 7) {
+            brandSize -= 0.5;
+            ctx.font = "800 " + brandSize + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+          }
+          ctx.fillStyle = "#ffe9c9";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("T-Blaster", bx, wrapY + wrapH / 2 + 0.5);
+          ctx.textBaseline = "alphabetic";
           // The fat barrel: a trapezoid climbing to the nozzle,
           // banded in steel.
           ctx.fillStyle = "#454e63";
