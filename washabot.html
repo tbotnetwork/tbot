@@ -1351,10 +1351,9 @@
         // clock. The sounds are this game's own: FIRING a suds
         // blast is a soft SUDS WHOOSH, a wash CONNECT is a
         // BUBBLE POP, a HELD SPRAY hisses under a continuous
-        // HOSE SPRAY for as long as it lasts, the SWAMP
+        // HOSE SPRAY for as long as it lasts, and the SWAMP
         // RESET lands a big SPLASH at the moment the count
-        // zeroes, and a bot washed clean up the stairs earns
-        // a CROWD CHEER as it takes its pose. Each is
+        // zeroes. Each is
         // synthesized with Web Audio (no
         // samples) and ALSO rendered once into a recording
         // played through <audio> elements — the media channel,
@@ -1366,10 +1365,8 @@
         var popPlays = 0;
         var sprayPlays = 0;
         var splashPlays = 0;
-        var cheerPlays = 0;
-        var cheerPlayedThisRound = false; // John's rule (2026-10-22): ONE cheer per round
         var sprayPath = "none";
-        var lastFireSound = 0; // 1 = bubble pop, 2 = suds whoosh, 3 = hose spray, 4 = splash, 5 = crowd cheer
+        var lastFireSound = 0; // 1 = bubble pop, 2 = suds whoosh, 3 = hose spray, 4 = splash
         var chimeCtx = null;
         // Prime the sound context from INSIDE a player's tap:
         // a context created or resumed outside a gesture is
@@ -1566,163 +1563,15 @@
           }
         }
 
-        // THE CROWD CHEER — John's orders: every bot that is
-        // washed clean AND gets up the stairs earns a cheer
-        // from the crowd — and the cheer plays AT MOST ONCE
-        // PER ROUND, for the FIRST bot up the stairs (John,
-        // 2026-10-22: "If it's more than one bot it should
-        // only be one cheer"). The once-per-round gate lives
-        // in playCrowdCheer; this function only builds the
-        // sound. Built from VOICES, not noise: a chorus of
-        // synthesized shouters (sawtooth throats sung through
-        // vowel formants, each rising in pitch the way a real
-        // shout does) swelling in two waves with three solo
-        // "woo!"s poking out, over scattered applause and two
-        // whistles, ~1.9 s, voiced warm rather than loud so
-        // it celebrates under the music. An earlier build
-        // leaned on a band-passed noise bed for the crowd
-        // body and it read on phone speakers as STATIC —
-        // filtered hiss is not a crowd — so the noise is
-        // demoted to a whisper of room air far under the
-        // voices, and the voices carry the cheer.
-        function scheduleCrowdCheer(c, out, t0) {
-          var dur = 1.9;
-          // One master swell for the whole cheer so every
-          // layer peaks together and settles together.
-          var master = c.createGain();
-          master.gain.setValueAtTime(0.0001, t0);
-          master.gain.exponentialRampToValueAtTime(0.95, t0 + 0.22);
-          master.gain.setValueAtTime(0.95, t0 + 0.8);
-          master.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-          master.connect(out);
-          // The whisper of room air: a low, quiet breath of
-          // heavily smoothed noise far under the voices —
-          // body only, never the sound itself.
-          var nLen = Math.max(1, Math.floor(c.sampleRate * dur));
-          var nBuf = c.createBuffer(1, nLen, c.sampleRate);
-          var nData = nBuf.getChannelData(0);
-          var nLast = 0;
-          for (var ni = 0; ni < nLen; ni++) {
-            var white = Math.random() * 2 - 1;
-            nLast = nLast * 0.85 + white * 0.15;
-            nData[ni] = nLast * 1.6;
-          }
-          var nSrc = c.createBufferSource();
-          nSrc.buffer = nBuf;
-          var nLp = c.createBiquadFilter();
-          nLp.type = "lowpass";
-          nLp.frequency.value = 420;
-          var nEnv = c.createGain();
-          nEnv.gain.value = 0.05;
-          nSrc.connect(nLp); nLp.connect(nEnv); nEnv.connect(master);
-          nSrc.start(t0); nSrc.stop(t0 + dur + 0.02);
-          // THE VOICES — the cheer itself. Each shouter is a
-          // sawtooth (a harmonic-rich throat) sung through
-          // the vowel formants of an open "ah / yay" shout
-          // (~700 and ~1150 Hz, a breath of ~2500), with a
-          // vibrato wobble and the rising pitch arc of a
-          // real shout: it starts low, climbs, and settles.
-          function shoutVoice(at, f0, peak, len, solo) {
-            var osc = c.createOscillator();
-            osc.type = "sawtooth";
-            osc.frequency.setValueAtTime(f0 * 0.88, at);
-            osc.frequency.exponentialRampToValueAtTime(f0 * (solo ? 1.32 : 1.18), at + len * 0.35);
-            osc.frequency.exponentialRampToValueAtTime(f0 * 1.05, at + len);
-            var vib = c.createOscillator();
-            vib.type = "sine";
-            vib.frequency.value = 4.8 + Math.random() * 1.6;
-            var vibGain = c.createGain();
-            vibGain.gain.value = f0 * 0.012;
-            vib.connect(vibGain); vibGain.connect(osc.frequency);
-            var f1 = c.createBiquadFilter();
-            f1.type = "bandpass"; f1.frequency.value = 700; f1.Q.value = 0.9;
-            var f2 = c.createBiquadFilter();
-            f2.type = "bandpass"; f2.frequency.value = 1150; f2.Q.value = 1.6;
-            var f3 = c.createBiquadFilter();
-            f3.type = "bandpass"; f3.frequency.value = 2500; f3.Q.value = 3.0;
-            var g2 = c.createGain(); g2.gain.value = 0.55;
-            var g3 = c.createGain(); g3.gain.value = 0.16;
-            var vEnv = c.createGain();
-            vEnv.gain.setValueAtTime(0.0001, at);
-            vEnv.gain.exponentialRampToValueAtTime(peak, at + 0.06 + Math.random() * 0.05);
-            vEnv.gain.setValueAtTime(peak, at + Math.max(0.12, len - 0.22));
-            vEnv.gain.exponentialRampToValueAtTime(0.0001, at + len);
-            osc.connect(f1); f1.connect(vEnv);
-            osc.connect(f2); f2.connect(g2); g2.connect(vEnv);
-            osc.connect(f3); f3.connect(g3); g3.connect(vEnv);
-            vEnv.connect(master);
-            osc.start(at); osc.stop(at + len + 0.05);
-            vib.start(at); vib.stop(at + len + 0.05);
-          }
-          // Wave one: the eruption — a dozen-plus voices
-          // across a crowd's pitch range, so no single voice
-          // reads as a soloist.
-          for (var vi = 0; vi < 14; vi++) {
-            shoutVoice(t0 + 0.02 + Math.random() * 0.28,
-              135 * Math.pow(2, Math.random() * 1.55),
-              0.045 + Math.random() * 0.03,
-              0.9 + Math.random() * 0.45, false);
-          }
-          // Wave two: the peak — higher and a touch louder,
-          // riding over the first wave's tail.
-          for (var vj = 0; vj < 9; vj++) {
-            shoutVoice(t0 + 0.38 + Math.random() * 0.3,
-              165 * Math.pow(2, Math.random() * 1.5),
-              0.055 + Math.random() * 0.035,
-              0.8 + Math.random() * 0.4, false);
-          }
-          // Three solo "woo!"s poking out of the crowd.
-          for (var si5 = 0; si5 < 3; si5++) {
-            shoutVoice(t0 + 0.12 + Math.random() * 0.55,
-              300 + Math.random() * 180, 0.09,
-              0.5 + Math.random() * 0.25, true);
-          }
-          // Applause: many short band-limited claps, dense
-          // early and thinning out — hands you can hear as
-          // hands, not hiss.
-          for (var ci2 = 0; ci2 < 30; ci2++) {
-            var cat = t0 + 0.06 + Math.pow(Math.random(), 1.4) * 1.25;
-            var cLen = Math.max(1, Math.floor(c.sampleRate * 0.045));
-            var cBuf = c.createBuffer(1, cLen, c.sampleRate);
-            var cData = cBuf.getChannelData(0);
-            for (var cii = 0; cii < cLen; cii++) cData[cii] = (Math.random() * 2 - 1) * Math.pow(1 - cii / cLen, 1.6);
-            var cSrc = c.createBufferSource();
-            cSrc.buffer = cBuf;
-            var cbp = c.createBiquadFilter();
-            cbp.type = "bandpass";
-            cbp.frequency.value = 1500 + Math.random() * 700;
-            cbp.Q.value = 1.1;
-            var cEnv = c.createGain();
-            cEnv.gain.value = 0.05 + Math.random() * 0.05;
-            cSrc.connect(cbp); cbp.connect(cEnv); cEnv.connect(master);
-            cSrc.start(cat);
-          }
-          // Two whistles over the top.
-          for (var wi2 = 0; wi2 < 2; wi2++) {
-            var wat2 = t0 + 0.15 + Math.random() * 0.5;
-            var wOsc = c.createOscillator();
-            wOsc.type = "sine";
-            wOsc.frequency.value = 2100 + Math.random() * 700;
-            var wEnv = c.createGain();
-            wEnv.gain.setValueAtTime(0.0001, wat2);
-            wEnv.gain.exponentialRampToValueAtTime(0.02, wat2 + 0.02);
-            wEnv.gain.exponentialRampToValueAtTime(0.0001, wat2 + 0.22);
-            wOsc.connect(wEnv); wEnv.connect(master);
-            wOsc.start(wat2); wOsc.stop(wat2 + 0.24);
-          }
-        }
-
         // The dual-route engine addresses the sounds by
         // number: 1 = bubble pop (wash connects, + POLITICIAN
         // presses), 2 = suds whoosh (firing), 3 = hose spray
         // (looped while a held spray runs), 4 = splash (the
-        // swamp reset, and nowhere else), 5 = crowd cheer (a
-        // washed bot takes its pose, and nowhere else).
+        // swamp reset, and nowhere else).
         function scheduleFireSound(n, c, out, t0) {
           if (n === 2) scheduleSudsWhoosh(c, out, t0);
           else if (n === 3) scheduleSprayGraph(c, out, t0, 1.68, true);
           else if (n === 4) scheduleSplash(c, out, t0);
-          else if (n === 5) scheduleCrowdCheer(c, out, t0);
           else scheduleBubblePop(c, out, t0);
         }
 
@@ -1737,7 +1586,7 @@
         // the pools from inside the PLAY / WASH taps. Until a
         // render is ready and blessed, shots fall back to the
         // live Web Audio synthesis of the same sound.
-        var CHIME_SOUND_COUNT = 5;
+        var CHIME_SOUND_COUNT = 4;
         var chimeMediaUrls = [];
         var chimePools = [];
         var chimePoolNexts = [];
@@ -1791,7 +1640,7 @@
           for (var rn = 1; rn <= CHIME_SOUND_COUNT; rn++) {
             (function (n) {
               try {
-                var off = new OC(1, Math.floor(sr * (n === 3 ? 1.8 : (n === 5 ? 2.1 : 0.9))), sr);
+                var off = new OC(1, Math.floor(sr * (n === 3 ? 1.8 : 0.9)), sr);
                 var oOut = off.createGain();
                 oOut.gain.value = 0.9;
                 oOut.connect(off.destination);
@@ -1884,15 +1733,6 @@
         function playBubblePop() { popPlays++; lastFireSound = 1; playFireSound(1); }
         function playSudsWhoosh() { shotPlays++; lastFireSound = 2; playFireSound(2); }
         function playSplash() { splashPlays++; lastFireSound = 4; playFireSound(4); }
-        // THE CROWD CHEER, gated: at most once per round.
-        // The first washed bot up the stairs earns it; every
-        // later bot in the same round climbs in the crowd's
-        // afterglow, silent. startGame re-arms the gate.
-        function playCrowdCheer() {
-          if (cheerPlayedThisRound) return;
-          cheerPlayedThisRound = true;
-          cheerPlays++; lastFireSound = 5; playFireSound(5);
-        }
         // The sparkle: a tiny live chime over the pop when a
         // bot comes fully clean — three bright pings climbing.
         function playSparkle() {
@@ -3599,13 +3439,6 @@
               z.x = z.poseX; z.y = z.poseY;
               z.state = "pose";
               z.poseT = 0;
-              // THE CROWD CHEER: he is clean AND up the
-              // stairs — the crowd cheers the moment he
-              // takes his pose. Only washed bots ever climb,
-              // and playCrowdCheer spends the round's single
-              // cheer on the FIRST of them (John's rule:
-              // more than one bot, still only one cheer).
-              playCrowdCheer();
             } else {
               z.x += dx / dist * step;
               z.y += dy / dist * step;
@@ -3770,9 +3603,7 @@
         // reshuffles at the end, so Free Wash never stands
         // empty — and entering or resetting Free Wash never
         // rewinds the rotation: the field clears, the cycle
-        // runs on from where it stands. Entering Free Wash
-        // also re-arms the session's one crowd cheer (the
-        // round's rule, per session).
+        // runs on from where it stands.
         function startFreeStream() {
           bots = [];
           shots = [];
@@ -3781,7 +3612,6 @@
           floats = [];
           floatQueue = [];
           freeSpawnTimer = 0.3;
-          cheerPlayedThisRound = false;
         }
         function spawnFreeBot() {
           var entry = nextCycleSeat();
@@ -4628,7 +4458,6 @@
           lastWashed = null;
           lastPrize = null;
           swampResetDone = false;
-          cheerPlayedThisRound = false; // the new round's one cheer is unspent
           washedLabel.textContent = "0";
           midChipLabel.textContent = "WashABOT";
           scoreLabel.textContent = "";
@@ -5063,7 +4892,6 @@
             shotPlays: shotPlays,
             popPlays: popPlays,
             splashPlays: splashPlays,
-            cheerPlays: cheerPlays,
             lastFireSound: lastFireSound,
             chimePath: chimePath,
             chimePrintsReady: chimePrints.filter(Boolean).length,
