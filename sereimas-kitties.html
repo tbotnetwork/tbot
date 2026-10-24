@@ -3489,15 +3489,16 @@
         var musicPlaying = false; // true only once playback is confirmed
         var musicEngine = "none"; // "webaudio" | "element" once a start lands
         var musicOutcome = "idle"; // "starting" | "playing" | "silent" — fate of the latest start attempt
-        // The music's full level (John's order, 2026-10-21: "Same
-        // for all games -30%" — the same 30% cut the PFP homes
-        // took): BOTH engines carry the track at this level — the
-        // Web Audio gain and the element's volume alike — so the
-        // cut holds whichever engine ends up sounding the music.
-        // The underlay below scales by the same cut, keeping its
+        // The music's full level (John's order, 2026-10-24: "Turn
+        // cat music 50%" — the track now plays at half level,
+        // superseding the 2026-10-21 30% cut): BOTH engines carry
+        // the track at this level — the Web Audio gain and the
+        // element's volume alike — so the level holds whichever
+        // engine ends up sounding the music.
+        // The underlay below scales with it, keeping its
         // fraction of the full level. Sound effects (the chimes,
         // the bounce voice) are not music and keep their levels.
-        var MUSIC_VOL = 0.7;
+        var MUSIC_VOL = 0.5;
 
         // On iPhone, web audio otherwise uses the "ambient" session and
         // the silent switch swallows it whole — the game plays but
@@ -3666,8 +3667,8 @@
         // --- <audio> element: underlay first, engine if needed ---
         // The element loops too, so it covers the full 35 s round
         // exactly like the Web Audio path. It starts life as the
-        // UNDERLAY described above: quiet (0.175 — the old 0.25
-        // scaled by the same 30% music cut, so it stays the same
+        // UNDERLAY described above: quiet (0.125 — the old 0.25
+        // scaled by the music's 50% level, so it stays the same
         // fraction of the full level), started inside the
         // same tap as the Web Audio attempt, so the tap's gesture
         // covers both engines. Two fates: Web Audio confirms and the
@@ -3677,7 +3678,7 @@
         // engine label means the element is the one carrying the
         // track at full volume.
         bgMusic.loop = true;
-        var UNDERLAY_VOL = 0.175;
+        var UNDERLAY_VOL = 0.125;
 
         function startElement(vol) {
           elementLive = true;
