@@ -1478,8 +1478,14 @@
         // among all the distinct tags in the book (M = those
         // tags). All of it is fire-and-forget: a slow or failed
         // scorebook never blocks, delays, or breaks the game or
-        // the trip to the show, and any failure just hides
-        // quietly.
+        // the trip to the show. A rank is painted ONLY from the
+        // book read itself — never from on-device data alone
+        // (the 2026-10-30 fix: a failed read used to paint a
+        // local-only "You rank #1 of 1 players"); when the book
+        // cannot be read, the card paints the honest muted line
+        // "Score posted — the ranking couldn't be loaded just
+        // now." instead, and a late read can still repaint the
+        // true rank over it.
         //
         // THE RANKING BREAK (TBOT Garden's lesson, found
         // 2026-10-17): a read-back on fetch() is CORS-gated.
@@ -1607,7 +1613,13 @@
               timeLeft: cellNum(c, 4) || 0
             });
           }
-          return out;
+          // A table with NO usable score rows is a FAILED read,
+          // not a book of one: returning an empty field here let
+          // the rank paint "You rank #1 of 1 players" off local
+          // data alone when the real book never arrived (John's
+          // live hit, 2026-10-30). Null makes the caller retry
+          // and, failing every road, paint the honest line.
+          return out.length ? out : null;
         }
 
         // --- The script-tag road: the same gviz read, no fetch ---
@@ -1708,7 +1720,9 @@
                   timeLeft: csvNum(f[4]) || 0
                 });
               }
-              cb(out);
+              // No usable rows = a failed read, never a book of
+              // one (see scoresFromGvizData).
+              cb(out.length ? out : null);
             })
             .catch(function () { cb(null); });
         }
@@ -1758,8 +1772,9 @@
         // rotation runs until a road answers, and a rank that
         // lands late still repaints the card — even one already
         // showing the fallback. `sawRead` tracks whether ANY road
-        // has produced a field yet: the fallback line is only
-        // for the case where no road ever answered.
+        // has produced a field yet; the fallback line paints
+        // whenever the opening rotation ends without the
+        // player's own row on the board, from whatever cause.
         var RANK_READERS = [fetchScores, fetchScoresJsonp, fetchScoresCsv, fetchScoresJsonp];
         // ---------- Posting a finished round ----------
         // Every finished round posts one row to the book (the
@@ -1815,20 +1830,29 @@
           }, 2000);
           // No hard deadline sits over the chain (the family's
           // timing): the card may rest on "Posting your score…"
-          // while the roads rotate, the fallback paints only
-          // when every road has failed and no read ever landed,
-          // and a rank that arrives after that still repaints
-          // the card.
+          // while the roads rotate, the fallback paints when the
+          // opening roads are spent without the player's row
+          // reaching the board, and a rank that arrives after
+          // that still repaints the card — the chain's slow
+          // watch keeps reading behind the fallback line.
         }
 
         // The standing from one fetched field: each tag's best
         // torched count across the WHOLE book — every posted row
-        // counts toward its tag's best; the player's own
-        // just-posted count counts in locally until their row is
-        // truly on the board. Returns whether the player's own
-        // row was found in the book.
+        // counts toward its tag's best. BOOK-ONLY RANK (the
+        // 2026-10-30 fix for John's live "1 of 1"): a rank paints
+        // ONLY from the book itself, and only once the player's
+        // own posted row is in it — the just-posted count is
+        // NEVER counted in locally, and no rank number is ever
+        // derived from on-device data alone. Until their row is
+        // on the board this paints nothing and returns false, so
+        // the caller keeps reading; once it lands, the player is
+        // counted exactly once, by their tag among the tags.
+        // Returns whether the player's own row was found in the
+        // book (and, except on the zero card, the rank painted).
         function showCountRank(scores) {
-          if (rankResolvedMs < 0) rankResolvedMs = performance.now() - rankPostStamp; // the rank arrived — stamp how long it took
+          var mine = postedCountRound;
+          if (!mine || !scores || !scores.length) return false;
           var bestByTag = {};
           for (var i = 0; i < scores.length; i++) {
             var s = scores[i];
@@ -1836,10 +1860,16 @@
               bestByTag[s.name] = s.torched;
             }
           }
-          var mine = postedCountRound;
           var myBookBest = bestByTag[mine.name];
-          var found = myBookBest !== undefined && myBookBest >= mine.count;
-          var myBest = Math.max(myBookBest || 0, mine.count);
+          if (myBookBest === undefined || myBookBest < mine.count) {
+            // The player's row is not on the board yet (or this
+            // field is not the real book at all): paint NO rank
+            // rather than a local-count stand-in — the read loop
+            // keeps trying, and the honest line is its fallback.
+            return false;
+          }
+          if (rankResolvedMs < 0) rankResolvedMs = performance.now() - rankPostStamp; // the rank arrived — stamp how long it took
+          var myBest = myBookBest;
           var better = 0, tags = 0;
           for (var tag in bestByTag) {
             if (!Object.prototype.hasOwnProperty.call(bestByTag, tag)) continue;
@@ -1847,14 +1877,14 @@
             if (tag !== mine.name && bestByTag[tag] > myBest) better++;
           }
           var rank = better + 1;
-          var total = tags + (myBookBest === undefined ? 1 : 0);
+          var total = tags;
           if (rankCardHidden) {
             // The zero card ranks nothing: the standing was
             // still computed (the bookkeeping stands), but no
             // rank line and no pill ever paint on this card.
             rankLine.hidden = true;
             tierLine.hidden = true;
-            return found;
+            return true;
           }
           rankLine.classList.remove("note");
           rankLine.hidden = false;
@@ -1869,12 +1899,19 @@
           } else {
             tierLine.hidden = true;
           }
-          return found;
+          return true;
         }
 
         // The rank read loop: the rotating roads, the backoff,
         // the per-read watchdog, and the fallback line (with NO
-        // tier badge) when no road ever answers.
+        // tier badge) when no read ever puts the player's row on
+        // the board. The fallback is a PAINT, not a deadline: a
+        // slow watch keeps reading after it shows, so a book
+        // that arrives late still repaints the true rank over it
+        // (the family's no-hard-deadline timing) — the watch
+        // gives up only two minutes after the post, or when a
+        // newer round's card supersedes this one (the seq and
+        // snapshot checks above go quiet on their own).
         function fetchCountRank(attempt, mine, sawRead, seq) {
           if (!postedCountRound || postedCountRound !== mine || seq !== rankCardSeq) return;
           var reader = RANK_READERS[Math.min(attempt, RANK_READERS.length - 1)];
@@ -1893,8 +1930,14 @@
             }
             if (attempt < RANK_RETRY_DELAYS.length) {
               setTimeout(function () { fetchCountRank(attempt + 1, mine, ok, seq); }, RANK_RETRY_DELAYS[attempt]);
-            } else if (!ok) {
-              // Every road failed — the fallback is the last resort.
+            } else {
+              // The opening roads are spent and no read has put
+              // the player's row on the board — every road
+              // failed, or the fields that answered were not the
+              // book. NEVER a local-count rank: the card paints
+              // the honest line instead (no numeric rank, no tier
+              // badge), then the slow watch below keeps reading
+              // so a late true rank can still repaint over it.
               if (rankResolvedMs < 0) rankResolvedMs = performance.now() - rankPostStamp;
               if (rankCardHidden) {
                 // The zero card ranks nothing — not even the
@@ -1906,11 +1949,11 @@
                 rankLine.hidden = false;
                 rankLine.textContent = "Score posted — the ranking couldn't be loaded just now.";
                 tierLine.hidden = true;
+                if (performance.now() - rankPostStamp < 120000) {
+                  setTimeout(function () { fetchCountRank(attempt + 1, mine, ok, seq); }, 6000);
+                }
               }
             }
-            // If reads landed but the row never appeared, the rank
-            // on the card already counts the player's own count in
-            // — it stands as shown.
           }
         }
 
