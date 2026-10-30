@@ -3452,8 +3452,11 @@
         }
         // The blaster's line: the bottom boundary of the field.
         // A walking zombie whose centre reaches it has crossed
-        // (see the line rule in stepZombie).
-        function bottomLineY() { return groundY() - 118; }
+        // (see the line rule in stepZombie). The line is seated
+        // on the TBORCH itself — a step above its nozzle — so
+        // the unit and its line always move together and both
+        // stay in the visible field.
+        function bottomLineY() { return blasterBaseY() - blasterW() * 0.92; }
 
         // ---------- The zombie ----------
         // The real TBOT mascot — the same master sprite every
@@ -3712,10 +3715,12 @@
         }
 
         // ---------- The blaster ----------
-        // A chunky sci-fi torch blaster riding the bottom of the
-        // street: a heavy gunmetal body, twin fuel tanks, and a
-        // fat barrel pointing UP the street with a pilot flame
-        // at its nozzle. It answers the hand horizontally with
+        // The TBORCH — TBOT's own torch: a chunky flamethrower
+        // unit riding the bottom of the street, dressed in the
+        // fleet's TBOT navy and gold (deep-navy body and tanks,
+        // gold trim and bands, its name TBORCH in gold on the
+        // face plate), with a fat barrel pointing UP the street
+        // and a pilot flame at its nozzle. It answers the hand horizontally with
         // tight tracking (see updateBlaster) — in a round only:
         // on the idle street it sits at rest at centre and
         // ignores the hand. A tap fires a LARGE DISCRETE
@@ -3748,8 +3753,17 @@
         var sprayStartMs = 0;      // when the current spray began
         var sprayBreathUntil = 0;  // no new spray may start before this instant
         var torchClickGuardUntil = 0; // a TORCH press answered on release swallows the click that trails it
-        function blasterW() { return clamp(W * 0.26, 96, 138); }
-        function blasterBaseY() { return groundY() - 6; }
+        // THE TBORCH'S SEAT (John's fix, 2026-10-30): the unit
+        // stands FULL and proud on its line, well up into the
+        // visible field — wider than before, so it holds its
+        // own next to the horde, and its base rests a clear
+        // stretch above the street's ground band, so the
+        // bottom bar can never clip, crop, or swallow any
+        // part of it at any aspect. Its line rides with it
+        // (see bottomLineY): the line sits just above the
+        // nozzle, the pilot flame licking across it.
+        function blasterW() { return clamp(W * 0.30, 118, 162); }
+        function blasterBaseY() { return groundY() - 52; }
         function nozzleY() { return blasterBaseY() - blasterW() * 0.78; }
         // One steering input — a pointer position, a touch
         // position, or an arrow step all land here: the target
@@ -3813,74 +3827,77 @@
           // A soft shadow rides with it along the asphalt.
           ctx.fillStyle = "rgba(0,0,0,0.4)";
           ctx.beginPath(); ctx.ellipse(bx, by + 4, bw * 0.52, 7, 0, 0, Math.PI * 2); ctx.fill();
-          // Twin fuel tanks behind the body: rounded, fuel-red,
-          // with gunmetal caps.
+          // Twin fuel tanks behind the body: rounded, deep
+          // navy with dark caps and a gold band — the TBOT
+          // livery, not fuel-red.
           for (var side = -1; side <= 1; side += 2) {
             var tx = bx + side * bw * 0.33;
-            ctx.fillStyle = "#8c2f26";
+            ctx.fillStyle = "#1a2450";
             ctx.beginPath();
             if (ctx.roundRect) ctx.roundRect(tx - bw * 0.13, by - bw * 0.62, bw * 0.26, bw * 0.6, bw * 0.1);
             else ctx.rect(tx - bw * 0.13, by - bw * 0.62, bw * 0.26, bw * 0.6);
             ctx.fill();
-            ctx.fillStyle = "#2b2f3a";
+            ctx.fillStyle = "#0b1026";
             ctx.fillRect(tx - bw * 0.13, by - bw * 0.62, bw * 0.26, bw * 0.09);
+            ctx.fillStyle = "#ffbe1a";
+            ctx.fillRect(tx - bw * 0.13, by - bw * 0.32, bw * 0.26, bw * 0.05);
             ctx.fillStyle = "rgba(255,255,255,0.20)";
             ctx.fillRect(tx - bw * 0.07, by - bw * 0.5, bw * 0.045, bw * 0.4);
           }
-          // The heavy body: gunmetal block with an orange heat
-          // stripe and rivets.
-          ctx.fillStyle = "#333947";
+          // The heavy body: a deep-navy block with a gold heat
+          // stripe and gold rivets.
+          ctx.fillStyle = "#131c42";
           ctx.beginPath();
           if (ctx.roundRect) ctx.roundRect(bx - bw * 0.42, by - bw * 0.42, bw * 0.84, bw * 0.42, bw * 0.09);
           else ctx.rect(bx - bw * 0.42, by - bw * 0.42, bw * 0.84, bw * 0.42);
           ctx.fill();
-          ctx.fillStyle = "#ff7a1f";
+          ctx.fillStyle = "#ffbe1a";
           ctx.fillRect(bx - bw * 0.42, by - bw * 0.30, bw * 0.84, bw * 0.07);
-          ctx.fillStyle = "#1d212c";
+          ctx.fillStyle = "#f0a500";
           for (var rvi = -1; rvi <= 1; rvi++) {
             ctx.beginPath(); ctx.arc(bx + rvi * bw * 0.28, by - bw * 0.12, bw * 0.028, 0, Math.PI * 2); ctx.fill();
           }
-          // THE WRAP: the blaster carries its brand on the face
-          // toward the viewer — a deep charcoal band with an
-          // orange trim across the body's front, and T-Blaster
-          // in cream block letters sized to the band, so the
-          // name reads clear wherever the blaster rides (the
-          // idle street and in rounds alike — this one draw
-          // serves both).
+          // THE WRAP: the TBORCH carries its name on the face
+          // toward the viewer — a deep-navy plate with a gold
+          // ring across the body's front, and TBORCH in bright
+          // gold block letters sized to the plate, so the name
+          // reads clear wherever the torch rides (the idle
+          // street and in rounds alike — this one draw serves
+          // both). Navy and gold, the fleet's TBOT livery.
           var wrapW = bw * 0.80, wrapH = bw * 0.205;
           var wrapX = bx - wrapW / 2, wrapY = by - bw * 0.235;
-          ctx.fillStyle = "#101318";
+          ctx.fillStyle = "#0b1026";
           ctx.beginPath();
           if (ctx.roundRect) ctx.roundRect(wrapX, wrapY, wrapW, wrapH, bw * 0.04);
           else ctx.rect(wrapX, wrapY, wrapW, wrapH);
           ctx.fill();
-          ctx.strokeStyle = "#ff7a1f";
-          ctx.lineWidth = Math.max(1.2, bw * 0.014);
+          ctx.strokeStyle = "#ffbe1a";
+          ctx.lineWidth = Math.max(2, bw * 0.02);
           ctx.stroke();
-          var brandSize = bw * 0.135;
-          ctx.font = "800 " + brandSize + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
-          while (ctx.measureText("T-Blaster").width > wrapW - bw * 0.08 && brandSize > 7) {
+          var brandSize = bw * 0.15;
+          ctx.font = "900 " + brandSize + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+          while (ctx.measureText("TBORCH").width > wrapW - bw * 0.08 && brandSize > 7) {
             brandSize -= 0.5;
-            ctx.font = "800 " + brandSize + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+            ctx.font = "900 " + brandSize + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
           }
-          ctx.fillStyle = "#ffe9c9";
+          ctx.fillStyle = "#ffbe1a";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText("T-Blaster", bx, wrapY + wrapH / 2 + 0.5);
+          ctx.fillText("TBORCH", bx, wrapY + wrapH / 2 + 0.5);
           ctx.textBaseline = "alphabetic";
           // The fat barrel: a trapezoid climbing to the nozzle,
-          // banded in steel.
-          ctx.fillStyle = "#454e63";
+          // navy steel banded in gold.
+          ctx.fillStyle = "#232f5e";
           ctx.beginPath();
           ctx.moveTo(bx - bw * 0.17, by - bw * 0.40);
           ctx.lineTo(bx + bw * 0.17, by - bw * 0.40);
           ctx.lineTo(bx + bw * 0.115, by - bw * 0.74);
           ctx.lineTo(bx - bw * 0.115, by - bw * 0.74);
           ctx.closePath(); ctx.fill();
-          ctx.fillStyle = "#59637c";
+          ctx.fillStyle = "#ffbe1a";
           ctx.fillRect(bx - bw * 0.145, by - bw * 0.58, bw * 0.29, bw * 0.05);
-          // The nozzle: a dark flared mouth with a glowing rim —
-          // the glow breathes while the blaster is ready and
+          // The nozzle: a dark flared mouth with a glowing gold
+          // rim — the glow breathes while the torch is ready and
           // dims while it cools.
           var ready = cooldownT <= 0;
           var glowK = ready ? 0.75 + 0.25 * Math.sin(t * 6) : 0.3;
@@ -3889,19 +3906,41 @@
           if (ctx.roundRect) ctx.roundRect(bx - bw * 0.15, by - bw * 0.82, bw * 0.30, bw * 0.10, bw * 0.04);
           else ctx.rect(bx - bw * 0.15, by - bw * 0.82, bw * 0.30, bw * 0.10);
           ctx.fill();
-          ctx.fillStyle = "rgba(255, 122, 31, " + (0.55 * glowK + 0.2) + ")";
+          ctx.fillStyle = "rgba(255, 190, 26, " + (0.55 * glowK + 0.2) + ")";
           ctx.fillRect(bx - bw * 0.15, by - bw * 0.82, bw * 0.30, bw * 0.028);
-          // The pilot flame: a small flickering teardrop always
-          // lit at the nozzle — and the muzzle flash, a fat
-          // tongue of fire, while a shot is leaving.
+          // The pilot flame: a proper flickering flame always
+          // lit at the nozzle — a warm halo, an outer orange
+          // teardrop, a gold body, and a pale core — tall
+          // enough to read as a FLAME from across the street,
+          // never a dot. The muzzle flash, a fat tongue of
+          // fire, rides over it while a shot is leaving.
           var flick = 0.8 + 0.3 * Math.sin(t * 31) * Math.sin(t * 17.3);
-          var fh2 = bw * 0.13 * flick;
-          ctx.fillStyle = "#ffb03a";
+          var fh2 = bw * 0.24 * flick;
+          var halo = ctx.createRadialGradient(bx, nozzleY() - fh2 * 0.4, 1, bx, nozzleY() - fh2 * 0.4, bw * 0.30);
+          halo.addColorStop(0, "rgba(255, 150, 40, " + (0.34 * flick) + ")");
+          halo.addColorStop(1, "rgba(255, 150, 40, 0)");
+          ctx.fillStyle = halo;
+          ctx.beginPath(); ctx.arc(bx, nozzleY() - fh2 * 0.4, bw * 0.30, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#ff7a1f";
           ctx.beginPath();
           ctx.moveTo(bx, nozzleY() - fh2);
-          ctx.quadraticCurveTo(bx + bw * 0.05, nozzleY() - fh2 * 0.3, bx + bw * 0.035, nozzleY());
-          ctx.quadraticCurveTo(bx, nozzleY() + 2, bx - bw * 0.035, nozzleY());
-          ctx.quadraticCurveTo(bx - bw * 0.05, nozzleY() - fh2 * 0.3, bx, nozzleY() - fh2);
+          ctx.quadraticCurveTo(bx + bw * 0.075, nozzleY() - fh2 * 0.3, bx + bw * 0.05, nozzleY());
+          ctx.quadraticCurveTo(bx, nozzleY() + 2, bx - bw * 0.05, nozzleY());
+          ctx.quadraticCurveTo(bx - bw * 0.075, nozzleY() - fh2 * 0.3, bx, nozzleY() - fh2);
+          ctx.fill();
+          ctx.fillStyle = "#ffb03a";
+          ctx.beginPath();
+          ctx.moveTo(bx, nozzleY() - fh2 * 0.72);
+          ctx.quadraticCurveTo(bx + bw * 0.05, nozzleY() - fh2 * 0.25, bx + bw * 0.033, nozzleY());
+          ctx.quadraticCurveTo(bx, nozzleY() + 2, bx - bw * 0.033, nozzleY());
+          ctx.quadraticCurveTo(bx - bw * 0.05, nozzleY() - fh2 * 0.25, bx, nozzleY() - fh2 * 0.72);
+          ctx.fill();
+          ctx.fillStyle = "#ffedb0";
+          ctx.beginPath();
+          ctx.moveTo(bx, nozzleY() - fh2 * 0.42);
+          ctx.quadraticCurveTo(bx + bw * 0.028, nozzleY() - fh2 * 0.15, bx + bw * 0.018, nozzleY());
+          ctx.quadraticCurveTo(bx, nozzleY() + 1, bx - bw * 0.018, nozzleY());
+          ctx.quadraticCurveTo(bx - bw * 0.028, nozzleY() - fh2 * 0.15, bx, nozzleY() - fh2 * 0.42);
           ctx.fill();
           if (muzzleT >= 0) {
             var mk = 1 - muzzleT / 0.12;
@@ -5761,6 +5800,26 @@
           // that size.
           W = canvas.clientWidth || window.innerWidth;
           H = canvas.clientHeight || window.innerHeight;
+          // THE VISIBLE-FIELD CAP: in tall in-app webviews
+          // (Facebook's, on John's phone) the laid-out canvas
+          // can run TALLER than the part of the page actually
+          // on screen, so a ground measured off the canvas's
+          // full height sat below the visible bottom and the
+          // bottom bar swallowed the torch's body — only the
+          // barrel and a flame dot poked above it, a tiny stub
+          // (John's screenshot, 2026-10-30). Cap the field's
+          // height at what is truly visible — the viewport's
+          // visible height measured from the canvas's own top
+          // edge — so the ground, the line, and the TBORCH
+          // always rest inside the seen field. The cap only
+          // ever shrinks H, and only when a real gap shows.
+          var rectTop = canvas.getBoundingClientRect ? canvas.getBoundingClientRect().top : 0;
+          var viewBottom = window.innerHeight;
+          if (window.visualViewport && window.visualViewport.height) {
+            viewBottom = Math.min(viewBottom, (window.visualViewport.offsetTop || 0) + window.visualViewport.height);
+          }
+          var visibleH = viewBottom - rectTop;
+          if (visibleH > 200 && visibleH < H) H = Math.round(visibleH);
           canvas.width = Math.round(W * DPR);
           canvas.height = Math.round(H * DPR);
           ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
@@ -5769,6 +5828,7 @@
         }
         window.addEventListener("resize", resize);
         window.addEventListener("load", resize);
+        if (window.visualViewport && window.visualViewport.addEventListener) window.visualViewport.addEventListener("resize", resize);
         // The bar's own height is a floor input: when the
         // .inround class thins the bar at a round's start (or
         // restores it at its end), the street's ground
