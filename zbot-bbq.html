@@ -2643,6 +2643,150 @@
           playFireSound(4);
         }
 
+        // ---------- THE THUNDER (John's order, 2026-10-30) ----------
+        // The storm's voice: synthesized thunder riding the
+        // fire sounds' own engine (chimeCtx), UNDER the music —
+        // the Fela track stays the game's only song, at its own
+        // level, untouched. The sound law is the engine's law,
+        // the same as the ugh and the pop: the context exists
+        // only because a player's tap primed it, so thunder can
+        // never sound before the first gesture, and the Music
+        // switch never gates it. Two voices, dealt by the
+        // frame loop every 8–18 seconds of a round: a low
+        // ROLLING RUMBLE (most strikes) and, about one strike
+        // in three, a BIG CRACK — a sharp tear of noise over a
+        // deep chest-thump body — and the big cracks are the
+        // ones the sky answers with its soft glow (see
+        // strikeThunder and drawStormLight). No cheer, no
+        // sting: weather, not fanfare.
+        var thunderPlays = 0;   // read-only test counter: thunder strikes sounded
+        var lastThunder = 0;    // read-only read-out: the last strike — 1 = rumble, 2 = big crack
+        var thunderTimer = 0;   // seconds until the next strike (the frame loop counts it, rounds only)
+        function scheduleThunder(c, out, t0, big) {
+          var dur = big ? 3.8 : 2.9;
+          // The body: brown noise — white noise smoothed hard
+          // down into the floor registers — through a low-pass
+          // that sinks as the strike dies, so the sound rolls
+          // away down the street instead of switching off.
+          var nLen = Math.max(1, Math.floor(c.sampleRate * dur));
+          var nBuf = c.createBuffer(1, nLen, c.sampleRate);
+          var nData = nBuf.getChannelData(0);
+          var last = 0;
+          for (var ni = 0; ni < nLen; ni++) {
+            var white = Math.random() * 2 - 1;
+            last = last * 0.86 + white * 0.14;
+            nData[ni] = last * 2.6;
+          }
+          var nSrc = c.createBufferSource();
+          nSrc.buffer = nBuf;
+          var lp = c.createBiquadFilter();
+          lp.type = "lowpass";
+          lp.Q.value = 0.6;
+          lp.frequency.setValueAtTime(big ? 260 : 170, t0);
+          lp.frequency.exponentialRampToValueAtTime(65, t0 + dur * 0.9);
+          // The roll: the level swells in, breathes down and
+          // up again once or twice (distant peals answering
+          // each other), then dies over the tail.
+          var env = c.createGain();
+          env.gain.setValueAtTime(0.0001, t0);
+          if (big) {
+            env.gain.exponentialRampToValueAtTime(0.85, t0 + 0.05);
+            env.gain.exponentialRampToValueAtTime(0.4, t0 + 0.7);
+            env.gain.exponentialRampToValueAtTime(0.62, t0 + 1.5);
+            env.gain.exponentialRampToValueAtTime(0.3, t0 + 2.4);
+            env.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+          } else {
+            env.gain.exponentialRampToValueAtTime(0.5, t0 + 0.35);
+            env.gain.exponentialRampToValueAtTime(0.3, t0 + 1.1);
+            env.gain.exponentialRampToValueAtTime(0.44, t0 + 1.8);
+            env.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+          }
+          nSrc.connect(lp);
+          lp.connect(env);
+          env.connect(out);
+          nSrc.start(t0);
+          nSrc.stop(t0 + dur + 0.02);
+          if (big) {
+            // THE CRACK itself: a short tear of full-band
+            // noise at the strike's front, its band-pass
+            // diving as the tear spends itself (~0.4 s).
+            var cLen = Math.max(1, Math.floor(c.sampleRate * 0.42));
+            var cBuf = c.createBuffer(1, cLen, c.sampleRate);
+            var cData = cBuf.getChannelData(0);
+            for (var ci = 0; ci < cLen; ci++) cData[ci] = Math.random() * 2 - 1;
+            var cSrc = c.createBufferSource();
+            cSrc.buffer = cBuf;
+            var cbp = c.createBiquadFilter();
+            cbp.type = "bandpass";
+            cbp.Q.value = 0.7;
+            cbp.frequency.setValueAtTime(2600, t0);
+            cbp.frequency.exponentialRampToValueAtTime(320, t0 + 0.38);
+            var cEnv = c.createGain();
+            cEnv.gain.setValueAtTime(0.0001, t0);
+            cEnv.gain.exponentialRampToValueAtTime(0.5, t0 + 0.006);
+            cEnv.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.4);
+            cSrc.connect(cbp);
+            cbp.connect(cEnv);
+            cEnv.connect(out);
+            cSrc.start(t0);
+            cSrc.stop(t0 + 0.44);
+            // The chest thump under the crack: a low sine
+            // dropping through the floor, gone by ~0.9 s.
+            var sub = c.createOscillator();
+            sub.type = "sine";
+            sub.frequency.setValueAtTime(72, t0);
+            sub.frequency.exponentialRampToValueAtTime(34, t0 + 0.8);
+            var sEnv = c.createGain();
+            sEnv.gain.setValueAtTime(0.0001, t0);
+            sEnv.gain.exponentialRampToValueAtTime(0.5, t0 + 0.015);
+            sEnv.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.9);
+            sub.connect(sEnv);
+            sEnv.connect(out);
+            sub.start(t0);
+            sub.stop(t0 + 0.92);
+          }
+        }
+        function playThunder(big) {
+          try {
+            var AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return;
+            if (!chimeCtx) chimeCtx = new AC();
+            if (chimeCtx.state !== "running") {
+              var rp = chimeCtx.resume();
+              if (rp && rp.catch) rp.catch(function () { /* the next strike retries */ });
+            }
+            var out = chimeCtx.createGain();
+            out.gain.value = 0.85; // under the music bed, always
+            out.connect(chimeCtx.destination);
+            scheduleThunder(chimeCtx, out, chimeCtx.currentTime, big);
+            thunderPlays++;
+            lastThunder = big ? 2 : 1;
+          } catch (e) { /* juice never breaks the game */ }
+        }
+        // One strike: the big cracks light the sky (the soft
+        // glow only — see flashLevel), the rumbles stay sound
+        // alone. forceBig is the test hook's word; the frame
+        // loop otherwise weights the big cracks toward the
+        // moments a rain band is in (see THE RAIN BANDS below):
+        // a band overhead makes a crack likelier, a dry spell
+        // makes it rarer — the 8–18 s schedule itself is
+        // untouched.
+        function strikeThunder(forceBig) {
+          var big;
+          if (typeof forceBig === "boolean") {
+            big = forceBig;
+          } else if (gameOn) {
+            big = Math.random() < (rainBandLevel > 0.45 ? 0.55 : 0.15);
+          } else {
+            big = Math.random() < 0.34;
+          }
+          if (big) {
+            flashStartMs = nowMs;
+            flashX = rand(0.2, 0.8);
+          }
+          playThunder(big);
+        }
+
         // ---------- The spray roar: the held spray's continuous sound ----------
         // While a held spray burns, the flame ROAR (sound 3)
         // runs under it — the same dual-route cure as the two
@@ -2882,13 +3026,192 @@
           var t = clamp((y - 40) / Math.max(groundY() - 40, 1), 0, 1);
           return W * (0.30 + 0.20 * t);
         }
+        // ---------- THE STORM (John's order, 2026-10-30) ----------
+        // Rain and thunder over the cookout, rounds and the
+        // winner card only — the idle street keeps its clear
+        // night. The storm lives on the BACKGROUND plane: the
+        // rain is painted at the end of drawStreet, which the
+        // frame loop calls before a single zombie, fireball,
+        // or the blaster is drawn, so the weather can never
+        // sit on top of anything in play. On the end card the
+        // rain eases to a light rain over the same wet sky, so
+        // the scene the card floats on is the scene the round
+        // ended in.
+        // ---------- THE RAIN BANDS (John's follow-up, 2026-10-30) ----------
+        // In a round the rain no longer falls constantly: it
+        // passes through in BANDS, like real showers rolling
+        // over a cookout. A band fades IN over ~2 s, rains for
+        // 8–14 s, fades OUT over 2–3 s, then a dry spell of
+        // 5–10 s passes before the next band arrives — every
+        // stretch randomised inside its range, so it never
+        // feels metronomic. The fade lives in the rain itself:
+        // each drop carries an onset threshold, so a rising
+        // band level brings more streaks into view while the
+        // streaks' own opacity ramps with it — never a screen
+        // fade, and the rain stays on the background plane at
+        // every level, mid-fade included, so the zombies, the
+        // torch line, and the HUD stay unobscured. The storm
+        // SKY (dark sky, cloud banks, swallowed moon — see
+        // drawStreet) stands for the whole round whether a
+        // band is in or out: only the rain comes and goes.
+        // The winner card is NOT banded: it keeps its constant
+        // light rain (0.55) over the wet sky exactly as built.
+        var REDUCED_MOTION = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+        function stormActive() { return !inStreet; } // a round, or the card it left behind
+        function stormIntensity() { return gameOn ? rainBandLevel : 0.55; } // the band's level in a round, light on the card
+        // The band machine: phase is "in" | "hold" | "out" |
+        // "dry", level is the rain's strength 0..1. It steps
+        // only while a round runs (see the frame loop); a new
+        // round always opens with a band fading in.
+        var rainBandLevel = 0;
+        var rainPhase = "dry";
+        var rainPhaseT = 0;    // seconds spent in the current phase
+        var rainPhaseDur = 5;  // seconds the current phase lasts
+        function setRainPhase(phase, dur) {
+          rainPhase = phase;
+          rainPhaseT = 0;
+          rainPhaseDur = dur;
+          if (phase === "hold") rainBandLevel = 1;
+          else if (phase === "dry") rainBandLevel = 0;
+          else if (phase === "in") rainBandLevel = 0;
+          else if (phase === "out") rainBandLevel = 1;
+        }
+        function startRainBands() { setRainPhase("in", rand(1.8, 2.2)); }
+        function smooth01(p) { return p * p * (3 - 2 * p); }
+        function stepRainBand(dt) {
+          if (!gameOn) return;
+          rainPhaseT += dt;
+          var p = rainPhaseDur > 0 ? clamp(rainPhaseT / rainPhaseDur, 0, 1) : 1;
+          if (rainPhase === "in") {
+            rainBandLevel = smooth01(p);
+            if (p >= 1) setRainPhase("hold", rand(8, 14));
+          } else if (rainPhase === "hold") {
+            rainBandLevel = 1;
+            if (rainPhaseT >= rainPhaseDur) setRainPhase("out", rand(2, 3));
+          } else if (rainPhase === "out") {
+            rainBandLevel = 1 - smooth01(p);
+            if (p >= 1) setRainPhase("dry", rand(5, 10));
+          } else { // dry
+            rainBandLevel = 0;
+            if (rainPhaseT >= rainPhaseDur) setRainPhase("in", rand(1.8, 2.2));
+          }
+        }
+        // The drops: positions kept as fractions of the field,
+        // so a resize never re-deals the rain. Each drop falls
+        // at its own speed with a slight slant (a pushed
+        // sideways wind), and wraps from the ground back to
+        // the sky. Each drop also carries an onset threshold:
+        // in a round a drop is drawn only once the band's
+        // level has risen past its threshold, so the streak
+        // COUNT ramps with the fade instead of popping in.
+        var RAIN_DROPS = 130;
+        var rainDrops = [];
+        (function () {
+          for (var rdi = 0; rdi < RAIN_DROPS; rdi++) {
+            rainDrops.push({
+              fx: Math.random(), fy: Math.random(),
+              sp: rand(0.55, 1.05),          // fall speed, field-heights per second
+              len: rand(9, 19),              // streak length, px
+              near: rdi % 3 === 0,           // the near third falls brighter
+              onset: Math.random()           // the band level at which this drop joins the rain
+            });
+          }
+        })();
+        function stepRain(dt) {
+          var slow = REDUCED_MOTION ? 0.5 : 1;
+          for (var i = 0; i < rainDrops.length; i++) {
+            var d = rainDrops[i];
+            d.fy += d.sp * dt * slow;
+            d.fx += 0.018 * dt; // the wind's slant, drifting the fall sideways
+            if (d.fy > 1.02) { d.fy -= 1.04; d.fx = Math.random(); }
+            if (d.fx > 1.02) d.fx -= 1.04;
+          }
+        }
+        function drawRain() {
+          if (!stormActive()) return;
+          var level = stormIntensity();
+          if (level <= 0.003) return; // a dry spell in a round: no streaks at all
+          // In a round the streak opacity ramps with the band
+          // (softened with a square root, since the streak
+          // count ramps too — together they read as one fade
+          // in the rain itself); on the card the light rain
+          // keeps its built 0.55 exactly.
+          var alphaMul = gameOn ? Math.sqrt(level) : level;
+          ctx.save();
+          ctx.lineWidth = 1.2;
+          ctx.lineCap = "round";
+          // Two passes — the far rain dimmer, the near rain
+          // brighter — one stroke each, so the weather costs
+          // two paths a frame however hard it falls.
+          for (var pass = 0; pass < 2; pass++) {
+            ctx.strokeStyle = pass === 0
+              ? "rgba(168, 190, 222, " + (0.20 * alphaMul).toFixed(3) + ")"
+              : "rgba(196, 214, 240, " + (0.42 * alphaMul).toFixed(3) + ")";
+            ctx.beginPath();
+            for (var i = 0; i < rainDrops.length; i++) {
+              var d = rainDrops[i];
+              if ((pass === 1) !== d.near) continue;
+              // The band's count ramp: in a round, only the
+              // drops whose onset the level has passed are in
+              // the rain yet. On the card every drop falls.
+              if (gameOn && d.onset >= level) continue;
+              var x = d.fx * W, y = d.fy * H;
+              ctx.moveTo(x, y);
+              ctx.lineTo(x - d.len * 0.18, y + d.len);
+            }
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+        // THE LIGHTNING — a soft brightening of the sky only,
+        // timed with the big thunder cracks (see strikeThunder):
+        // a glow that swells and settles over about a second,
+        // with a second, smaller swell behind it like light
+        // bouncing inside cloud. NEVER a hard flash: the peak
+        // alpha stays low, the light lives in the sky half of
+        // the background plane, and under reduced motion it
+        // does not light at all.
+        var flashStartMs = -1;
+        var flashX = 0.5; // where in the sky the glow centres, as a fraction of W
+        function flashLevel(nowMs) {
+          if (REDUCED_MOTION || flashStartMs < 0) return 0;
+          var age = (nowMs - flashStartMs) / 1000;
+          if (age < 0 || age > 1.15) return 0;
+          var g = Math.exp(-age * 4.2) + 0.5 * Math.exp(-Math.pow((age - 0.3) * 5.5, 2));
+          return clamp(g, 0, 1);
+        }
+        function drawStormLight(nowMs, gy) {
+          var fl = flashLevel(nowMs);
+          if (fl <= 0.003) return;
+          var cx = flashX * W;
+          var glow = ctx.createRadialGradient(cx, gy * 0.1, 4, cx, gy * 0.1, W * 0.75);
+          glow.addColorStop(0, "rgba(198, 214, 245, " + (0.20 * fl).toFixed(3) + ")");
+          glow.addColorStop(1, "rgba(198, 214, 245, 0)");
+          ctx.fillStyle = glow;
+          ctx.fillRect(0, 0, W, gy + 2);
+          var wash = ctx.createLinearGradient(0, 0, 0, gy * 0.6);
+          wash.addColorStop(0, "rgba(178, 198, 235, " + (0.10 * fl).toFixed(3) + ")");
+          wash.addColorStop(1, "rgba(178, 198, 235, 0)");
+          ctx.fillStyle = wash;
+          ctx.fillRect(0, 0, W, gy * 0.6);
+        }
+
         function drawStreet(nowMs) {
           var gy = groundY();
-          // Night sky / backdrop.
+          // Night sky / backdrop — under the storm (a round,
+          // or its card) the sky darkens further and goes
+          // grey-blue, heavy weather over the far end.
+          var storm = stormActive();
           var sky = ctx.createLinearGradient(0, 0, 0, gy);
-          sky.addColorStop(0, "#04060d");
-          sky.addColorStop(0.5, "#070b16");
-          sky.addColorStop(1, "#0a0e1a");
+          if (storm) {
+            sky.addColorStop(0, "#020409");
+            sky.addColorStop(0.5, "#060a14");
+            sky.addColorStop(1, "#0b1220");
+          } else {
+            sky.addColorStop(0, "#04060d");
+            sky.addColorStop(0.5, "#070b16");
+            sky.addColorStop(1, "#0a0e1a");
+          }
           ctx.fillStyle = sky;
           ctx.fillRect(0, 0, W, gy + 2);
           // The far end of the street: when the building
@@ -2910,11 +3233,29 @@
               ctx.fillStyle = "#0d1322";
             }
           }
-          // A pale moon, top left.
+          // A pale moon, top left — under the storm the cloud
+          // cover swallows most of it: it hangs dim behind the
+          // weather, bitten by the storm sky's own colour.
+          ctx.save();
+          if (storm) ctx.globalAlpha = 0.28;
           ctx.fillStyle = "rgba(226, 232, 240, 0.9)";
           ctx.beginPath(); ctx.arc(W * 0.08, 34, 11, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = "#04060d";
+          ctx.fillStyle = storm ? "#020409" : "#04060d";
           ctx.beginPath(); ctx.arc(W * 0.08 + 5, 31, 9, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+          // Storm clouds: two low, dark banks drifting slowly
+          // across the top of the sky while the storm stands.
+          if (storm) {
+            var cloudDrift = (nowMs / 9000) % 1.4 - 0.2;
+            ctx.fillStyle = "rgba(8, 12, 22, 0.5)";
+            for (var cci = 0; cci < 2; cci++) {
+              var ccx = ((cloudDrift + cci * 0.55) % 1.4 - 0.2) * W;
+              var ccy = 8 + cci * 16;
+              ctx.beginPath();
+              ctx.ellipse(ccx, ccy, W * 0.34, 20 + cci * 6, 0, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
           // Sidewalks: the strips outside the road.
           ctx.fillStyle = "#11141d";
           ctx.beginPath();
@@ -3057,6 +3398,14 @@
           ctx.lineTo(W / 2 + roadHalf(bl), bl);
           ctx.stroke();
           ctx.setLineDash([]);
+          // THE STORM, last on the background plane: the
+          // lightning's soft glow lifts the sky, and the rain
+          // falls through the whole scene — over the street,
+          // the facades and the fog, but UNDER everything the
+          // frame loop draws next (the horde, the flame, the
+          // blaster), so the weather never touches play.
+          drawStormLight(nowMs, gy);
+          drawRain();
         }
         // The blaster's line: the bottom boundary of the field.
         // A walking zombie whose centre reaches it has crossed
@@ -4215,6 +4564,23 @@
             }
           }
 
+          // THE STORM keeps its own time: the rain steps
+          // whenever the storm stands (round and card alike —
+          // on the card the field freezes but the weather
+          // doesn't), the rain-band machine steps only while
+          // a round runs (the card's light rain never bands),
+          // and the thunder clock counts only while
+          // a round runs, dealing a strike every 8–18 seconds.
+          if (stormActive()) stepRain(dt);
+          if (gameOn) stepRainBand(dt);
+          if (gameOn) {
+            thunderTimer -= dt;
+            if (thunderTimer <= 0) {
+              strikeThunder();
+              thunderTimer = rand(8, 18);
+            }
+          }
+
           // Celebration + particle animations.
           var si;
           for (si = flames.length - 1; si >= 0; si--) {
@@ -5024,6 +5390,15 @@
           sprayBreathUntil = 0;
           stopSpraySound();
           spawnTimer = 0;
+          // The storm opens with the round: the first strike
+          // lands a few seconds in, the rest deal themselves
+          // every 8–18 s from the frame loop. No glow carries
+          // over from a previous round's last crack. The rain
+          // opens with the round too: a fresh band machine,
+          // its first band fading in from dry.
+          thunderTimer = rand(3.5, 6.5);
+          flashStartMs = -1;
+          startRainBands();
           steerActive = false; // a new round opens unsteered: the blaster rests at centre until the hand moves
           steerTargetX = null;
           // Street and game are TWO SEPARATE population rules:
@@ -5428,6 +5803,23 @@
             popPlays: popPlays,
             ughPlays: ughPlays,
             lastFireSound: lastFireSound,
+            stormOn: stormActive(),
+            stormIntensity: Math.round(stormIntensity() * 100) / 100,
+            rainLevel: Math.round(rainBandLevel * 100) / 100,
+            rainPhase: gameOn ? rainPhase : (stormActive() ? "card" : "off"),
+            rainPhaseLeftMs: gameOn ? Math.max(0, Math.round((rainPhaseDur - rainPhaseT) * 1000)) : null,
+            rainDrops: stormActive() ? rainDrops.length : 0,
+            rainVisible: (function () {
+              if (!stormActive()) return 0;
+              if (!gameOn) return rainDrops.length;
+              var n = 0;
+              for (var rvi = 0; rvi < rainDrops.length; rvi++) if (rainDrops[rvi].onset < rainBandLevel) n++;
+              return n;
+            })(),
+            thunderPlays: thunderPlays,
+            lastThunder: lastThunder,
+            thunderInMs: gameOn ? Math.max(0, Math.round(thunderTimer * 1000)) : null,
+            flash: Math.round(flashLevel(nowMs) * 100) / 100,
             chimePath: chimePath,
             chimePrints: chimePrints,
             chimePrintsReady: chimePrints.filter(Boolean).length,
@@ -5493,6 +5885,21 @@
           setTimeLeftMs: function (ms) {
             timeLeftMs = ms;
             if (gameOn && !clockHeld) roundEndsAt = performance.now() + ms;
+          },
+          // Force one thunder strike now: thunder(true) is a
+          // big crack (and lights the sky's soft glow),
+          // thunder(false) a rolling rumble, thunder() deals
+          // its own.
+          thunder: function (big) { strikeThunder(big); },
+          // Jump the rain-band machine to a named phase, for
+          // scripted checks of the cycle: "in" starts a band
+          // fading in, "hold" is full rain, "out" starts the
+          // fade out from full, "dry" is the dry spell.
+          rainBand: function (phase) {
+            if (phase === "in") setRainPhase("in", rand(1.8, 2.2));
+            else if (phase === "hold") setRainPhase("hold", rand(8, 14));
+            else if (phase === "out") setRainPhase("out", rand(2, 3));
+            else if (phase === "dry") setRainPhase("dry", rand(5, 10));
           }
         };
 
