@@ -1189,6 +1189,134 @@
           { name: "Honoring Great Talent", eps: ["kumprE76ZrQ", "RGwpHbyuehQ", "TaY6Qz7gjnk", "3UqnhoekQ6g", "QONoSnwZY6Q", "akddJKjjaz0", "QpNQUDdJwjo", "l4MibQZUoic", "4_z-bDijJaI", "9p8_Z3kdEDs"] },
           { name: "Press Briefing", eps: ["vAoN8xKkhNE", "pDAvact3zAw", "BHjyk6EKqjs"] }
         ];
+        // ---------- The season lineup: month-matched dealing ----------
+        // John's order (2026-10-28), rolled out from The Last TBOT
+        // In ("Roll"): the lineup follows the calendar. If we are
+        // in October, the game leads with episodes that were
+        // uploaded in October — the YEAR does not matter, only
+        // the month ("And it doesn't matter the year just a
+        // month"). If the current month cannot fill the lineup,
+        // the window widens by 15 days on each side — the last
+        // 15 days of the month before and the first 15 days of
+        // the month after — and only then does the rest of the
+        // catalog fill in.
+        // The month belongs to each EPISODE, not each show (most
+        // shows aired across many months), so the window works at
+        // episode level, in two places: the in-round deck deals
+        // SHOWS that still hold an unserved episode inside the
+        // window first (see nextDeckShow), and nextEpisode
+        // prefers the in-window episodes within the winning
+        // show — the no-repeat law still holds, so a window
+        // episode a player was already served never counts
+        // toward filling the lineup.
+        // EPISODE_DATES is the SAME verified upload-date table
+        // The Last TBOT In carries — video ID -> "YYYY-MM-DD",
+        // every date read off the video's own upload record on
+        // YouTube (verified 2026-10-28, each cross-checked
+        // through a second player client; this roster's IDs and
+        // order are untouched, so Ep. N is still Ep. N). Of this
+        // game's 153 distinct episodes, 152 carry a verified
+        // date. An episode with NO entry here is UNDATED: no
+        // month is ever inferred or guessed for it, it is dealt
+        // only as catalog fill (tier 2 below), and its Watch
+        // button carries no air date. One episode stands
+        // undated because YouTube serves no record for it at
+        // all: The MF Drag Race's Tjq6NWeoPNE is rights-blocked.
+        // The moment a verified date is added here, that
+        // episode joins the window rotation on its own, with no
+        // other change.
+        var EPISODE_DATES = {
+          "0qDX0T5_1u8": "2022-10-27", "5hcz5Lg9yKs": "2023-01-05", "8Gwj-hJYnak": "2022-11-24", "8fIAL7Bh954": "2023-04-06", "A3hfilujX1Y": "2023-02-16", "ER_AMHkIT2E": "2023-03-09", "FOK6GvXQnCw": "2023-03-23", "FWTx5fCBy-k": "2023-02-16", "K56riBl1kSo": "2022-11-29", "Oz6c8Emg9c4": "2023-01-19", "PCbwvLP0fJ8": "2022-11-17", "Q_umdsDJKDI": "2023-02-09", "Zo_uwwBwQO4": "2023-05-11", "ZtEs7okuu9I": "2022-11-03", "bDnvLeG-XNE": "2022-12-15", "dw_HQ3zcnrM": "2023-02-23", "el6eg7ccVvg": "2022-12-22", "fqpoBtJD8LA": "2022-12-01", "l2ZYC18yPNw": "2023-01-26", "l_55f-TRq9c": "2023-02-16", "laMRL_cbUqk": "2022-10-20", "pOwXjxLHkbk": "2022-11-10", "s3d0xSbJPTY": "2023-03-30", "soNYQAQKXo8": "2022-12-29", "thfWMfmWCN8": "2023-03-02", "tjis7_fvtl4": "2023-01-12", "ul9uo6t2MgI": "2022-12-08", "35ZnsAIyFg0": "2023-05-18", "DTq0XbWii4M": "2023-06-01", "S6oNF8t3u8U": "2023-07-27", "EAIYYiqtWtU": "2023-08-03", "1eUDeWedlIM": "2023-08-17", "LnY3xOO0yLw": "2023-08-24", "8SOteho_cNo": "2023-08-31", "YkTc_ELtPp4": "2023-09-21", "fP_dT8P2Ga4": "2023-09-28", "W-mScZplBUs": "2023-10-05", "Ehw4Tc0fC2c": "2023-10-12", "ne1stTbZjQw": "2023-10-19", "Ql1XUe4cs20": "2023-11-09", "9DwQ_HEp12c": "2023-11-23", "r9qH3qZ3790": "2023-11-30", "9omBry8NXVY": "2023-12-07", "U41OcIiDn0Q": "2024-01-04",
+          "iYBHmVGMfBk": "2022-11-03", "Bk3hLFA9gAI": "2022-10-27", "xKEiecg3DnY": "2022-10-20",
+          "-C4tZ-6XUs8": "2022-11-19", "0LhRajQfH-U": "2022-12-06", "25sLEkA2-Jc": "2022-11-29", "3EaO5UfQgIY": "2022-12-03", "6oH9u3LPl78": "2022-11-08", "ABl0DjnZaLw": "2022-10-15", "DtA1rLtpj2g": "2022-10-25", "FCUrhjBIST0": "2022-11-12", "GzMO0HxCLII": "2022-11-01", "JHs6_zNKyR0": "2022-11-15", "aaBB-FxNJdA": "2022-10-29", "jn8kuHloNVU": "2022-11-05", "lC54My7xNzQ": "2022-12-13", "nauginc7mPY": "2022-10-22", "tIPDDRoO55M": "2022-10-18", "te5u1MRhWjY": "2022-11-26",
+          "1lbi9wrPA64": "2023-02-10", "2NS6Rgdss2w": "2023-03-03", "5rNRio6TpSI": "2022-11-18", "6J0d10gL89Q": "2022-11-11", "6p6KAePYEEI": "2023-02-24", "AOqCwa0OlJU": "2022-12-02", "DoPtjVCORr8": "2023-01-13", "HDfhFOVE8Os": "2023-05-12", "LNbdIOKOaUo": "2023-03-24", "NtItEgJrevw": "2022-11-04", "XDTj3X23ik4": "2022-12-16", "hyNvchWOMuk": "2023-01-06", "pKn7qKBQrWE": "2023-03-31", "qUbQoGZPQmM": "2022-10-28", "tE138doE0k4": "2022-10-21", "x6Y_iWc8jgg": "2023-01-20", "wzTcbpScsHk": "2023-01-27", "yd_AJg843FM": "2023-03-10", "3JaN2hcfSkc": "2023-05-19", "cupsHaSNxtM": "2023-05-26", "EitUFf8gBHQ": "2023-06-02", "rAGqeCCZ9UI": "2025-11-25", "rOrJVniqpho": "2026-03-19", "M84xOPAA7kg": "2025-02-18",
+          "5XHGyZVRs9w": "2022-11-11", "Ro-T5BU03A0": "2022-12-02", "_hHmwbvUe4Y": "2022-11-04", "fJ6ipk4Prok": "2022-12-16", "mOyRlDq7_lw": "2022-10-28",
+          "9fLUcttEdr8": "2023-04-10", "_9ubwz83dhM": "2023-04-03", "gFhUDQW5l44": "2023-03-27", "k_77f-BREMg": "2023-05-08", "ps36IcwOZzQ": "2023-05-15", "q7G4-e9wr00": "2023-03-13", "uDhtJNoqun0": "2023-02-27", "x1yxdJfQo6A": "2023-02-27", "Xbl7xyAYrMM": "2023-05-22", "n1xEu5vdTg0": "2023-06-05", "vRsN-_vMsZE": "2023-06-12", "eB_4ruh7BTw": "2023-06-26", "k4xOMKmKSgU": "2023-07-03", "pcy-NqoR1e4": "2023-07-10", "SjkS5LRCskA": "2023-11-13", "tA56O4COMMQ": "2023-11-20", "c6QSfBJqGYs": "2023-12-12", "X5WMOf2ixog": "2017-05-20", "Cs9FAy5MSOs": "2024-01-01",
+          "EEnZ2ZIBp3Q": "2022-10-24", "KYZtTtFkC8c": "2022-11-14", "8QT2scxMSv8": "2022-10-31", "vtauPPq2v2Q": "2025-03-10",
+          "279_zEsadVk": "2023-02-06", "2pH1_LJzv3M": "2022-12-19", "3FRsG5B4hDw": "2022-11-21", "5qnLlra7Zpk": "2023-01-23", "8Hvt9bDfrSs": "2022-12-05", "FKzmEqfGips": "2023-01-02", "KTiX0LAYGLE": "2022-10-17", "Ki1nAQy_z8I": "2022-11-14", "TIXWG-fh6NU": "2022-12-19", "_YzLti2hVXQ": "2023-01-09", "eK-esGKnGRY": "2023-01-16", "eyWOIwwhiGI": "2022-12-12", "fW07F_-RLIs": "2023-02-13", "o3p4KAEFKE0": "2023-02-13", "qGVqdUibIRA": "2022-10-31", "xBjq42JYM6E": "2023-01-30", "xkr5ejaIE5w": "2022-11-28", "zZk-XRbzyo4": "2022-12-12",
+          "ZNgPhtEdadk": "2025-06-09", "xIzS22kgXGg": "2025-05-19", "UxMcBe7i7uo": "2025-05-26",
+          "grK-JRzWMmo": "2022-12-19", "1aGKh6-UoUg": "2022-12-19", "mCfxNW1pXRo": "2022-12-19", "zvHxLJtftoU": "2022-12-19",
+          "rA5f6FEClY0": "2022-07-18", "u9N2YbafOe0": "2022-07-31", "sCZi2qbk69k": "2022-07-31", "zaFGNKtB_z4": "2022-07-23",
+          "0VkA8Cn5CmU": "2023-02-12", "8teJHngtHAI": "2022-11-27", "EuVc_v5mZqk": "2022-12-25", "PWcf1SZX3Ms": "2022-12-18", "ZHvMR2enyzA": "2023-01-15", "aECgHOojjyQ": "2023-01-22", "h8dydoZxJz0": "2023-01-29", "vlz7P1L9-v8": "2022-12-04", "wOjxsmNM6Ss": "2023-01-08", "wdTkgK5VAjA": "2025-08-02",
+          "sQXvVKC9GeM": "2023-10-13", "nrpYHIEnmEw": "2023-10-20", "Nhl0zFSVG5M": "2023-10-28", "YDm1_sckT4c": "2023-11-03", "pOk6gRq_YPU": "2023-11-17", "sed4sIoHEDk": "2023-12-01", "AaKYTIpLb04": "2023-12-08", "yQYL9bpMC5Q": "2023-12-10",
+          "ihJQ_X63OKE": "2022-08-10", "4Yxa5ckdKpY": "2022-08-10", "S0ByPGN9IA8": "2022-08-10", "OI13_nNZBL8": "2022-08-08", "93dhHjPt5Cs": "2022-08-05", "XPO__ZPdngQ": "2022-07-26", "m_XiA8RHwSw": "2022-07-15", "0yfH_l6sK9s": "2022-06-28", "gmPjFGQSec4": "2022-05-15", "OGya6BG-Yj0": "2022-05-06",
+          "gKb4MaPzOlc": "2023-07-11", "5Dos4T2tUKo": "2023-05-16", "QYfU1p1pmY8": "2023-05-23", "i3Xx3l5g_ws": "2023-07-25",
+          "0PULo9c5Lgs": "2023-10-30",
+          "Nhl0zFSVG5M": "2023-10-28", "q3941mQRrsQ": "2023-11-04", "RMfdoD2sUnU": "2023-11-18", "ZbxBWoTUsKM": "2023-11-16", "ZVFSWu_1aSM": "2023-10-30", "jxLpg_HAkNY": "2023-11-04", "wY-Vuh2DdzI": "2023-11-18",
+          "kumprE76ZrQ": "2024-05-06", "RGwpHbyuehQ": "2024-04-29", "TaY6Qz7gjnk": "2024-04-21", "3UqnhoekQ6g": "2024-05-19", "QONoSnwZY6Q": "2024-04-27", "akddJKjjaz0": "2024-04-20", "QpNQUDdJwjo": "2025-01-15", "l4MibQZUoic": "2024-10-19", "4_z-bDijJaI": "2024-11-02", "9p8_Z3kdEDs": "2024-11-09",
+          "vAoN8xKkhNE": "2024-02-20", "pDAvact3zAw": "2024-02-20", "BHjyk6EKqjs": "2024-11-05"
+        };
+        var MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        var MONTH_DAYS = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]; // February at its leap length, so its last 15 days always count in full
+        // The season window for a moment in time: the calendar month
+        // it falls in, month-of-year only — the year is ignored by
+        // design, so an episode uploaded in October of ANY year is
+        // an October episode.
+        function seasonWindowFor(when) {
+          var m = when.getMonth();
+          return {
+            month: m,
+            prev: (m + 11) % 12,
+            next: (m + 1) % 12,
+            prevDays: MONTH_DAYS[(m + 11) % 12]
+          };
+        }
+        var currentWindow = seasonWindowFor(new Date());
+        // An episode's verified upload date, parsed from the table:
+        // { y, m (0-based), d } or null when undated.
+        function episodeDate(id) {
+          var raw = EPISODE_DATES[id];
+          if (typeof raw !== "string") return null;
+          var parts = raw.split("-");
+          if (parts.length !== 3) return null;
+          var y = parseInt(parts[0], 10), mo = parseInt(parts[1], 10), d = parseInt(parts[2], 10);
+          if (!y || mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+          return { y: y, m: mo - 1, d: d };
+        }
+        // Where an episode falls against the window: 0 = uploaded in
+        // the current month (any year); 1 = the spill — the last 15
+        // days of the month before, or the first 15 days of the month
+        // after; 2 = everything else, undated episodes included.
+        function episodeTier(id, win) {
+          var dt = episodeDate(id);
+          if (!dt) return 2;
+          if (dt.m === win.month) return 0;
+          if (dt.m === win.prev && dt.d > win.prevDays - 15) return 1;
+          if (dt.m === win.next && dt.d <= 15) return 1;
+          return 2;
+        }
+        // A show's window tier for this deck: the best tier among
+        // the episodes this player has NOT been served yet — the
+        // cycle-reset case (every episode served) reads the whole
+        // list, since the show is about to start over anyway.
+        function showWindowTier(show, win) {
+          var seen = cleanServedList(show);
+          var best = 2;
+          for (var ei = 0; ei < show.eps.length; ei++) {
+            if (seen.indexOf(show.eps[ei]) !== -1 && seen.length < show.eps.length) continue;
+            var t = episodeTier(show.eps[ei], win);
+            if (t < best) best = t;
+            if (best === 0) break;
+          }
+          return best;
+        }
+        // "Aired October 2024" for the winner card's Watch button —
+        // only ever built from a verified table entry; undated
+        // episodes get no label at all.
+        function airedLabel(id) {
+          var dt = episodeDate(id);
+          if (!dt) return null;
+          return "Aired " + MONTH_NAMES[dt.m] + " " + dt.y;
+        }
+        // Read-only lineup readout for verification: the window the
+        // game is dealing against right now, how many episodes carry
+        // verified dates, and — once a deck is built — how the
+        // deck's shows fell across the window tiers.
+        window.TBOT_LINEUP = {
+          month: MONTH_NAMES[currentWindow.month],
+          datedEpisodes: Object.keys(EPISODE_DATES).length,
+          dealtTiers: null
+        };
         // Deal a show to a carrier. A PRIZE deal (consume = true)
         // serves one specific episode of the show: name = the
         // show's name (prize headline); url = that episode's
@@ -1207,13 +1335,14 @@
         // winning show only (see endGame).
         function dealShow(show, consume) {
           if (!consume) return { name: show.name };
-          var n = nextEpisode(show);
+          var n = nextEpisode(show, currentWindow);
           return {
             name: show.name,
             url: "https://www.youtube.com/watch?v=" + show.eps[n],
             watch: "Ep. " + (n + 1) + " of " + show.name,
             ep: show.eps[n],
-            showName: show.name
+            showName: show.name,
+            aired: airedLabel(show.eps[n])
           };
         }
         // ---------- Episodes already served to this player ----------
@@ -1268,7 +1397,7 @@
         // except the episode served immediately before, which is
         // held out of the first pick, so the same episode can
         // never land twice in a row even across the reset.
-        function nextEpisode(show) {
+        function nextEpisode(show, win) {
           var seen = loadSeenEps();
           var clean = cleanServedList(show);
           var fresh = [];
@@ -1283,7 +1412,19 @@
             }
             if (!fresh.length) fresh.push(show.eps.indexOf(lastId));
           }
-          var n = fresh[Math.floor(Math.random() * fresh.length)];
+          // The season window's pick: keep only the pool's best
+          // tier — this month first, then the 15-day spill, then
+          // the rest — and draw at random inside it.
+          var bestTier = 2;
+          for (var ti = 0; ti < fresh.length; ti++) {
+            var tt = episodeTier(show.eps[fresh[ti]], win || currentWindow);
+            if (tt < bestTier) bestTier = tt;
+          }
+          var inTier = [];
+          for (var tj = 0; tj < fresh.length; tj++) {
+            if (episodeTier(show.eps[fresh[tj]], win || currentWindow) === bestTier) inTier.push(fresh[tj]);
+          }
+          var n = inTier[Math.floor(Math.random() * inTier.length)];
           clean.push(show.eps[n]);
           seen[show.name] = clean;
           saveSeenEps();
@@ -3579,27 +3720,50 @@
         }
         // ---------- In-round spawns ----------
         // Shows for in-round spawns are dealt from a SHUFFLED
-        // DECK: the full 15-show roster, Fisher–Yates shuffled,
-        // dealt through in order — every show exactly once
-        // before any show repeats — and when the deck runs out
-        // mid-stream a fresh full deck is shuffled and dealing
-        // continues. startGame empties the deck, so EVERY round
-        // opens on a fresh shuffle: no even/cyclic pattern, no
-        // predictable sequence, no round ever continuing the
-        // previous round's deck. The same fair-deck discipline
-        // as The Last TBOT In. Flavor only, exactly like every
-        // in-round carry: no episode is ever attached.
-        function nextDeckShow() {
-          if (countDeckPos >= countDeck.length) {
-            countDeck = SHOWS.slice();
-            for (var i = countDeck.length - 1; i > 0; i--) {
-              var j = Math.floor(Math.random() * (i + 1));
-              var tmp = countDeck[i];
-              countDeck[i] = countDeck[j];
-              countDeck[j] = tmp;
-            }
-            countDeckPos = 0;
+        // DECK: the full 15-show roster, Fisher–Yates shuffled
+        // inside each of the season window's tiers (see the
+        // lineup block above), the tiers stacked window-first —
+        // shows holding an unserved episode from this month
+        // (any year) deal first, shows holding only a 15-day
+        // spill episode deal next, and the rest of the catalog
+        // fills the tail — dealt through in order, every show
+        // exactly once before any show repeats. When the deck
+        // runs out mid-stream a fresh full deck is built against
+        // the calendar as it stands then, and dealing continues.
+        // startGame empties the deck, so EVERY round opens on a
+        // fresh build: no even/cyclic pattern, no predictable
+        // sequence, no round ever continuing the previous
+        // round's deck. The same fair-deck discipline as The
+        // Last TBOT In. Flavor only, exactly like every in-round
+        // carry: no episode is ever attached.
+        function buildCountDeck() {
+          currentWindow = seasonWindowFor(new Date());
+          var tiers = [[], [], []];
+          for (var si = 0; si < SHOWS.length; si++) {
+            tiers[showWindowTier(SHOWS[si], currentWindow)].push(SHOWS[si]);
           }
+          countDeck = [];
+          var dealtTiers = [0, 0, 0];
+          for (var t = 0; t < 3; t++) {
+            var tier = tiers[t];
+            for (var i = tier.length - 1; i > 0; i--) {
+              var j = Math.floor(Math.random() * (i + 1));
+              var tmp = tier[i];
+              tier[i] = tier[j];
+              tier[j] = tmp;
+            }
+            for (var k = 0; k < tier.length; k++) countDeck.push(tier[k]);
+            dealtTiers[t] = tier.length;
+          }
+          countDeckPos = 0;
+          window.TBOT_LINEUP = {
+            month: MONTH_NAMES[currentWindow.month],
+            datedEpisodes: Object.keys(EPISODE_DATES).length,
+            dealtTiers: dealtTiers
+          };
+        }
+        function nextDeckShow() {
+          if (countDeckPos >= countDeck.length) buildCountDeck();
           return countDeck[countDeckPos++];
         }
         function spawnRoundZombie(scatter) {
@@ -5026,7 +5190,7 @@
           prizeName.href = show.url;
           prizeLine.hidden = false;
           watchBtn.href = show.url;
-          watchBtn.textContent = "Watch " + (show.watch || show.name);
+          watchBtn.textContent = "Watch " + (show.watch || show.name) + (show.aired ? " · " + show.aired : "");
           watchBtn.hidden = false;
           againBtn.classList.remove("primary");
         }
@@ -5257,7 +5421,9 @@
             lastStanding: (function () { var s = lastStandingShow(); return s ? s.name : null; })(),
             lastTorched: lastTorched ? lastTorched.name : null,
             prizeWatch: lastPrize ? lastPrize.watch : null,
+            prizeAired: lastPrize ? (lastPrize.aired || null) : null,
             prizeUrl: lastPrize ? lastPrize.url : null,
+            lineup: window.TBOT_LINEUP,
             firePlays: firePlays,
             popPlays: popPlays,
             ughPlays: ughPlays,
