@@ -3762,8 +3762,22 @@
         // part of it at any aspect. Its line rides with it
         // (see bottomLineY): the line sits just above the
         // nozzle, the pilot flame licking across it.
+        // THE LETTERING LIFT (John's fix, 2026-10-30, second
+        // pass): on his phone's in-app webview the unit
+        // rendered but its gold nameplate rode at the very
+        // top edge of the bottom bar, the TBORCH lettering
+        // half-clipped by the bar — the reported viewport
+        // height ran longer than the truly visible field, so
+        // the seat computed off that height sat too low. The
+        // floor is now anchored to the bar's REAL rendered
+        // top edge (see the bar-anchored floor in resize),
+        // and the unit rests a further step above the ground
+        // on top of that, so the whole unit — down to the
+        // bottom edge of the nameplate — clears the bar with
+        // open road to spare in any webview, at any steering
+        // position, in both bar states.
         function blasterW() { return clamp(W * 0.30, 118, 162); }
-        function blasterBaseY() { return groundY() - 52; }
+        function blasterBaseY() { return groundY() - 60; }
         function nozzleY() { return blasterBaseY() - blasterW() * 0.78; }
         // One steering input — a pointer position, a touch
         // position, or an arrow step all land here: the target
@@ -3864,19 +3878,19 @@
           // reads clear wherever the torch rides (the idle
           // street and in rounds alike — this one draw serves
           // both). Navy and gold, the fleet's TBOT livery.
-          var wrapW = bw * 0.80, wrapH = bw * 0.205;
-          var wrapX = bx - wrapW / 2, wrapY = by - bw * 0.235;
+          var wrapW = bw * 0.82, wrapH = bw * 0.225;
+          var wrapX = bx - wrapW / 2, wrapY = by - bw * 0.245;
           ctx.fillStyle = "#0b1026";
           ctx.beginPath();
           if (ctx.roundRect) ctx.roundRect(wrapX, wrapY, wrapW, wrapH, bw * 0.04);
           else ctx.rect(wrapX, wrapY, wrapW, wrapH);
           ctx.fill();
           ctx.strokeStyle = "#ffbe1a";
-          ctx.lineWidth = Math.max(2, bw * 0.02);
+          ctx.lineWidth = Math.max(2.5, bw * 0.022);
           ctx.stroke();
-          var brandSize = bw * 0.15;
+          var brandSize = bw * 0.165;
           ctx.font = "900 " + brandSize + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
-          while (ctx.measureText("TBORCH").width > wrapW - bw * 0.08 && brandSize > 7) {
+          while (ctx.measureText("TBORCH").width > wrapW - bw * 0.10 && brandSize > 7) {
             brandSize -= 0.5;
             ctx.font = "900 " + brandSize + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
           }
@@ -5818,12 +5832,47 @@
           if (window.visualViewport && window.visualViewport.height) {
             viewBottom = Math.min(viewBottom, (window.visualViewport.offsetTop || 0) + window.visualViewport.height);
           }
+          if (document.documentElement && document.documentElement.clientHeight) {
+            viewBottom = Math.min(viewBottom, rectTop + document.documentElement.clientHeight);
+          }
           var visibleH = viewBottom - rectTop;
           if (visibleH > 200 && visibleH < H) H = Math.round(visibleH);
           canvas.width = Math.round(W * DPR);
           canvas.height = Math.round(H * DPR);
           ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
           floorInset = toolbarEl ? toolbarEl.offsetHeight + 30 : 0;
+          // THE BAR-ANCHORED FLOOR (John's lettering fix,
+          // 2026-10-30): the cap above trusts the REPORTED
+          // viewport, but in a tall in-app webview (Facebook's
+          // on John's phone) the reported height still ran
+          // longer than the field actually on screen — the
+          // TBORCH rendered whole, yet its nameplate rode at
+          // the bottom bar's top edge and the bar clipped the
+          // TBORCH lettering in half. The bar itself is always
+          // truly on screen, so its rendered top edge is the
+          // ground truth no viewport report can overstate:
+          // measure the bar's top edge against the canvas's
+          // own top edge (converted into drawing units) and
+          // rest the street's ground a clear 40px of open road
+          // above THAT edge whenever it sits higher than the
+          // reported-height floor would put it. The unit then
+          // seats on the ground as always (see blasterBaseY),
+          // so the whole TBORCH — nameplate bottom included —
+          // clears the bar with margin at any steering
+          // position and in both bar states (the bar's own
+          // ResizeObserver re-runs this the moment it thins
+          // or restores). The guard keeps a pathological rect
+          // (bar momentarily unlaid-out) from ever eating the
+          // field.
+          if (toolbarEl && canvas.getBoundingClientRect && toolbarEl.getBoundingClientRect) {
+            var cRectA = canvas.getBoundingClientRect();
+            var tRectA = toolbarEl.getBoundingClientRect();
+            if (cRectA.height > 50 && tRectA.height > 10 && tRectA.top > cRectA.top) {
+              var barTopDraw = (tRectA.top - cRectA.top) * (H / cRectA.height);
+              var anchoredInset = Math.round(H - barTopDraw) + 40;
+              if (anchoredInset > floorInset && anchoredInset < H * 0.6) floorInset = anchoredInset;
+            }
+          }
           if (!steerActive) blasterX = W / 2;
         }
         window.addEventListener("resize", resize);
