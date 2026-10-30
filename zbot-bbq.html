@@ -3754,12 +3754,12 @@
         var sprayBreathUntil = 0;  // no new spray may start before this instant
         var torchClickGuardUntil = 0; // a TORCH press answered on release swallows the click that trails it
         // THE TBORCH'S SEAT (John's fix, 2026-10-30): the unit
-        // stands FULL and proud on its line, well up into the
-        // visible field — wider than before, so it holds its
-        // own next to the horde, and its base rests a clear
-        // stretch above the street's ground band, so the
-        // bottom bar can never clip, crop, or swallow any
-        // part of it at any aspect. Its line rides with it
+        // stands FULL and proud on its line in the visible
+        // field — wider than before, so it holds its own next
+        // to the horde, and its base rests just above the
+        // street's ground band, so the bottom bar can never
+        // clip, crop, or swallow any part of it at any aspect.
+        // Its line rides with it
         // (see bottomLineY): the line sits just above the
         // nozzle, the pilot flame licking across it.
         // THE LETTERING LIFT (John's fix, 2026-10-30, second
@@ -3769,15 +3769,28 @@
         // half-clipped by the bar — the reported viewport
         // height ran longer than the truly visible field, so
         // the seat computed off that height sat too low. The
-        // floor is now anchored to the bar's REAL rendered
+        // floor is anchored to the bar's REAL rendered
         // top edge (see the bar-anchored floor in resize),
-        // and the unit rests a further step above the ground
-        // on top of that, so the whole unit — down to the
-        // bottom edge of the nameplate — clears the bar with
-        // open road to spare in any webview, at any steering
-        // position, in both bar states.
+        // so the whole unit — down to the bottom edge of the
+        // nameplate — clears the bar in any webview, at any
+        // steering position, in both bar states.
+        // THE LINE COMES DOWN (John's fix, 2026-10-30, third
+        // pass): that lift overshot — line and unit sat too
+        // high, leaving a tall stretch of empty road down to
+        // the bar. The seat now keeps ONLY the clearance the
+        // nameplate genuinely needs: the ground rests 10px
+        // above the bar's real top edge and the unit's base
+        // 6px above the ground, so the plate's bottom edge
+        // sits ~14px clear of the bar — the full TBORCH word
+        // complete and readable — while the dashed line (a
+        // blaster-width above the base, see bottomLineY)
+        // rides back down near the bottom of the street and
+        // the zombies get their full long run before they
+        // can cross it. The drawn line and the crossing line
+        // are the same bottomLineY, so the count still resets
+        // exactly where the line is seen.
         function blasterW() { return clamp(W * 0.30, 118, 162); }
-        function blasterBaseY() { return groundY() - 60; }
+        function blasterBaseY() { return groundY() - 6; }
         function nozzleY() { return blasterBaseY() - blasterW() * 0.78; }
         // One steering input — a pointer position, a touch
         // position, or an arrow step all land here: the target
@@ -5840,7 +5853,7 @@
           canvas.width = Math.round(W * DPR);
           canvas.height = Math.round(H * DPR);
           ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-          floorInset = toolbarEl ? toolbarEl.offsetHeight + 30 : 0;
+          floorInset = toolbarEl ? toolbarEl.offsetHeight + 24 : 0;
           // THE BAR-ANCHORED FLOOR (John's lettering fix,
           // 2026-10-30): the cap above trusts the REPORTED
           // viewport, but in a tall in-app webview (Facebook's
@@ -5853,13 +5866,14 @@
           // ground truth no viewport report can overstate:
           // measure the bar's top edge against the canvas's
           // own top edge (converted into drawing units) and
-          // rest the street's ground a clear 40px of open road
+          // rest the street's ground a clear 10px of open road
           // above THAT edge whenever it sits higher than the
           // reported-height floor would put it. The unit then
-          // seats on the ground as always (see blasterBaseY),
+          // seats just above the ground (see blasterBaseY),
           // so the whole TBORCH — nameplate bottom included —
-          // clears the bar with margin at any steering
-          // position and in both bar states (the bar's own
+          // clears the bar by the ~14px the lettering needs
+          // and no more, at any steering position and in both
+          // bar states (the bar's own
           // ResizeObserver re-runs this the moment it thins
           // or restores). The guard keeps a pathological rect
           // (bar momentarily unlaid-out) from ever eating the
@@ -5869,7 +5883,7 @@
             var tRectA = toolbarEl.getBoundingClientRect();
             if (cRectA.height > 50 && tRectA.height > 10 && tRectA.top > cRectA.top) {
               var barTopDraw = (tRectA.top - cRectA.top) * (H / cRectA.height);
-              var anchoredInset = Math.round(H - barTopDraw) + 40;
+              var anchoredInset = Math.round(H - barTopDraw) + 10;
               if (anchoredInset > floorInset && anchoredInset < H * 0.6) floorInset = anchoredInset;
             }
           }
