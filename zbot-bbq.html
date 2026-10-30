@@ -1597,6 +1597,22 @@
         // same table. The sheet's columns are the form's:
         // Timestamp, Name, Zombies Torched, Sun Chips, Time
         // Left (then Stars).
+        // WHAT MARKS A SCORE ROW (the ranking break, found live
+        // 2026-10-30): a row counts when its ZOMBIES TORCHED
+        // cell carries a number — every posted round carries
+        // one, a torched 0 included, and a rating-only row
+        // carries none. The readers used to key on the Sun
+        // Chips cell instead, but that cell is EMPTY in every
+        // row the book has ever taken: the score post carried
+        // a mistyped Sun Chips entry id (…662 for the form's
+        // …682), so the value never landed, every row was
+        // skipped as "not a score row", and no read ever
+        // produced a field — the card could only ever paint
+        // the fake "1 of 1" (before the book-only fix) or the
+        // honest couldn't-load line (after it), never a true
+        // rank. The post carries the corrected entry id now,
+        // and the readers key on Torched, so the standing is
+        // computed from the book exactly as it stands.
         function scoresFromGvizData(data) {
           if (!data || !data.table || !data.table.rows) return null;
           var rows = data.table.rows;
@@ -1604,12 +1620,12 @@
           for (var i = 0; i < rows.length; i++) {
             var c = rows[i] && rows[i].c;
             if (!c || c.length < 5) continue;
-            var chips = cellNum(c, 3);
-            if (chips === null) continue; // the header row, or a rating-only row
+            var torched = cellNum(c, 2);
+            if (torched === null) continue; // the header row, or a rating-only row
             out.push({
               name: c[1] && c[1].v != null ? String(c[1].v) : "",
-              torched: cellNum(c, 2) || 0,
-              sunchips: chips,
+              torched: torched,
+              sunchips: cellNum(c, 3) || 0,
               timeLeft: cellNum(c, 4) || 0
             });
           }
@@ -1711,12 +1727,12 @@
               for (var i = 0; i < rows.length; i++) {
                 var f = rows[i];
                 if (!f || f.length < 5) continue;
-                var chips = csvNum(f[3]);
-                if (chips === null) continue; // the header row, or a rating-only row
+                var torched = csvNum(f[2]);
+                if (torched === null) continue; // the header row, or a rating-only row (see scoresFromGvizData)
                 out.push({
                   name: f[1] != null ? String(f[1]) : "",
-                  torched: csvNum(f[2]) || 0,
-                  sunchips: chips,
+                  torched: torched,
+                  sunchips: csvNum(f[3]) || 0,
                   timeLeft: csvNum(f[4]) || 0
                 });
               }
@@ -1815,7 +1831,7 @@
           var body = new URLSearchParams();
           body.append("entry.1404539186", name);
           body.append("entry.736185163", String(lastCountRound.count));
-          body.append("entry.1251972662", "0");
+          body.append("entry.1251972682", "0");
           body.append("entry.432720217", "0");
           body.append("entry.1226828195", String(rating));
           try {
@@ -5328,7 +5344,7 @@
           // The rating posts to the book on its own row —
           // name and stars only, fire-and-forget, exactly like
           // TBOT Garden's rating post; the rank reader skips
-          // rating-only rows (their Sun Chips cell is empty).
+          // rating-only rows (their Zombies Torched cell is empty).
           var body = new URLSearchParams();
           body.append("entry.1404539186", "Guest-" + getDeviceTag());
           body.append("entry.1226828195", String(n));
