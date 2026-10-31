@@ -621,17 +621,29 @@
       }
 
       /* ---------- control bar (family layout) ---------- */
+      /* Bottom clearance (--bar-clear): on phone-width screens the host
+         app's chrome (its floating tab bar / home zone) overlays the
+         foot of the page — measured at roughly 75px on John's phone,
+         where the bar's lower half sat hidden underneath it. The bar
+         therefore grows a clear zone BELOW its buttons on those
+         screens: the buttons keep their full size and sit fully inside
+         the visible screen, while the navy still runs to the bottom
+         edge of the page. Wider screens need no clearance. */
+      :root{ --bar-clear:0px; }
+      @media (max-width:640px){
+        :root{ --bar-clear:calc(58px + env(safe-area-inset-bottom, 0px)); }
+      }
       .bar{
         background:var(--bar-bg);
         border-top:3px solid var(--gold);
-        padding:10px;
+        padding:10px 10px calc(10px + var(--bar-clear));
         display:grid; gap:8px;
         grid-template-columns:104px 1fr 104px;
         grid-template-rows:1fr 1fr;
-        height:172px;
+        height:calc(172px + var(--bar-clear));
         transition:height .25s ease;
       }
-      .bar.play{ height:118px; }
+      .bar.play{ height:calc(118px + var(--bar-clear)); }
       .bar button{
         font-family:"Archivo",sans-serif; font-weight:800; letter-spacing:.07em;
         border-radius:12px; border:2px solid var(--bar-edge);
@@ -674,7 +686,8 @@
       /* ---------- winner card ---------- */
       .overlay{
         position:fixed; inset:0; z-index:20; display:none;
-        align-items:center; justify-content:center; padding:12px;
+        align-items:center; justify-content:center;
+        padding:12px 12px calc(12px + var(--bar-clear));
         background:
           radial-gradient(90% 46% at 78% 6%, rgba(255,255,255,.5), rgba(255,255,255,0) 60%),
           linear-gradient(180deg, #1ea3f2 0%, #3eb6f8 26%, #74cdfb 52%, #a8e2fc 76%, #d9f4ff 100%);
@@ -1161,62 +1174,317 @@
         QUOTES.forEach(function(q){ seen[q.show] = true; });
         return Object.keys(seen).length;
       })();
-      /* Reorder a list in place so no two NEIGHBOURS share a show
-         (best effort: swaps a clashing entry with the next entry whose
-         show differs from both neighbours). Used for ticket seating so
-         same-show tickets never sit side by side on the ball. */
+      /* Reorder a list in place so no two NEIGHBOURS share a show.
+         Greedy rebuild: place the first remaining entry whose show
+         differs from the last one placed. (The old forward-swap pass
+         could never fix a pair sitting in the final two seats — it
+         had nothing later to swap with — which is how same-show
+         neighbours still slipped onto the ball.) Retries from rotated
+         starts if a greedy path dead-ends; a pair survives only when
+         no arrangement could separate it. Used for the dealt rounds
+         and for ticket seating alike. */
       function spaceSameShow(list){
-        for (var i = 1; i < list.length; i++){
-          if (list[i].show !== list[i - 1].show) continue;
-          for (var j = i + 1; j < list.length; j++){
-            if (list[j].show === list[i - 1].show) continue;
-            if (j + 1 < list.length && list[i].show === list[j + 1].show) continue;
-            if (i + 1 < list.length && list[j].show === list[i + 1].show && j !== i + 1) continue;
-            var t = list[i]; list[i] = list[j]; list[j] = t;
-            break;
+        function greedy(src){
+          var rest = src.slice(), out = [];
+          while (rest.length){
+            var ix = -1;
+            for (var i = 0; i < rest.length; i++){
+              if (!out.length || rest[i].show !== out[out.length - 1].show){ ix = i; break; }
+            }
+            if (ix < 0) ix = 0;   /* every remaining entry shares the last show: adjacency is unavoidable */
+            out.push(rest.splice(ix, 1)[0]);
           }
+          return out;
         }
+        function clean(a){
+          for (var i = 1; i < a.length; i++) if (a[i].show === a[i - 1].show) return false;
+          return true;
+        }
+        var result = greedy(list);
+        for (var r = 1; r < list.length && !clean(result); r++){
+          var cand = greedy(list.slice(r).concat(list.slice(0, r)));
+          if (clean(cand)) result = cand;
+        }
+        for (var k = 0; k < list.length; k++) list[k] = result[k];
         return list;
       }
-      /* Deal the five of a PLAY round: exactly STAGE_N moments from the
-         full pool under the same-show discipline — any one show holds
-         AT MOST 2 of the five, and no two moments from the same show
-         sit back-to-back. There is NO refill: the five dealt are the
-         whole round, the stage drains 5 → 4 → 3 → 2 → 1 as moments
-         finish, and the round ends when the fifth moment finishes.
-         When the player tapped a specific lobby ticket, that moment is
-         guaranteed a seat in the five and counts first against its
-         show's cap. FREE SAY is untouched: it still browses the
-         whole pool with no cap. */
+      /* ================= THE SHUFFLE-BAG DEALER =================
+         John's flag (2026-10-31 — "Why am I getting the same clips?"):
+         the old dealer reshuffled all 35 moments from scratch every
+         round and stored no history, so the five just played went
+         straight back in the hat — two fresh 5-from-35 deals share a
+         moment ~56% of the time. The dealer is now a PERSISTENT
+         SHUFFLE-BAG, local to this device only (nothing extra is ever
+         posted to the scorebook):
+         • The bag holds the cycle's UNDEALT moment ids in
+           localStorage, drawn across rounds and sessions. A moment
+           cannot be dealt again until the bag has been worked through.
+         • The bag refills with all 35 only when fewer than 5 remain.
+           A refill is pre-partitioned into rounds of five, and the
+           previous round's five are held out of the first round dealt
+           after the refill, so a refill never re-serves what was just
+           played.
+         • Every round also holds the EPISODE cap beside the show
+           cap: at most ONE moment per episode (vid) per round, on
+           top of at most 2 per show and no same-show neighbours —
+           same-episode lookalikes (five Wake & Bake moments share one
+           episode's footage) can no longer share a round. The
+           pre-partition guarantees the caps hold in EVERY round of
+           the cycle, the last one included.
+         • A tapped lobby ticket keeps its guaranteed seat (see the
+           swap rules in dealWindow). Corrupted or unusable bag data
+           is discarded and a fresh cycle is built; if storage itself
+           is unavailable the bag lives in memory for the session, and
+           if even that fails the dealer falls back to the old
+           memoryless pick — still under both caps. */
+      var BAG_KEY = "what-they-say-bag-v1";
+      var PREV_KEY = "what-they-say-prev-round-v1";
+      var memBag = null, memPrev = null;   /* in-memory mirror when storage refuses */
+      function quoteById(id){
+        for (var i = 0; i < QUOTES.length; i++) if (QUOTES[i].id === id) return QUOTES[i];
+        return null;
+      }
+      function validIdList(raw, maxLen){
+        /* parse + validate a stored id list: an array of known,
+           duplicate-free moment ids, or null when it is anything else */
+        if (raw === null || raw === undefined) return null;
+        var arr;
+        try { arr = typeof raw === "string" ? JSON.parse(raw) : raw; } catch (e) { return null; }
+        if (!arr || Object.prototype.toString.call(arr) !== "[object Array]") return null;
+        if (maxLen && arr.length > maxLen) return null;
+        var seen = {}, out = [];
+        for (var i = 0; i < arr.length; i++){
+          if (typeof arr[i] !== "string" || seen[arr[i]] || !quoteById(arr[i])) return null;
+          seen[arr[i]] = true; out.push(arr[i]);
+        }
+        return out;
+      }
+      function loadBagIds(){
+        if (memBag) return memBag.slice();
+        var raw = null;
+        try { raw = localStorage.getItem(BAG_KEY); } catch (e) { return null; }
+        if (raw === null) return null;
+        var ids = validIdList(raw, POOL_SIZE);
+        if (!ids || ids.length % STAGE_N !== 0) return null;   /* a real cycle is always whole rounds */
+        memBag = ids;
+        return ids.slice();
+      }
+      function saveBagIds(ids){
+        memBag = ids ? ids.slice() : null;
+        try {
+          if (ids) localStorage.setItem(BAG_KEY, JSON.stringify(ids));
+          else localStorage.removeItem(BAG_KEY);
+        } catch (e) {}
+      }
+      function loadPrevIds(){
+        if (memPrev) return memPrev.slice();
+        var raw = null;
+        try { raw = localStorage.getItem(PREV_KEY); } catch (e) { return null; }
+        if (raw === null) return null;
+        var ids = validIdList(raw, STAGE_N);
+        if (!ids) return null;
+        memPrev = ids;
+        return ids.slice();
+      }
+      function savePrevIds(ids){
+        memPrev = ids ? ids.slice() : null;
+        try {
+          if (ids) localStorage.setItem(PREV_KEY, JSON.stringify(ids));
+          else localStorage.removeItem(PREV_KEY);
+        } catch (e) {}
+      }
+      function roundRespectsCaps(list){
+        var shows = {}, vids = {};
+        for (var i = 0; i < list.length; i++){
+          var q = list[i];
+          shows[q.show] = (shows[q.show] || 0) + 1;
+          if (shows[q.show] > 2) return false;
+          if (q.vid){ vids[q.vid] = (vids[q.vid] || 0) + 1; if (vids[q.vid] > 1) return false; }
+        }
+        return true;
+      }
+      /* Build a fresh cycle: shuffle the whole pool and partition it
+         into rounds of STAGE_N, each round respecting the show cap
+         (≤2) and the episode cap (≤1 per vid). Round 0 additionally
+         holds none of prevIds. Retries with a fresh shuffle until a
+         full partition lands; returns the flattened id list, or null. */
+      function buildCycleBag(prevIds){
+        var rounds = Math.floor(POOL_SIZE / STAGE_N);
+        if (rounds < 1) return null;
+        var prevSet = {};
+        if (prevIds) for (var p = 0; p < prevIds.length; p++) prevSet[prevIds[p]] = true;
+        for (var attempt = 0; attempt < 300; attempt++){
+          var bins = [], bi;
+          for (bi = 0; bi < rounds; bi++) bins.push([]);
+          var order = shuffle(QUOTES.slice());
+          var placedAll = true;
+          for (var i = 0; i < order.length; i++){
+            var q = order[i];
+            var startBin = Math.floor(Math.random() * rounds);
+            var placed = false;
+            for (var step = 0; step < rounds && !placed; step++){
+              var b = bins[(startBin + step) % rounds];
+              if (b.length >= STAGE_N) continue;
+              if (b === bins[0] && prevSet[q.id]) continue;   /* previous round held out of the first draw */
+              b.push(q);
+              if (roundRespectsCaps(b)) placed = true;
+              else b.pop();
+            }
+            if (!placed){ placedAll = false; break; }
+          }
+          if (!placedAll) continue;
+          /* a partition only counts when every bin filled exactly */
+          var full = true;
+          for (bi = 0; bi < rounds; bi++) if (bins[bi].length !== STAGE_N) full = false;
+          if (!full) continue;
+          var ids = [];
+          for (bi = 0; bi < rounds; bi++){
+            var bin = spaceSameShow(bins[bi].slice());
+            for (var k = 0; k < bin.length; k++) ids.push(bin[k].id);
+          }
+          return ids;
+        }
+        return null;
+      }
+      /* Deal the five of a PLAY round from the shuffle-bag: exactly
+         STAGE_N moments, at most 2 per show, at most 1 per episode,
+         no same-show neighbours. There is NO refill within a round:
+         the five dealt are the whole round, the stage drains 5 → 4 →
+         3 → 2 → 1 as moments finish, and the round ends when the
+         fifth moment finishes. When the player tapped a specific
+         lobby ticket, that moment is guaranteed a seat in the five:
+         if it still sits in the bag it is swapped into this round
+         (the ticket it displaces takes its place in that later
+         round, both rounds re-checked against the caps); if it was
+         already dealt this cycle the guarantee still holds and the
+         displaced ticket returns to the end of the bag. FREE SAY is
+         untouched by the bag: it still browses the whole pool. */
       function dealWindow(includeQ){
-        var pool = shuffle(QUOTES.slice());
-        var picked = [], counts = {}, lastShow = null;
         /* Only a real catalog moment may claim the guaranteed seat:
            btnStart/btnPlay are bound straight to startRound, so their
            click EVENT arrives here as includeQ — it is not a quote and
            must never be dealt into the set as one. */
-        if (includeQ && QUOTES.indexOf(includeQ) >= 0){
-          var ix = pool.indexOf(includeQ);
-          if (ix >= 0) pool.splice(ix, 1);
-          picked.push(includeQ);
-          counts[includeQ.show] = 1;
-          lastShow = includeQ.show;
-        }
-        function tryPick(relaxAdjacency){
-          for (var i = 0; i < pool.length && picked.length < STAGE_N; i++){
-            var q = pool[i];
-            if ((counts[q.show] || 0) >= 2) continue;
-            if (!relaxAdjacency && lastShow !== null && q.show === lastShow) continue;
-            picked.push(q);
-            counts[q.show] = (counts[q.show] || 0) + 1;
-            lastShow = q.show;
-            pool.splice(i, 1); i--;
+        var guaranteed = (includeQ && QUOTES.indexOf(includeQ) >= 0) ? includeQ : null;
+        var bagIds = loadBagIds();
+        var prevIds = loadPrevIds();
+        if (!bagIds || bagIds.length < STAGE_N){
+          bagIds = buildCycleBag(prevIds);
+          if (!bagIds){
+            /* partition never landed (or the pool shrank below a
+               round): fall back to the old memoryless pick, still
+               under the show AND episode caps */
+            var pool = shuffle(QUOTES.slice());
+            var fp = [], fShows = {}, fVids = {}, fLast = null;
+            if (guaranteed){
+              var gi = pool.indexOf(guaranteed);
+              if (gi >= 0) pool.splice(gi, 1);
+              fp.push(guaranteed);
+              fShows[guaranteed.show] = 1;
+              if (guaranteed.vid) fVids[guaranteed.vid] = 1;
+              fLast = guaranteed.show;
+            }
+            function fPick(relaxed){
+              for (var i = 0; i < pool.length && fp.length < STAGE_N; i++){
+                var q = pool[i];
+                if ((fShows[q.show] || 0) >= 2) continue;
+                if (q.vid && fVids[q.vid]) continue;
+                if (!relaxed && fLast !== null && q.show === fLast) continue;
+                fp.push(q);
+                fShows[q.show] = (fShows[q.show] || 0) + 1;
+                if (q.vid) fVids[q.vid] = 1;
+                fLast = q.show;
+                pool.splice(i, 1); i--;
+              }
+            }
+            fPick(false);
+            if (fp.length < STAGE_N) fPick(true);
+            deck = [];
+            return spaceSameShow(fp);
           }
         }
-        tryPick(false);
-        if (picked.length < STAGE_N) tryPick(true);   /* cap still holds; adjacency yields only if the five could not fill */
+        var pickedIds = bagIds.slice(0, STAGE_N);
+        var restIds = bagIds.slice(STAGE_N);
+        if (guaranteed && pickedIds.indexOf(guaranteed.id) < 0){
+          var restIx = restIds.indexOf(guaranteed.id);
+          if (restIx >= 0){
+            /* swap the guaranteed ticket into this round; the
+               displaced ticket takes its slot in the later round it
+               came from — only on a swap that keeps BOTH rounds
+               inside the show and episode caps */
+            var chunkStart = Math.floor(restIx / STAGE_N) * STAGE_N;
+            var swapped = false;
+            for (var c = 0; c < pickedIds.length && !swapped; c++){
+              var candPicked = pickedIds.slice();
+              var outId = candPicked[c];
+              candPicked[c] = guaranteed.id;
+              var candChunk = restIds.slice(chunkStart, chunkStart + STAGE_N);
+              candChunk[restIx - chunkStart] = outId;
+              var candQuotes = candPicked.map(quoteById);
+              var chunkQuotes = candChunk.map(quoteById);
+              if (roundRespectsCaps(candQuotes) && roundRespectsCaps(chunkQuotes)){
+                restIds[restIx] = outId;
+                pickedIds = candPicked;
+                swapped = true;
+              }
+            }
+            if (!swapped){
+              /* No swap keeps both rounds inside the caps. Next best:
+                 displace ONE ticket from this round (cap-clean for
+                 this round) and end the cycle here — the next round
+                 refills a fresh partitioned bag with this round held
+                 out of its first draw, so no repeat follows. */
+              for (var d = 0; d < pickedIds.length && !swapped; d++){
+                var candOnly = pickedIds.slice();
+                candOnly[d] = guaranteed.id;
+                if (roundRespectsCaps(candOnly.map(quoteById))){
+                  pickedIds = candOnly;
+                  restIds = null;
+                  swapped = true;
+                }
+              }
+              if (!swapped){
+                /* the guarantee still wins as the last resort: the
+                   displaced ticket takes the guaranteed one's slot */
+                restIds[restIx] = pickedIds[0];
+                pickedIds[0] = guaranteed.id;
+              }
+            }
+          } else {
+            /* already dealt this cycle: the guarantee re-serves it
+               once — displace one ticket cap-clean where possible —
+               and the cycle ends with this round: the next round
+               refills fresh with this round's five held out of the
+               first draw, so the re-served moment cannot come
+               straight back */
+            var reServed = false;
+            for (var e = 0; e < pickedIds.length && !reServed; e++){
+              var candRe = pickedIds.slice();
+              candRe[e] = guaranteed.id;
+              if (roundRespectsCaps(candRe.map(quoteById))){
+                pickedIds = candRe;
+                reServed = true;
+              }
+            }
+            if (!reServed) pickedIds[0] = guaranteed.id;
+            restIds = null;
+          }
+        }
+        saveBagIds(restIds);
+        savePrevIds(pickedIds.slice());
         deck = [];   /* no refill deck: the dealt five are the whole round */
-        return spaceSameShow(picked);
+        return spaceSameShow(pickedIds.map(quoteById));
+      }
+      /* FREE SAY pool order for a fresh set: the whole catalog,
+         shuffled — and on a refill after the pool was played through,
+         the moment played last never leads the fresh set. */
+      function shuffleFreePool(excludeFirstId){
+        var list = shuffle(QUOTES.slice());
+        if (excludeFirstId && list.length > 1 && list[0].id === excludeFirstId){
+          for (var i = 1; i < list.length; i++){
+            if (list[i].id !== excludeFirstId){ var t = list[0]; list[0] = list[i]; list[i] = t; break; }
+          }
+        }
+        return list;
       }
 
       /* ================= STATE ================= */
@@ -1387,6 +1655,31 @@
       var optionsEl = document.getElementById("options");
       var revealBox = document.getElementById("revealBox");
       var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      /* ================= FIT TO THE VISIBLE SCREEN =================
+         The round stage is one screen tall, end to end: HUD, title
+         plate, tickets, hint pill and the FULL control bar must all sit
+         inside what the player can actually see — nothing below the
+         fold, nothing under the host app's bottom chrome. 100dvh can
+         over-report the visible height inside app webviews (the bar
+         landed half off the bottom of John's phone), so pin #app to
+         the measured visible height and keep it pinned on resize and
+         rotation. The bar's own --bar-clear zone (see CSS) covers the
+         strip the host chrome overlays. The orbit loop re-reads the
+         stage size every frame, so the ticket field reflows to fit. */
+      var appEl = document.getElementById("app");
+      function fitAppHeight(){
+        if (!appEl) return;
+        var h = window.innerHeight || 0;
+        if (window.visualViewport && window.visualViewport.height){
+          h = Math.min(h, Math.round(window.visualViewport.height));
+        }
+        if (h > 0) appEl.style.height = h + "px";
+      }
+      fitAppHeight();
+      window.addEventListener("resize", fitAppHeight);
+      window.addEventListener("orientationchange", fitAppHeight);
+      if (window.visualViewport) window.visualViewport.addEventListener("resize", fitAppHeight);
 
       function shuffle(a){
         for (var i = a.length - 1; i > 0; i--){
@@ -2336,7 +2629,10 @@
         }
         if (remaining.length === 0){
           if (mode === "free"){
-            remaining = shuffle(QUOTES.slice());
+            /* the full pool was played through: the fresh set is the
+               whole catalog again, but the moment just played never
+               leads it */
+            remaining = shuffleFreePool(lastQuote ? lastQuote.id : null);
             buildTags(remaining);
             document.getElementById("ballHint").textContent = "The whole catalog flew — fresh tickets are back on the ball.";
           }
