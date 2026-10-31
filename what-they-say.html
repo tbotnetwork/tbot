@@ -710,9 +710,9 @@
          re-verified against the episode audio word by word. Unverifiable
          lines never ship. QUOTES is the whole verified pool, drawn from
          across the channel's catalog (multiple episodes per show where
-         the catalog yields them) — a PLAY round is a 1:30 sprint: five
-         tickets sit face-up on the stage, refilled from this pool as
-         they are used, no repeats inside a round.
+         the catalog yields them) — a PLAY round is a 1:30 sprint on
+         exactly five tickets: play one and four remain, then 3-2-1,
+         no refills and no repeats inside a round.
          sv/sa = setup video/audio, pv/pa = payoff video/audio. ============ */
       var QUOTES = [
         { id:"q01", pd:4.27, show:"Ask the Q", vid:"0qDX0T5_1u8",
@@ -959,16 +959,15 @@
         }
         return list;
       }
-      /* Deal the opening five of a PLAY round: STAGE_N moments from the
+      /* Deal the five of a PLAY round: exactly STAGE_N moments from the
          full pool under the same-show discipline — any one show holds
-         AT MOST 2 of the visible five, and no two moments from the same
-         show sit back-to-back. The undealt remainder becomes the round's
-         deck: as tickets are used, refills deal in from it under the
-         same two rules (see drawRefill), so no moment repeats inside a
-         round and the stage holds at five while the deck lasts.
+         AT MOST 2 of the five, and no two moments from the same show
+         sit back-to-back. There is NO refill: the five dealt are the
+         whole round, the stage drains 5 → 4 → 3 → 2 → 1 as moments
+         finish, and the round ends when the fifth moment finishes.
          When the player tapped a specific lobby ticket, that moment is
-         guaranteed a seat in the opening five and counts first against
-         its show's cap. FREE SAY is untouched: it still browses the
+         guaranteed a seat in the five and counts first against its
+         show's cap. FREE SAY is untouched: it still browses the
          whole pool with no cap. */
       function dealWindow(includeQ){
         var pool = shuffle(QUOTES.slice());
@@ -997,45 +996,8 @@
         }
         tryPick(false);
         if (picked.length < STAGE_N) tryPick(true);   /* cap still holds; adjacency yields only if the five could not fill */
-        deck = pool;   /* the undealt remainder, still shuffled, feeds the refills */
+        deck = [];   /* no refill deck: the dealt five are the whole round */
         return spaceSameShow(picked);
-      }
-      /* Draw one refill from the deck for the stage: the new ticket must
-         keep the visible five legal — its show holds fewer than 2 of the
-         visible tickets, and it does not match the show of the ticket
-         seated just before its slot (nor, at the seam, the moment just
-         played). Rules relax in order — adjacency first, cap last —
-         only if the deck cannot otherwise deal. */
-      function drawRefill(avoidShow){
-        if (!deck.length) return null;
-        var lastTag = tags.length ? tags[tags.length - 1].q : null;
-        function fits(q, useAdj, useCap){
-          if (useCap){
-            var c = 0;
-            for (var i = 0; i < remaining.length; i++) if (remaining[i].show === q.show) c++;
-            if (c >= 2) return false;
-          }
-          if (useAdj){
-            if (lastTag && q.show === lastTag.show) return false;
-            if (avoidShow && q.show === avoidShow) return false;
-          }
-          return true;
-        }
-        var tiers = [[true, true], [false, true], [true, false], [false, false]];
-        for (var t = 0; t < tiers.length; t++){
-          for (var i = 0; i < deck.length; i++){
-            if (fits(deck[i], tiers[t][0], tiers[t][1])) return deck.splice(i, 1)[0];
-          }
-        }
-        return deck.shift();
-      }
-      function refillStage(avoidShow){
-        while (remaining.length < STAGE_N && deck.length){
-          var q = drawRefill(avoidShow);
-          if (!q) break;
-          remaining.push(q);
-          addTag(q);
-        }
       }
 
       /* ================= STATE ================= */
@@ -1051,9 +1013,27 @@
       var timeLeft = ROUND_SECONDS, shownLeft = -1;   /* PLAY clock: counts DOWN from 1:30 */
       var clockDead = false, autoPass = false;
       var completedMoments = 0;   /* moments whose reveal finished this round (the scorebook post gate) */
-      var deck = [];              /* undealt pool for the round; refills the 5-ticket stage */
-      var best = 0;
-      try { best = parseInt(localStorage.getItem("what-they-say-best") || "0", 10) || 0; } catch (e) { best = 0; }
+      var deck = [];              /* always empty in PLAY: no refill — the dealt five are the round */
+      var elapsedAtEnd = 0;       /* seconds the round actually took, captured when it ends (≤ 90) */
+      var best = 0, bestSecs = null;
+      try {
+        best = parseInt(localStorage.getItem("what-they-say-best") || "0", 10) || 0;
+        var bs = localStorage.getItem("what-they-say-best-secs");
+        bestSecs = (bs === null || bs === "") ? null : (parseInt(bs, 10) || null);
+        if (!best) bestSecs = null;
+      } catch (e) { best = 0; bestSecs = null; }
+      function elapsedNow(){
+        if (clockDead) return ROUND_SECONDS;
+        var e = Math.round(ROUND_SECONDS - timeLeft);
+        if (e < 0) e = 0;
+        if (e > ROUND_SECONDS) e = ROUND_SECONDS;
+        return e;
+      }
+      function fmtElapsed(s){
+        s = Math.max(0, Math.min(ROUND_SECONDS, Math.round(s || 0)));
+        var m = Math.floor(s / 60), ss = s % 60;
+        return m > 0 ? (m + ":" + (ss < 10 ? "0" : "") + ss) : (s + "s");
+      }
 
       /* ================= SCOREBOOK =================
          "What They Say!? Scorebook" — the family book for PLAY sets.
@@ -1839,7 +1819,7 @@
         if (revealTimer) clearTimeout(revealTimer);
         right = 0; dealt = 0; lastQuote = null;
         timeLeft = ROUND_SECONDS; shownLeft = -1; clockDead = false; autoPass = false;
-        completedMoments = 0;
+        completedMoments = 0; elapsedAtEnd = 0;
         remaining = dealWindow(includeQ || null);
         buildTags(remaining);
         setMode("round"); paintClock();
@@ -1870,11 +1850,10 @@
         var idx = remaining.indexOf(q);
         if (idx < 0) return;
         remaining.splice(idx, 1);
-        /* take the tag off the ball */
+        /* take the tag off the ball — and it stays off: no refill in a
+           PLAY round, so the stage now shows one ticket fewer (5 → 4
+           → 3 → 2 → 1) until the round is finished */
         for (var i = 0; i < tags.length; i++) if (tags[i].q === q){ tags[i].el.remove(); tags.splice(i, 1); break; }
-        /* TIMED SPRINT: a fresh ticket deals into the open slot at once,
-           so the stage is back to five when this moment ends */
-        if (mode === "round") refillStage(q.show);
         current = q; lastQuote = q; dealt++;
         phase = "pick";
         var seq = ++dealSeq;
@@ -1958,7 +1937,7 @@
         if (mode === "round"){
           completedMoments++;
           if (clockDead){ endRound(true); return; }   /* time died mid-moment — it finished its reveal, now the card */
-          if (remaining.length === 0 && !deck.length){ endRound(true); return; }   /* the whole pool played out */
+          if (remaining.length === 0){ endRound(false); return; }   /* the fifth ticket is done — round finished, whatever is left on the clock */
         }
         if (remaining.length === 0){
           if (mode === "free"){
@@ -2004,9 +1983,15 @@
         if (revealTimer) clearTimeout(revealTimer);
         stopClips();
         var wasRound = mode === "round";
-        if (wasRound && right > best){
-          best = right;
-          try { localStorage.setItem("what-they-say-best", String(best)); } catch (e) {}
+        elapsedAtEnd = wasRound ? (byClock || clockDead ? ROUND_SECONDS : elapsedNow()) : 0;
+        if (wasRound && (right > best || (right === best && right > 0 && (bestSecs === null || elapsedAtEnd < bestSecs)))){
+          /* local best mirrors the book: most right wins, faster time breaks the tie */
+          if (right > best){ best = right; bestSecs = elapsedAtEnd; }
+          else { bestSecs = elapsedAtEnd; }
+          try {
+            localStorage.setItem("what-they-say-best", String(best));
+            if (bestSecs !== null) localStorage.setItem("what-they-say-best-secs", String(bestSecs));
+          } catch (e) {}
         }
         setMode("lobby");
         showCard(wasRound, !!byClock);
@@ -2015,20 +2000,22 @@
       var cardSeq = 0;
       function showCard(wasRound, byClock){
         var seq = ++cardSeq;
-        document.getElementById("cardTitle").textContent = !wasRound ? "Free Say — Done" : (byClock ? "Time!" : "ROUND ENDED");
+        document.getElementById("cardTitle").textContent = !wasRound ? "Free Say — Done" : (byClock ? "Time!" : (dealt >= STAGE_N && remaining.length === 0 ? "Round Complete!" : "ROUND ENDED"));
         document.getElementById("cardCount").textContent = right;
-        document.getElementById("cardBigLabel").textContent = wasRound ? "LINES RIGHT IN 1:30" : "LINES YOU GOT RIGHT";
+        document.getElementById("cardBigLabel").textContent = wasRound ? "LINES YOU GOT RIGHT" : "LINES YOU GOT RIGHT";
         var playedEl = document.getElementById("cardPlayed");
         playedEl.style.display = dealt > 0 ? "" : "none";
-        playedEl.textContent = dealt + (dealt === 1 ? " MOMENT PLAYED" : " MOMENTS PLAYED");
+        playedEl.textContent = dealt + (dealt === 1 ? " MOMENT PLAYED" : " MOMENTS PLAYED") + (wasRound ? " · TIME USED " + fmtElapsed(elapsedAtEnd) + " OF 1:30" : "");
         var badge = document.getElementById("cardBadge");
         badge.textContent = "FIRST LINES IN";
         /* ---- rank row: timed PLAY rounds with at least one completed
-           moment post Right + the fixed 90 seconds (FREE SAY never posts) ---- */
+           moment post Right + the actual elapsed seconds (≤ 90; a
+           clock-killed round posts 90, an early finish posts its real
+           time). FREE SAY never posts. ---- */
         var rankEl = document.getElementById("cardRank");
         rankEl.hidden = true; rankEl.textContent = ""; rankEl.classList.remove("note");
         if (wasRound && completedMoments >= 1){
-          var secs = ROUND_SECONDS;
+          var secs = Math.min(ROUND_SECONDS, Math.max(0, Math.round(elapsedAtEnd || 0)));
           rankEl.hidden = false; rankEl.classList.add("note");
           if (scorebookLive()){
             rankEl.textContent = "Checking the book…";
@@ -2074,7 +2061,9 @@
           btnEpisode.style.display = "none";
           document.getElementById("cardVideoWrap").classList.remove("on");
         }
-        document.getElementById("cardBest").innerHTML = "Your best: <b>" + best + "</b> right in 1:30";
+        document.getElementById("cardBest").innerHTML = bestSecs !== null && best > 0
+          ? "Your best: <b>" + best + "</b> right · best time <b>" + fmtElapsed(bestSecs) + "</b>"
+          : "Your best: <b>" + best + "</b> right";
         /* END CARD (Ocean spec): the card opens with the last show's
            tag, then the bed — the bed never stopped, it carries on
            under and after the tag. */
