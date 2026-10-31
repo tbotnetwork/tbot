@@ -1,0 +1,1704 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>What They Say!?</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Archivo+Black&display=swap" rel="stylesheet" />
+    <style>
+      :root{
+        --ink:#131c36;
+        --ink-soft:#4c5878;
+        --paper:#eef1f8;
+        --paper-2:#dde3f0;
+        --navy:#0a1633;
+        --navy-2:#10204a;
+        --navy-3:#1a3168;
+        --gold:#c9972f;
+        --gold-bright:#f2c14e;
+        --gold-deep:#8a5f14;
+        --cream:#fdf6dd;
+        --cream-2:#f3e5bd;
+        --bar-bg:#081026;
+        --bar-edge:#2c3f6e;
+        --btn:#f4f6fc;
+        --btn-ink:#131c36;
+        --accent:#b3372c;
+        --accent-ink:#fff3e8;
+        --good:#2e7d3f;
+        --card-bg:#fbf7ea;
+        --shadow:0 10px 30px rgba(8,16,40,.35);
+      }
+      @media (prefers-color-scheme: dark){
+        :root{
+          --ink:#eef1fa;
+          --ink-soft:#a7b1cf;
+          --paper:#0a1122;
+          --paper-2:#060a16;
+          --navy:#0a1633;
+          --navy-2:#0d1c42;
+          --navy-3:#18305f;
+          --gold:#e0aa3e;
+          --gold-bright:#f6c95c;
+          --gold-deep:#c98f2d;
+          --cream:#fdf6dd;
+          --cream-2:#f3e5bd;
+          --bar-bg:#05081a;
+          --bar-edge:#2c3f6e;
+          --btn:#eef1fa;
+          --btn-ink:#0a1122;
+          --accent:#c0452c;
+          --accent-ink:#fff2df;
+          --good:#7dc98a;
+          --card-bg:#131e3d;
+          --shadow:0 10px 30px rgba(0,0,0,.6);
+        }
+      }
+      *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+      html,body{ height:100%; }
+      body{
+        margin:0;
+        font-family:"Archivo",system-ui,sans-serif;
+        color:var(--ink);
+        background:#7dd3fc;
+        overflow:hidden;
+      }
+      #app{
+        height:100dvh;
+        display:flex;
+        flex-direction:column;
+        max-width:860px;
+        margin:0 auto;
+        background:linear-gradient(180deg,#38bdf8 0%,#7dd3fc 45%,#bae6fd 100%);
+      }
+
+      /* ---------- top strip ---------- */
+      .topbar{ display:flex; align-items:center; padding:8px 12px 6px; background:linear-gradient(180deg,#2fb0f5 0%,#54c0f8 100%); }
+      .hud{ display:flex; gap:6px; align-items:center; justify-content:space-between; width:100%; }
+      .chip{
+        background:rgba(255,255,255,.92);
+        color:#0b2b45;
+        border:1.5px solid rgba(255,255,255,.95);
+        box-shadow:0 2px 8px rgba(2,90,140,.22);
+        border-radius:999px;
+        padding:3px 10px;
+        font-weight:700; font-size:13px; letter-spacing:.04em;
+        white-space:nowrap;
+      }
+      .chip b{ font-size:15px; }
+      .chip.timer.low{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+
+      /* ---------- stage ---------- */
+      .stage{
+        position:relative; flex:1 1 auto; min-height:0;
+        overflow:hidden;
+        background:
+          radial-gradient(90% 46% at 78% 6%, rgba(255,255,255,.55), rgba(255,255,255,0) 60%),
+          radial-gradient(120% 55% at 50% 112%, rgba(255,255,255,.65), rgba(255,255,255,0) 62%),
+          linear-gradient(180deg, #1ea3f2 0%, #3eb6f8 26%, #74cdfb 52%, #a8e2fc 76%, #d9f4ff 100%);
+      }
+      .stage::after{ /* soft horizon glow */
+        content:""; position:absolute; left:0; right:0; bottom:0; height:16%; z-index:0;
+        background:linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,.38));
+        border-top:2px solid rgba(255,255,255,.45);
+        pointer-events:none;
+      }
+      /* ---------- clouds ---------- */
+      .sky-clouds{ position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:0; }
+      .cloud{
+        position:absolute; left:0;
+        width:var(--w,130px); height:calc(var(--w,130px) * .27);
+        background:rgba(255,255,255,.96);
+        border-radius:999px;
+        filter:drop-shadow(0 6px 10px rgba(56,160,220,.18));
+        opacity:var(--o,.96);
+        animation:cloudDrift var(--d,90s) linear infinite;
+        animation-delay:var(--dl,0s);
+        will-change:transform;
+      }
+      .cloud::before,.cloud::after{
+        content:""; position:absolute; background:inherit; border-radius:50%;
+      }
+      .cloud::before{ width:44%; height:150%; top:-78%; left:16%; }
+      .cloud::after{ width:31%; height:108%; top:-52%; right:15%; }
+      .cloud.far{ filter:blur(1.2px) drop-shadow(0 4px 8px rgba(56,160,220,.12)); }
+      @keyframes cloudDrift{
+        from{ transform:translateX(-42vw) scale(var(--s,1)); }
+        to{ transform:translateX(118vw) scale(var(--s,1)); }
+      }
+      .overlay .sky-clouds{ z-index:0; }
+      .overlay .card{ position:relative; z-index:2; }
+      .view{ position:absolute; inset:0; display:none; z-index:1; }
+      .view.on{ display:block; }
+
+      /* ---------- ball view ---------- */
+      .sign{
+        position:absolute; top:10px; left:0; right:0; text-align:center; pointer-events:none; z-index:6;
+      }
+      .sign .name{
+        display:inline-block;
+        font-family:"Archivo Black",sans-serif; font-weight:400;
+        font-size:clamp(22px,6.4vw,36px); letter-spacing:.02em;
+        color:var(--cream);
+        background:linear-gradient(180deg, var(--navy-3), var(--navy));
+        border:3px solid var(--gold-bright);
+        border-radius:12px; padding:4px 18px 6px;
+        box-shadow:0 6px 14px rgba(0,0,0,.4);
+        text-shadow:0 2px 0 rgba(0,0,0,.35);
+      }
+      .sign .sub{
+        display:inline-block; margin-top:5px;
+        font-size:clamp(10px,2.8vw,12.5px); font-weight:800; letter-spacing:.42em;
+        color:var(--gold-bright);
+        background:rgba(8,20,46,.62);
+        border-radius:999px; padding:3px 12px 3px calc(12px + .42em);
+        text-shadow:0 1px 2px rgba(0,0,0,.5);
+        box-shadow:0 3px 8px rgba(2,90,140,.25);
+      }
+      #orbit{ position:absolute; inset:0; }
+      .ball{ /* THE ORB — luminous glass sphere hanging in the sky */
+        position:absolute; left:50%; top:52%; transform:translate(-50%,-50%);
+        width:min(42vw,205px); aspect-ratio:1/1; border-radius:50%;
+        border:2px solid rgba(255,255,255,.75);
+        background:
+          radial-gradient(circle at 32% 24%, rgba(255,255,255,1) 0%, rgba(255,255,255,.55) 16%, rgba(255,255,255,0) 38%),
+          radial-gradient(circle at 72% 82%, rgba(125,211,252,.55) 0%, rgba(125,211,252,0) 46%),
+          radial-gradient(circle at 50% 48%, rgba(255,255,255,.98) 0%, rgba(224,242,254,.92) 34%, rgba(165,224,252,.78) 58%, rgba(96,196,250,.62) 80%, rgba(56,170,240,.55) 100%);
+        box-shadow:
+          inset -14px -18px 34px rgba(14,116,180,.28),
+          inset 10px 12px 28px rgba(255,255,255,.85),
+          inset 0 0 44px rgba(255,255,255,.55),
+          0 0 34px 8px rgba(186,230,253,.75),
+          0 0 78px 26px rgba(125,211,252,.42),
+          0 22px 38px rgba(2,90,140,.28);
+        z-index:3;
+        pointer-events:none; /* decorative only — never eat a ticket tap */
+        animation:orbBob 6.5s ease-in-out infinite;
+        overflow:visible;
+      }
+      .ball::before{ /* swirling inner glow */
+        content:""; position:absolute; inset:9%; border-radius:50%;
+        background:
+          conic-gradient(from 20deg, rgba(255,255,255,0) 0deg, rgba(255,255,255,.75) 55deg, rgba(255,255,255,0) 120deg, rgba(56,189,248,.38) 190deg, rgba(255,255,255,0) 265deg, rgba(186,230,253,.65) 320deg, rgba(255,255,255,0) 360deg),
+          radial-gradient(circle at 58% 62%, rgba(255,255,255,.65), rgba(255,255,255,0) 58%);
+        filter:blur(5px);
+        opacity:.85;
+        animation:orbSwirl 16s linear infinite;
+      }
+      .ball::after{ /* halo / rim light */
+        content:""; position:absolute; inset:-13px; border-radius:50%;
+        border:2px solid rgba(255,255,255,.55);
+        box-shadow:0 0 26px rgba(255,255,255,.65), inset 0 0 22px rgba(255,255,255,.35);
+        background:radial-gradient(circle, rgba(255,255,255,0) 62%, rgba(224,242,254,.28) 78%, rgba(255,255,255,0) 92%);
+        pointer-events:none;
+      }
+      @keyframes orbBob{
+        0%,100%{ transform:translate(-50%,-54%); }
+        50%{ transform:translate(-50%,-46%); }
+      }
+      @keyframes orbSwirl{
+        from{ transform:rotate(0deg); }
+        to{ transform:rotate(360deg); }
+      }
+      @media (prefers-reduced-motion: reduce){
+        .cloud{ animation:none !important; }
+        .ball{ animation:none !important; }
+        .ball::before{ animation:none !important; }
+      }
+      .ball .band{
+        position:absolute; left:3%; right:3%; top:50%; transform:translateY(-50%); z-index:2;
+        text-align:center;
+        border-top:2.5px solid rgba(255,255,255,.95);
+        border-bottom:2.5px solid rgba(255,255,255,.95);
+        background:linear-gradient(180deg, rgba(255,255,255,.52), rgba(186,230,253,.28) 55%, rgba(255,255,255,.42));
+        box-shadow:0 1px 8px rgba(56,160,220,.18);
+        padding:5px 0 6px;
+      }
+      .ball .band b{
+        font-family:"Archivo Black",sans-serif; font-weight:400;
+        color:#082f49; letter-spacing:.34em; font-size:clamp(13px,3.6vw,18px);
+        text-shadow:0 1px 0 rgba(255,255,255,.9), 0 0 12px rgba(255,255,255,.65); display:block; transform:translateX(.17em);
+      }
+      .ball .band span{
+        display:block; color:#0c4a6e; font-weight:800; letter-spacing:.3em;
+        font-size:clamp(7.5px,2vw,9.5px); transform:translateX(.15em); margin-top:2px;
+        text-shadow:0 1px 0 rgba(255,255,255,.85);
+      }
+      .tag{
+        position:absolute; left:0; top:0;
+        width:132px; min-height:54px;
+        padding:0;
+        font-family:"Archivo",sans-serif;
+        color:#1b2440; text-align:left;
+        background:
+          repeating-linear-gradient(0deg, rgba(27,36,64,.028) 0 1px, transparent 1px 4px),
+          repeating-linear-gradient(90deg, rgba(255,255,255,.16) 0 1px, transparent 1px 7px),
+          radial-gradient(120% 140% at 16% 0%, rgba(255,255,255,.95) 0%, rgba(255,255,255,0) 52%),
+          linear-gradient(168deg, #fffbe9 0%, var(--cream) 34%, #f7e9be 68%, #ecd9a3 100%);
+        border:none; cursor:pointer; touch-action:manipulation;
+        clip-path:polygon(7px 0, calc(100% - 6px) 0, 100% 13%, calc(100% - 3px) 25%, calc(100% - 7px) 39%, 100% 51%, calc(100% - 4px) 65%, 100% 79%, calc(100% - 6px) 90%, calc(100% - 3px) 100%, 7px 100%, 0 calc(100% - 7px), 0 7px);
+        filter:drop-shadow(0 7px 10px rgba(0,0,0,.55)) drop-shadow(0 1px 1px rgba(0,0,0,.35));
+        transform-origin:50% 50%;
+        will-change:transform;
+      }
+      .tag::after{
+        content:""; position:absolute; inset:3.5px 9px 3.5px 3.5px;
+        border:1.2px solid rgba(138,95,20,.46); border-radius:5px 2px 2px 5px;
+        box-shadow:inset 0 0 0 1px rgba(255,255,255,.35);
+        pointer-events:none;
+      }
+      .tag::before{
+        content:""; position:absolute; left:6px; top:50%; transform:translateY(-50%);
+        width:8px; height:8px; border-radius:50%; z-index:3;
+        background:#79c9f7;
+        box-shadow:inset 0 1px 3px rgba(2,90,140,.55), 0 0 0 1.5px rgba(138,95,20,.28), inset 0 0 0 1px rgba(255,255,255,.4);
+      }
+      .t-inner{
+        position:relative; z-index:1; pointer-events:none;
+        display:flex; flex-direction:column; justify-content:center; gap:1px;
+        min-height:54px; padding:6px 15px 5px 19px;
+      }
+      .t-inner *{ pointer-events:none; }
+      .t-top{
+        font-size:5.9px; font-weight:800; letter-spacing:.17em; line-height:1;
+        color:#8a6a1f; white-space:nowrap; overflow:hidden;
+        text-shadow:0 .6px 0 rgba(255,255,255,.75);
+      }
+      .t-show{
+        font-family:"Archivo Black","Archivo",sans-serif; font-weight:400;
+        font-size:10.6px; line-height:1.04; letter-spacing:.015em;
+        color:#18223e; text-transform:uppercase;
+        text-shadow:0 .6px 0 rgba(255,255,255,.65);
+        display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+        overflow-wrap:break-word;
+      }
+      .t-bottom{ display:flex; align-items:center; justify-content:space-between; gap:6px; margin-top:2px; }
+      .t-admit{
+        font-size:5.8px; font-weight:800; letter-spacing:.12em; line-height:1;
+        color:#7c5e14; white-space:nowrap; text-shadow:0 .5px 0 rgba(255,255,255,.6);
+      }
+      .t-admit b{ font-weight:800; color:#5c4a22; letter-spacing:.04em; }
+      .t-code{
+        display:block; flex:0 0 18px; height:8px; opacity:.85; border-radius:1px;
+        background:repeating-linear-gradient(90deg, #1b2440 0 1.6px, transparent 1.6px 2.8px, #1b2440 2.8px 3.7px, transparent 3.7px 5.2px, #1b2440 5.2px 7px, transparent 7px 8.3px, #1b2440 8.3px 9.2px, transparent 9.2px 11px);
+      }
+      .t-perf{
+        position:absolute; top:5px; bottom:5px; right:11px; z-index:2;
+        border-right:1.6px dashed rgba(27,36,64,.38); pointer-events:none;
+      }
+      .t-perf::before,.t-perf::after{
+        content:""; position:absolute; right:-5px; width:7px; height:7px; border-radius:50%;
+        background:#79c9f7; box-shadow:inset 0 1px 2px rgba(2,90,140,.45);
+      }
+      .t-perf::before{ top:-9px; }
+      .t-perf::after{ bottom:-9px; }
+      .tag:focus-visible{ outline:3px solid var(--gold-bright); outline-offset:2px; }
+      .tag.used{ display:none; }
+      .ballfoot{
+        position:absolute; left:0; right:0; bottom:12px; z-index:6;
+        display:flex; flex-direction:column; align-items:center; gap:9px; padding:0 14px;
+        pointer-events:none; /* tags flying low stay tappable; PLAY opts back in below */
+      }
+      #btnPlay{
+        font-family:"Archivo Black",sans-serif; font-weight:400;
+        font-size:clamp(19px,5.4vw,25px); letter-spacing:.06em;
+        color:#1b2440; background:linear-gradient(180deg, var(--gold-bright), var(--gold));
+        border:2.5px solid var(--gold-deep); border-radius:999px;
+        padding:10px 44px; cursor:pointer; touch-action:manipulation;
+        box-shadow:0 8px 18px rgba(0,0,0,.45);
+        pointer-events:auto;
+      }
+      #btnPlay:active{ transform:scale(.965); }
+      .ballhint{
+        display:none;
+        background:rgba(5,9,22,.72); color:var(--cream);
+        border:1.5px solid var(--gold); border-radius:999px;
+        font-size:clamp(12.5px,3.4vw,14.5px); font-weight:600; letter-spacing:.02em;
+        padding:7px 16px; text-align:center;
+      }
+      .teach{
+        background:rgba(5,9,22,.72); color:var(--cream);
+        border:1.5px solid var(--gold); border-radius:999px;
+        font-size:clamp(12.5px,3.4vw,14.5px); font-weight:600; letter-spacing:.02em;
+        padding:7px 16px; text-align:center; max-width:94%;
+      }
+      .stage.playing .teach{ display:none; }
+      .stage.playing #btnPlay{ display:none; }
+      .stage.playing .ballhint{ display:block; }
+
+      /* ---------- moment view ---------- */
+      #momentView{ padding:12px 12px 10px; display:none; flex-direction:column; gap:9px; }
+      #momentView.on{ display:flex; }
+      .tv{
+        background:linear-gradient(180deg,#1b2440,#0a1020);
+        border:3px solid var(--gold-deep);
+        border-radius:16px; padding:8px 8px 7px;
+        box-shadow:var(--shadow);
+      }
+      .tv .tvhead{
+        display:flex; justify-content:space-between; align-items:center;
+        padding:0 4px 6px; gap:8px;
+      }
+      .tv .tvhead .from{
+        color:var(--gold-bright); font-weight:800; font-size:12.5px; letter-spacing:.08em;
+        white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      }
+      .tv .tvhead .net{
+        color:#aeb9d4; font-weight:800; font-size:9.5px; letter-spacing:.28em; white-space:nowrap;
+      }
+      .screen{
+        position:relative; width:100%; aspect-ratio:16/9; max-height:34dvh;
+        background:#000; border-radius:8px; overflow:hidden;
+        margin:0 auto;
+      }
+      .screen video{ width:100%; height:100%; object-fit:contain; display:block; background:#000; }
+      .screen video.silentplay{ display:none; } /* silent-prime trick unmutes+hides, then restarts with sound */
+      .silentplay{ visibility:hidden; }
+      .tvplate{
+        position:absolute; inset:0; display:none;
+        align-items:center; justify-content:center; flex-direction:column; gap:6px;
+        background:radial-gradient(90% 90% at 50% 40%, #22335f, #070d1e);
+        color:var(--cream); text-align:center; padding:10px;
+      }
+      .tvplate.on{ display:flex; }
+      .tvplate.tap{ cursor:pointer; }
+      .tvplate.tap .big{ text-decoration:underline; text-underline-offset:5px; }
+      .tvplate .big{ font-family:"Archivo Black",sans-serif; font-size:clamp(17px,4.8vw,23px); color:var(--gold-bright); letter-spacing:.03em; }
+      .tvplate .small{ font-size:12px; font-weight:600; color:#c6cfe4; letter-spacing:.06em; }
+      .tvbar{ display:flex; gap:8px; align-items:center; margin-top:8px; }
+      #btnWatch{
+        font-family:"Archivo",sans-serif; font-weight:800; letter-spacing:.06em;
+        font-size:13.5px; color:#1b2440;
+        background:linear-gradient(180deg, var(--gold-bright), var(--gold));
+        border:2px solid var(--gold-deep); border-radius:10px;
+        padding:8px 14px; cursor:pointer; touch-action:manipulation; white-space:nowrap;
+      }
+      #btnWatch:active{ transform:scale(.965); }
+      .tvstatus{ color:#dbe2f2; font-size:13px; font-weight:600; line-height:1.3; }
+      .setupbox{
+        display:none;
+        background:var(--cream); color:#1b2440;
+        border:2px solid var(--gold-deep); border-radius:10px;
+        padding:9px 13px; font-size:16.5px; font-weight:700; line-height:1.35;
+      }
+      .setupbox.on{ display:block; }
+      .setupbox .lab{ display:block; font-size:10px; font-weight:800; letter-spacing:.26em; color:var(--gold-deep); margin-bottom:3px; }
+      .options{ display:flex; flex-direction:column; gap:8px; }
+      .opt{
+        font-family:"Archivo",sans-serif; font-weight:700; text-align:left;
+        font-size:clamp(15px,4.2vw,17.5px); line-height:1.3;
+        color:var(--btn-ink); background:var(--btn);
+        border:2px solid var(--bar-edge); border-radius:12px;
+        padding:11px 14px; cursor:pointer; touch-action:manipulation;
+        box-shadow:0 4px 10px rgba(8,16,40,.25);
+      }
+      .opt:active{ transform:scale(.985); }
+      .opt:focus-visible{ outline:3px solid var(--gold-bright); outline-offset:2px; }
+      .opt.right{ background:var(--good); border-color:#1d5c2a; color:#fff; }
+      .opt.wrong{ background:var(--accent); border-color:#6f1a10; color:var(--accent-ink); }
+      .opt.dim{ opacity:.55; }
+      .opt:disabled{ cursor:default; }
+      .reveal{
+        display:none;
+        background:var(--cream); color:#1b2440;
+        border:2.5px solid var(--gold); border-radius:12px;
+        padding:10px 14px;
+        box-shadow:var(--shadow);
+      }
+      .reveal.on{ display:block; }
+      .reveal .lab{ font-size:10px; font-weight:800; letter-spacing:.26em; color:var(--gold-deep); }
+      .reveal .line{ font-size:clamp(16.5px,4.6vw,20px); font-weight:800; line-height:1.35; margin-top:3px; }
+      .reveal .line .pay{ color:#8a5f14; }
+      @media (prefers-color-scheme: dark){ .reveal .line .pay{ color:var(--gold-deep); } }
+      .reveal .from{ margin-top:5px; font-size:12.5px; font-weight:700; color:#5a6480; letter-spacing:.05em; }
+
+      /* ---------- control bar (family layout) ---------- */
+      .bar{
+        background:var(--bar-bg);
+        border-top:3px solid var(--gold);
+        padding:10px;
+        display:grid; gap:8px;
+        grid-template-columns:104px 1fr 104px;
+        grid-template-rows:1fr 1fr;
+        height:172px;
+        transition:height .25s ease;
+      }
+      .bar.play{ height:118px; }
+      .bar button{
+        font-family:"Archivo",sans-serif; font-weight:800; letter-spacing:.07em;
+        border-radius:12px; border:2px solid var(--bar-edge);
+        background:var(--btn); color:var(--btn-ink);
+        cursor:pointer; touch-action:manipulation;
+        display:flex; align-items:center; justify-content:center; text-align:center;
+        padding:4px 6px; line-height:1.12;
+      }
+      .bar button:active{ transform:scale(.965); }
+      .bar button:focus-visible{ outline:3px solid var(--gold-bright); outline-offset:2px; }
+      #btnStart{
+        grid-column:2; grid-row:1 / span 2;
+        font-family:"Archivo Black",sans-serif; font-weight:400;
+        font-size:clamp(25px,6.8vw,36px); letter-spacing:.05em;
+        background:linear-gradient(180deg,var(--gold-bright),var(--gold));
+        color:#1b2440; border-color:var(--gold-deep);
+      }
+      #btnAction{ grid-column:1; grid-row:1; font-size:13.5px; background:var(--accent); color:var(--accent-ink); border-color:#6f1a10; }
+      .stack{ grid-column:1; grid-row:2; display:grid; grid-template-rows:1fr 1fr; gap:8px; }
+      .stack button{ font-size:11.5px; padding:2px 4px; }
+      #btnFree{ grid-column:3; grid-row:1; font-size:14px; background:linear-gradient(180deg,var(--gold-bright),var(--gold)); color:#1b2440; border-color:var(--gold-deep); }
+      #btnReset{ grid-column:3; grid-row:2; font-size:13px; }
+      .bar.play #btnStart{ display:none; }
+      .bar.play #btnAction{
+        grid-column:2; grid-row:1 / span 2;
+        font-family:"Archivo Black",sans-serif; font-weight:400;
+        font-size:clamp(19px,5.4vw,28px);
+        background:linear-gradient(180deg,var(--gold-bright),var(--gold)); color:#1b2440; border-color:var(--gold-deep);
+      }
+      .bar.play .stack{ grid-column:3; grid-row:2; }
+      .bar.play #btnEnd{ grid-column:1; grid-row:2; font-size:12.5px; background:var(--accent); color:var(--accent-ink); border-color:#6f1a10; }
+      .bar.play .roundbox{
+        grid-column:1; grid-row:1; display:flex; align-items:center; justify-content:center;
+        color:var(--cream); font-weight:700; font-size:12.5px; letter-spacing:.06em; text-align:center;
+        border:2px dashed var(--bar-edge); border-radius:12px; padding:2px 4px; line-height:1.25;
+      }
+      .bar.play #btnFree,.bar.play #btnReset{ display:none; }
+      .bar:not(.play) #btnEnd,.bar:not(.play) .roundbox{ display:none; }
+
+      /* ---------- winner card ---------- */
+      .overlay{
+        position:fixed; inset:0; z-index:20; display:none;
+        align-items:center; justify-content:center; padding:12px;
+        background:
+          radial-gradient(90% 46% at 78% 6%, rgba(255,255,255,.5), rgba(255,255,255,0) 60%),
+          linear-gradient(180deg, #1ea3f2 0%, #3eb6f8 26%, #74cdfb 52%, #a8e2fc 76%, #d9f4ff 100%);
+        overflow:hidden;
+      }
+      .overlay.open{ display:flex; }
+      .card{
+        width:min(400px,100%); max-height:calc(100dvh - 24px); overflow:auto;
+        background:var(--card-bg); color:var(--ink);
+        border:3px solid var(--gold); border-radius:18px;
+        box-shadow:var(--shadow); padding:16px 18px 14px; text-align:center;
+      }
+      .card .kick{ font-size:11.5px; font-weight:800; letter-spacing:.3em; color:var(--gold-deep); }
+      .card h2{
+        font-family:"Archivo Black",sans-serif; font-weight:400;
+        font-size:clamp(23px,6.2vw,30px); margin:4px 0 2px;
+      }
+      .card .big{
+        font-family:"Archivo Black",sans-serif; font-weight:400;
+        font-size:52px; line-height:1; color:var(--gold); margin:6px 0 0;
+      }
+      .card .big-label{ font-weight:700; letter-spacing:.22em; font-size:12px; color:var(--ink-soft); }
+      .badge{
+        display:inline-block; margin:11px 0 2px;
+        background:linear-gradient(180deg,var(--gold-bright),var(--gold));
+        color:#1b2440; font-weight:800; letter-spacing:.12em; font-size:13px;
+        padding:6px 16px; border-radius:999px; border:2px solid var(--gold-deep);
+      }
+      .rankline{ margin-top:7px; font-weight:800; font-size:15px; letter-spacing:.03em; color:var(--ink); min-height:19px; }
+      .rankline.note{ font-weight:600; font-size:13.5px; color:var(--ink-soft); }
+      .lastline{ margin-top:11px; text-align:left; background:rgba(201,151,47,.10); border:1.5px solid var(--gold); border-radius:12px; padding:10px 13px; }
+      .lastline .lab{ font-size:10px; font-weight:800; letter-spacing:.26em; color:var(--gold-deep); }
+      .lastline .txt{ font-size:16.5px; font-weight:800; line-height:1.35; margin-top:3px; }
+      .lastline .from{ margin-top:4px; font-size:12.5px; font-weight:700; color:var(--ink-soft); letter-spacing:.05em; }
+      #cardVideoWrap{ display:none; margin-top:10px; }
+      #cardVideoWrap.on{ display:block; }
+      #cardVideo{ width:100%; aspect-ratio:16/9; background:#000; border-radius:10px; display:block; }
+      #btnMoment{
+        margin-top:10px; width:100%;
+        font-family:"Archivo",sans-serif; font-weight:800; letter-spacing:.06em; font-size:14.5px;
+        border-radius:12px; padding:11px 6px; cursor:pointer;
+        border:2px solid var(--gold-deep);
+        background:transparent; color:var(--ink);
+      }
+      #btnMoment:active{ transform:scale(.97); }
+      #btnEpisode{
+        display:block; margin-top:8px; width:100%;
+        font-family:"Archivo",sans-serif; font-weight:800; letter-spacing:.06em; font-size:14.5px;
+        border-radius:12px; padding:11px 6px; text-align:center; text-decoration:none;
+        border:2px solid var(--gold-deep);
+        background:linear-gradient(180deg,var(--gold-bright),var(--gold)); color:#1b2440;
+      }
+      #btnEpisode:active{ transform:scale(.97); }
+      #btnEpisode:focus-visible{ outline:3px solid var(--gold-bright); outline-offset:2px; }
+      .card .best{ margin-top:10px; font-weight:600; font-size:14.5px; color:var(--ink-soft); }
+      .card .best b{ color:var(--ink); }
+      .card .row{ display:flex; gap:8px; margin-top:13px; }
+      .card .row button{
+        flex:1; font-family:"Archivo",sans-serif; font-weight:800; letter-spacing:.07em;
+        border-radius:12px; padding:12px 6px; cursor:pointer; font-size:15px;
+        border:2px solid var(--gold-deep);
+        background:linear-gradient(180deg,var(--gold-bright),var(--gold)); color:#1b2440;
+      }
+      .card .row button.ghost{ background:transparent; color:var(--ink); border-color:var(--bar-edge); }
+      .card .row button:active{ transform:scale(.97); }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <div class="hud">
+          <span class="chip" id="chipRight">RIGHT <b>0</b></span>
+          <span class="chip timer" id="chipTimer">STUDIO OPEN</span>
+          <span class="chip" id="chipDealt">DEALT <b>0</b></span>
+        </div>
+      </header>
+
+      <main class="stage" id="stage">
+        <div class="sky-clouds" aria-hidden="true">
+          <span class="cloud far" style="top:7%;--w:92px;--s:.72;--o:.72;--d:118s;--dl:-64s"></span>
+          <span class="cloud" style="top:15%;--w:158px;--s:1;--o:.96;--d:92s;--dl:-28s"></span>
+          <span class="cloud far" style="top:29%;--w:74px;--s:.6;--o:.66;--d:132s;--dl:-96s"></span>
+          <span class="cloud" style="top:42%;--w:188px;--s:1.14;--o:.9;--d:104s;--dl:-72s"></span>
+          <span class="cloud far" style="top:58%;--w:104px;--s:.78;--o:.7;--d:124s;--dl:-14s"></span>
+          <span class="cloud" style="top:70%;--w:142px;--s:.94;--o:.88;--d:98s;--dl:-48s"></span>
+          <span class="cloud far" style="top:84%;--w:82px;--s:.64;--o:.62;--d:140s;--dl:-108s"></span>
+          <span class="cloud" style="top:23%;--w:118px;--s:.84;--o:.82;--d:86s;--dl:-6s"></span>
+        </div>
+        <!-- BALL VIEW -->
+        <section class="view on" id="ballView" aria-label="The ball">
+          <div class="sign">
+            <span class="name">WHAT THEY SAY!?</span>
+            <span class="sub">TBOT NETWORK</span>
+          </div>
+          <div id="orbit">
+            <div class="ball" aria-hidden="true">
+              <div class="band"><b>TBOT</b><span>NETWORK</span></div>
+            </div>
+          </div>
+          <div class="ballfoot">
+            <button id="btnPlay" type="button">&#9654; PLAY</button>
+            <div class="ballhint" id="ballHint">Tap a flying ticket &mdash; hear the moment.</div>
+            <div class="teach">Finish the line &mdash; pick what they really said.</div>
+          </div>
+        </section>
+
+        <!-- MOMENT VIEW -->
+        <section class="view" id="momentView" aria-label="The moment">
+          <div class="tv">
+            <div class="tvhead">
+              <span class="from" id="tvFrom">&mdash; from &hellip;</span>
+              <span class="net">TBOT NETWORK</span>
+            </div>
+            <div class="screen">
+              <video id="tvVideo" playsinline muted preload="auto"></video>
+              <div class="tvplate" id="tvPlate">
+                <div class="big" id="tvPlateBig">LISTEN CLOSE</div>
+                <div class="small" id="tvPlateSmall">The moment is playing in sound only.</div>
+              </div>
+            </div>
+            <div class="tvbar">
+              <button id="btnWatch" type="button">WATCH AGAIN</button>
+              <span class="tvstatus" id="tvStatus">Listen&hellip; how does the line end?</span>
+            </div>
+          </div>
+          <div class="setupbox" id="setupBox">
+            <span class="lab">THE LINE BEGAN</span>
+            <span id="setupText"></span>&hellip;
+          </div>
+          <div class="options" id="options"></div>
+          <div class="reveal" id="revealBox">
+            <span class="lab">THE FULL LINE</span>
+            <div class="line"><span id="revealSetup"></span> <span class="pay" id="revealPayoff"></span></div>
+            <div class="from" id="revealFrom"></div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="bar" id="bar">
+        <button id="btnAction" type="button">NEXT<br />MOMENT</button>
+        <div class="stack" id="stackSW">
+          <button id="btnMusic" type="button">MUSIC ON</button>
+          <button id="btnSound" type="button">SOUND ON</button>
+        </div>
+        <div class="roundbox" id="roundBox">ON THE BALL<br />15 TICKETS</div>
+        <button id="btnEnd" type="button">END<br />GAME</button>
+        <button id="btnStart" type="button">START</button>
+        <button id="btnFree" type="button">FREE<br />SAY</button>
+        <button id="btnReset" type="button">RESET</button>
+      </footer>
+    </div>
+
+    <div class="overlay" id="overlay">
+      <div class="sky-clouds" aria-hidden="true">
+        <span class="cloud" style="top:10%;--w:150px;--s:1;--o:.92;--d:96s;--dl:-34s"></span>
+        <span class="cloud far" style="top:26%;--w:84px;--s:.66;--o:.68;--d:128s;--dl:-88s"></span>
+        <span class="cloud" style="top:66%;--w:176px;--s:1.08;--o:.88;--d:108s;--dl:-62s"></span>
+        <span class="cloud far" style="top:82%;--w:100px;--s:.74;--o:.66;--d:122s;--dl:-18s"></span>
+      </div>
+      <div class="card" role="dialog" aria-modal="true" aria-labelledby="cardTitle">
+        <div class="kick">WHAT THEY SAY!?</div>
+        <h2 id="cardTitle">Time!</h2>
+        <div class="big" id="cardCount">0</div>
+        <div class="big-label" id="cardBigLabel">LINES YOU GOT RIGHT</div>
+        <div><span class="badge" id="cardBadge">FIRST LINES IN</span></div>
+        <div class="rankline note" id="cardRank" hidden></div>
+        <div class="lastline" id="cardLastWrap">
+          <span class="lab">THE LAST LINE</span>
+          <div class="txt" id="cardLastLine">&mdash;</div>
+          <div class="from" id="cardLastFrom"></div>
+        </div>
+        <div id="cardVideoWrap"><video id="cardVideo" playsinline muted preload="none"></video></div>
+        <button id="btnMoment" type="button">&#9654; WATCH THE MOMENT</button>
+        <a id="btnEpisode" href="#" target="_blank" rel="noopener noreferrer">WATCH THE FULL EPISODE &#8599;</a>
+        <div class="best" id="cardBest">Your best: <b>0</b> right</div>
+        <div class="row">
+          <button id="btnAgain" type="button">PLAY AGAIN</button>
+          <button id="btnLobby" type="button" class="ghost">LOBBY</button>
+        </div>
+      </div>
+    </div>
+
+    <audio id="clipAudio" preload="auto" style="display:none"></audio>
+
+    <script>
+      "use strict";
+      /* ================= DATA — every line is verbatim from the episode's own
+         captions on @TBOTNetwork; cut points were set from the caption timing
+         and then re-verified against the episode audio word by word.
+         sv/sa = setup video/audio, pv/pa = payoff video/audio. ============ */
+      var QUOTES = [
+        { id:"q01", pd:4.27, show:"Ask the Q", vid:"0qDX0T5_1u8",
+          setup:"anybody else we got any youngsters here with them tight ass pants on",
+          payoff:"my man pants were so tight I found out he had bigger ass than mine",
+          decoys:["my man pants were so tight I found out he had bigger feet than mine","my brother pants were so loose I found out he had longer legs than mine"] },
+        { id:"q02", pd:0.87, show:"Meta Street Journal", vid:"iYBHmVGMfBk",
+          setup:"he's counting on the builders in meta to really",
+          payoff:"make him money",
+          decoys:["save him money","make him famous"] },
+        { id:"q03", pd:0.90, show:"Wake & Bake", vid:"25sLEkA2-Jc",
+          setup:"we gotta take that that's the only way we're gonna bring these Brands down they don't make no money if we don't buy",
+          payoff:"period",
+          decoys:["again","at all"] },
+        { id:"q04", pd:1.03, show:"Ladies of Comedy Museum", vid:"1lbi9wrPA64",
+          setup:"people get on my nerves in real life y'all ain't gonna get on my nerves in the",
+          payoff:"meta verse too",
+          decoys:["real world too","group chat too"] },
+        { id:"q05", pd:0.73, show:"Poetry 101", vid:"_hHmwbvUe4Y",
+          setup:"touchdown here in prosperity land money's like honey sticking right to",
+          payoff:"my hand",
+          decoys:["my heart","my palm"] },
+        { id:"q06", pd:1.43, show:"Word of Grace", vid:"9fLUcttEdr8",
+          setup:"I want to see y'all dancing like y'all dance in the club inside y'all get hyped in the club I want to see y'all get",
+          payoff:"excited for Jesus",
+          decoys:["excited for music","excited for yourselves"] },
+        { id:"q07", pd:1.53, show:"vrSun-Day's Best", vid:"8QT2scxMSv8",
+          setup:"I love it when a man can sing in an authentic",
+          payoff:"and gentle way",
+          decoys:["and soulful way","and heartfelt way"] },
+        { id:"q08", pd:3.30, show:"Kingdom Life Meta Church", vid:"279_zEsadVk",
+          setup:"if that change is not defined in your mind",
+          payoff:"you will continuously live as a mere human",
+          decoys:["you will continuously stay as a mere mortal","you will forever live as a lost soul"] },
+        { id:"q10", pd:1.77, show:"Culture X Art", vid:"rA5f6FEClY0",
+          setup:"hold on i'm an artist like i'm not i'm not talking about rap wise i'm talking about my",
+          payoff:"first love of making uh art",
+          decoys:["first love of making uh beats","first love of making uh money"] },
+        { id:"q11", pd:1.00, show:"The MF Drag Race", vid:"8teJHngtHAI",
+          setup:"if y'all need more chips because y'all got gambling problems like I do right here in Las Vegas you can go over to",
+          payoff:"the ATM machine",
+          decoys:["the front desk","the chip counter"] },
+        { id:"q12", pd:2.73, show:"World Creator Day", vid:"sQXvVKC9GeM",
+          setup:"when it comes down to it every Community has",
+          payoff:"a Creator in the nucleus of it",
+          decoys:["a Creator in the middle of it","a Creator at the top of it"] },
+        { id:"q13", pd:0.70, show:"Forgotten Voices", vid:"5Dos4T2tUKo",
+          setup:"I think we have the lowest rates for DJs in",
+          payoff:"the metaverse",
+          decoys:["the whole city","the whole platform"] },
+        { id:"q14", pd:1.93, show:"Horizon Got Talent", vid:"q3941mQRrsQ",
+          setup:"all the audience votes from last week were wiped out before they were fully tallied",
+          payoff:"so we couldn't fairly eliminate anyone",
+          decoys:["so we couldn't fairly crown a winner","so we couldn't count a single vote"] },
+        { id:"q15", pd:0.60, show:"Press Briefing", vid:"vAoN8xKkhNE",
+          setup:"I want folks to know that this metaverse thing is",
+          payoff:"for real",
+          decoys:["the future","not a game"] },
+        { id:"q16", pd:1.50, show:"Art Wars", vid:"grK-JRzWMmo",
+          setup:"all right welcome to Art Wars ladies and gentlemen I'm your host for the evening",
+          payoff:"my name is tone Scarfo",
+          decoys:["my name is Oculus 410","my name is Medevast Spike"] }
+      ];
+      /* measured setup-segment lengths (s), for timing the whole-clip replay */
+      var SETUP_DUR = { q01:4.80, q02:2.07, q03:5.00, q04:2.97, q05:4.53, q06:5.30, q07:5.10, q08:5.20, q10:4.80, q11:4.87, q12:4.90, q13:2.43, q14:5.27, q15:2.93, q16:4.13 };
+      QUOTES.forEach(function(q){
+        q.sd = SETUP_DUR[q.id] || 3;
+        q.sv = "assets/" + q.id + "-setup.mp4";  q.sa = "assets/" + q.id + "-setup.mp3";
+        q.pv = "assets/" + q.id + "-payoff.mp4"; q.pa = "assets/" + q.id + "-payoff.mp3";
+      });
+
+      /* ================= MEDIA STORE (iOS playback) ================= */
+      /* Every clip is fetched once and held as an in-page Blob URL, so the
+         element's src is local data in the page's own origin: no range
+         requests, no cross-frame media fetch, nothing for a phone webview
+         to refuse. The whole deck is ~1.5 MB of MP4, so this is cheap.
+         The <video> elements ship muted in the markup, which is the only
+         state iOS lets a page start from script; primeWithSound() below
+         turns them into real sound-on players inside the tap itself. */
+      var BLOB_URLS = {};   /* path -> object URL (ready) */
+      var BLOB_WAIT = {};   /* path -> [callbacks] while fetching */
+      function loadBlob(path, type, cb){
+        if (BLOB_URLS[path]){ if (cb) cb(BLOB_URLS[path]); return; }
+        if (BLOB_WAIT[path]){ if (cb) BLOB_WAIT[path].push(cb); return; }
+        BLOB_WAIT[path] = cb ? [cb] : [];
+        function done(url){
+          if (url) BLOB_URLS[path] = url;
+          var cbs = BLOB_WAIT[path] || [];
+          delete BLOB_WAIT[path];
+          for (var i = 0; i < cbs.length; i++) cbs[i](url);
+        }
+        if (!window.fetch){ done(null); return; }
+        fetch(path).then(function(r){
+          if (!r.ok) throw new Error("media " + r.status);
+          return r.blob();
+        }).then(function(b){
+          done(URL.createObjectURL(new Blob([b], { type: type })));
+        }).catch(function(){ done(null); });
+      }
+      function blobSrc(path, type, cb){
+        /* hand back the best src for path right now; cb(url) when ready */
+        if (BLOB_URLS[path]) return BLOB_URLS[path];
+        loadBlob(path, type, function(url){ if (url && cb) cb(url); });
+        return path;
+      }
+      QUOTES.forEach(function(q){
+        loadBlob(q.sv, "video/mp4"); loadBlob(q.pv, "video/mp4");
+        loadBlob(q.sa, "audio/mpeg"); loadBlob(q.pa, "audio/mpeg");
+      });
+      var SET_SIZE = QUOTES.length;   /* a PLAY round is the whole deck: 15 moments */
+
+      /* ================= STATE ================= */
+      var mode = "lobby";            /* lobby | round | free */
+      var view = "ball";             /* ball | moment */
+      var phase = "pick";            /* pick | reveal */
+      var remaining = [];            /* quote objects still on the ball */
+      var current = null;            /* quote in the TV */
+      var lastQuote = null;          /* last quote dealt (for the end card) */
+      var right = 0, dealt = 0;
+      var lastTick = 0, rafId = null;
+      var revealTimer = null;
+      var elapsed = 0, shownSec = -1;   /* PLAY set clock: counts UP (the ranking tiebreak) */
+      var best = 0;
+      try { best = parseInt(localStorage.getItem("what-they-say-best") || "0", 10) || 0; } catch (e) { best = 0; }
+
+      /* ================= SCOREBOOK =================
+         "What They Say!? Scorebook" — the family book for PLAY sets.
+         postUrl is the form's POST endpoint. entryName / entryRight /
+         entrySeconds are that form's entry.<id> parameter names, and
+         sheetId is its responses Sheet — those four values land with
+         the book's ids; until EVERY one is present the book counts as
+         not yet connected: no post is attempted, no rank is read, and
+         a completed set simply shows that the ranking couldn't load.
+         Never invent values for this object. */
+      var SCOREBOOK = {
+        postUrl: "https://docs.google.com/forms/d/e/1FAIpQLSfByjmHZQNgOTO6LEwMHVteX8ocrBMDRJYIFUB_FD0XK9XKkg/formResponse",
+        entryName: "entry.689143840",
+        entryRight: "entry.1148718146",
+        entrySeconds: "entry.1473541905",
+        sheetId: "1xfQ0UEIJEVvCzb0OHawIfw6nwDhowN7MVw3S5zfVnEk"
+      };
+      function scorebookLive(){
+        return !!(SCOREBOOK.postUrl && SCOREBOOK.entryName && SCOREBOOK.entryRight && SCOREBOOK.entrySeconds && SCOREBOOK.sheetId);
+      }
+      /* the family device tag: minted once, kept in localStorage, and
+         posted as "Guest-<tag>" in the book's Name field — the same
+         pattern (and the same shared key) as the sibling games */
+      var deviceTag = null;
+      function getDeviceTag(){
+        if (deviceTag) return deviceTag;
+        var stored = null;
+        try { stored = localStorage.getItem("tbotDeviceTag"); } catch (e) {}
+        if (stored && /^[0-9a-f]{8}$/.test(stored)){ deviceTag = stored; return deviceTag; }
+        var tag = "", hex = "0123456789abcdef";
+        for (var i = 0; i < 8; i++) tag += hex.charAt(Math.floor(Math.random() * 16));
+        deviceTag = tag;
+        try { localStorage.setItem("tbotDeviceTag", tag); } catch (e) {}
+        return deviceTag;
+      }
+      function postScore(rightN, seconds){
+        if (!scorebookLive()) return false;
+        try {
+          var body = new URLSearchParams();
+          body.append(SCOREBOOK.entryName, "Guest-" + getDeviceTag());
+          body.append(SCOREBOOK.entryRight, String(rightN));
+          body.append(SCOREBOOK.entrySeconds, String(seconds));
+          fetch(SCOREBOOK.postUrl, { method: "POST", mode: "no-cors", body: body }).catch(function(){});
+          return true;
+        } catch (e) { return false; }
+      }
+      /* Read the book (gviz JSON), keep each player's BEST set (most
+         right; fastest seconds where the right count ties), merge this
+         device's just-played set in case the sheet hasn't caught up,
+         and report where this player ranks: cb({rank, total}) with
+         DISTINCT players, or cb(null) on any failure — never blocks. */
+      function readRank(myRight, mySeconds, cb){
+        if (!scorebookLive()){ cb(null); return; }
+        var url = "https://docs.google.com/spreadsheets/d/" + SCOREBOOK.sheetId + "/gviz/tq?tqx=out:json&sheet=Form%20Responses%201&_=" + Date.now();
+        var done = false;
+        function finish(v){ if (!done){ done = true; cb(v); } }
+        var ctl = window.AbortController ? new AbortController() : null;
+        var to = setTimeout(function(){ if (ctl) ctl.abort(); finish(null); }, 9000);
+        fetch(url, ctl ? { signal: ctl.signal } : {}).then(function(r){ return r.text(); }).then(function(txt){
+          clearTimeout(to);
+          var a = txt.indexOf("{"), b = txt.lastIndexOf("}");
+          if (a < 0 || b <= a) return finish(null);
+          var data = JSON.parse(txt.slice(a, b + 1));
+          var table = data && data.table; if (!table) return finish(null);
+          var cols = table.cols || [], ci = { name: -1, right: -1, sec: -1 };
+          for (var i = 0; i < cols.length; i++){
+            var lab = (cols[i].label || "").toLowerCase();
+            if (ci.name < 0 && lab.indexOf("name") >= 0) ci.name = i;
+            else if (ci.right < 0 && lab.indexOf("right") >= 0) ci.right = i;
+            else if (ci.sec < 0 && lab.indexOf("second") >= 0) ci.sec = i;
+          }
+          if (ci.name < 0 || ci.right < 0 || ci.sec < 0) return finish(null);
+          var bestBy = {};
+          function offer(name, rN, sN){
+            if (!name || isNaN(rN) || isNaN(sN)) return;
+            var cur = bestBy[name];
+            if (!cur || rN > cur.r || (rN === cur.r && sN < cur.s)) bestBy[name] = { r: rN, s: sN };
+          }
+          var rows = table.rows || [];
+          for (var j = 0; j < rows.length; j++){
+            var c = rows[j].c || [];
+            var nm = c[ci.name] && c[ci.name].v != null ? String(c[ci.name].v) : "";
+            var rv = c[ci.right] ? Number(c[ci.right].v) : NaN;
+            var sv = c[ci.sec] ? Number(c[ci.sec].v) : NaN;
+            offer(nm, rv, sv);
+          }
+          offer("Guest-" + getDeviceTag(), myRight, mySeconds);
+          var mine = bestBy["Guest-" + getDeviceTag()];
+          if (!mine) return finish(null);
+          var better = 0, total = 0;
+          for (var k in bestBy){
+            if (!Object.prototype.hasOwnProperty.call(bestBy, k)) continue;
+            total++;
+            var o = bestBy[k];
+            if (o.r > mine.r || (o.r === mine.r && o.s < mine.s)) better++;
+          }
+          finish({ rank: better + 1, total: total });
+        }).catch(function(){ clearTimeout(to); finish(null); });
+      }
+      /* the 11-rung badge ladder — the same ladder as The Last TBOT In */
+      function rankTier(rank){
+        if (typeof rank !== "number" || !isFinite(rank) || rank < 1) return null;
+        if (rank <= 5) return "Top 5 — Untouchable";
+        if (rank <= 10) return "Top 10 — The Best";
+        if (rank <= 20) return "Top 20 — You are Amazing";
+        if (rank <= 30) return "Top 30 — You are Awesome";
+        if (rank <= 50) return "Top 50 — Pretty Good";
+        if (rank <= 75) return "Top 75 — You're OK";
+        if (rank <= 100) return "Top 100 — You got some work to do";
+        if (rank <= 125) return "Top 125 — You're getting there";
+        if (rank <= 150) return "Top 150 — Keep climbing";
+        if (rank <= 200) return "Top 200 — On the board";
+        return "Top 200+ — Still in the game";
+      }
+
+      var stage = document.getElementById("stage");
+      var ballView = document.getElementById("ballView");
+      var momentView = document.getElementById("momentView");
+      var orbitEl = document.getElementById("orbit");
+      var bar = document.getElementById("bar");
+      var chipRight = document.getElementById("chipRight");
+      var chipTimer = document.getElementById("chipTimer");
+      var chipDealt = document.getElementById("chipDealt");
+      var roundBox = document.getElementById("roundBox");
+      var overlay = document.getElementById("overlay");
+      var tvVideo = document.getElementById("tvVideo");
+      var clipAudio = document.getElementById("clipAudio");
+      var tvPlate = document.getElementById("tvPlate");
+      var tvStatus = document.getElementById("tvStatus");
+      var setupBox = document.getElementById("setupBox");
+      var optionsEl = document.getElementById("options");
+      var revealBox = document.getElementById("revealBox");
+      var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      function shuffle(a){
+        for (var i = a.length - 1; i > 0; i--){
+          var j = Math.floor(Math.random() * (i + 1));
+          var t = a[i]; a[i] = a[j]; a[j] = t;
+        }
+        return a;
+      }
+      function cap(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+
+      /* ================= AUDIO (music + sfx) ================= */
+      var AC = null, musicGain = null, sfxOn = true, musicOn = true;
+      var musicTimer = null, nextNoteTime = 0, step = 0;
+      var voicePlaying = 0;
+      var btnMusic = document.getElementById("btnMusic");
+      var btnSound = document.getElementById("btnSound");
+
+      function ensureAudio(){
+        if (!AC){
+          var Ctx = window.AudioContext || window.webkitAudioContext;
+          if (!Ctx) return false;
+          AC = new Ctx();
+          musicGain = AC.createGain();
+          musicGain.gain.value = 0.35;              /* fleet level */
+          musicGain.connect(AC.destination);
+        }
+        if (AC.state === "suspended") AC.resume();
+        return true;
+      }
+      function paintMusic(){
+        var playing = !!(AC && musicOn && musicTimer);
+        btnMusic.textContent = (musicOn && (playing || !AC)) ? "MUSIC ON" : "MUSIC OFF";
+        if (AC && !musicOn) btnMusic.textContent = "MUSIC OFF";
+        if (AC && musicOn && !musicTimer) btnMusic.textContent = "MUSIC OFF";
+      }
+      /* warm studio instrumental: Rhodes-ish chords, I–vi–IV–V in F */
+      var CHORDS = [
+        [174.61, 220.00, 261.63, 349.23],   /* Fmaj7 */
+        [146.83, 174.61, 220.00, 261.63],   /* Dm7   */
+        [116.54, 146.83, 174.61, 220.00],   /* Bbmaj7 */
+        [130.81, 164.81, 196.00, 246.94]    /* Cmaj7 */
+      ];
+      var BASS = [87.31, 73.42, 58.27, 65.41];
+      var STEP_LEN = 60 / 84 / 2;           /* 84bpm eighth notes */
+      function pluck(freq, t, dur, vol, dest){
+        var o = AC.createOscillator(), g = AC.createGain();
+        o.type = "triangle"; o.frequency.value = freq;
+        var o2 = AC.createOscillator(), g2 = AC.createGain();
+        o2.type = "sine"; o2.frequency.value = freq * 2;
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(vol, t + 0.015);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        g2.gain.setValueAtTime(vol * 0.35, t);
+        g2.gain.exponentialRampToValueAtTime(0.0001, t + dur * 0.5);
+        o.connect(g); g.connect(dest); o2.connect(g2); g2.connect(dest);
+        o.start(t); o.stop(t + dur + 0.05); o2.start(t); o2.stop(t + dur + 0.05);
+      }
+      function musicStep(){
+        var chord = CHORDS[Math.floor(step / 8) % 4];
+        var barStep = step % 8;
+        var t = nextNoteTime;
+        if (barStep === 0) pluck(BASS[Math.floor(step / 8) % 4], t, 1.4, 0.5, musicGain);
+        if (barStep === 4) pluck(BASS[Math.floor(step / 8) % 4] * 1.5, t, 0.9, 0.3, musicGain);
+        if (barStep % 2 === 0){
+          var pick = chord[(step * 7) % chord.length];
+          pluck(pick, t, 1.1, 0.32, musicGain);
+          if (barStep === 6) pluck(chord[(step + 1) % chord.length], t + STEP_LEN / 2, 0.8, 0.2, musicGain);
+        }
+        step++; nextNoteTime += STEP_LEN;
+      }
+      function startMusic(){
+        if (!ensureAudio() || musicTimer) { paintMusic(); return; }
+        if (voicePlaying === 0) musicGain.gain.value = 0.35;
+        step = 0; nextNoteTime = AC.currentTime + 0.06;
+        musicStep();
+        musicTimer = setInterval(function(){
+          while (nextNoteTime < AC.currentTime + 0.18) musicStep();
+        }, 90);
+        paintMusic();
+      }
+      function stopMusic(){
+        if (musicTimer){ clearInterval(musicTimer); musicTimer = null; }
+        paintMusic();
+      }
+      function duck(on){
+        if (!AC || !musicGain) return;
+        var t = AC.currentTime;
+        musicGain.gain.cancelScheduledValues(t);
+        musicGain.gain.setValueAtTime(musicGain.gain.value, t);
+        musicGain.gain.linearRampToValueAtTime(on ? 0.07 : 0.35, t + 0.18);
+      }
+      function tone(freq, t, dur, vol, type){
+        var o = AC.createOscillator(), g = AC.createGain();
+        o.type = type || "sine"; o.frequency.value = freq;
+        g.gain.setValueAtTime(vol, t);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        o.connect(g); g.connect(AC.destination);
+        o.start(t); o.stop(t + dur + 0.05);
+      }
+      function sfxDing(){
+        if (!sfxOn || !ensureAudio()) return;
+        var t = AC.currentTime;
+        tone(1318.51, t, 0.35, 0.13, "sine");
+        tone(1760.00, t + 0.09, 0.5, 0.11, "sine");
+      }
+      function sfxBuzz(){
+        if (!sfxOn || !ensureAudio()) return;
+        var t = AC.currentTime;
+        var o = AC.createOscillator(), g = AC.createGain(), f = AC.createBiquadFilter();
+        o.type = "sawtooth";
+        o.frequency.setValueAtTime(165, t);
+        o.frequency.exponentialRampToValueAtTime(88, t + 0.28);
+        f.type = "lowpass"; f.frequency.value = 620;
+        g.gain.setValueAtTime(0.11, t);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+        o.connect(f); f.connect(g); g.connect(AC.destination);
+        o.start(t); o.stop(t + 0.32);
+      }
+      btnMusic.addEventListener("click", function(){
+        ensureAudio();
+        musicOn = !musicOn;
+        if (musicOn) startMusic(); else stopMusic();
+        paintMusic();
+      });
+      btnSound.addEventListener("click", function(){
+        ensureAudio();
+        sfxOn = !sfxOn;
+        btnSound.textContent = sfxOn ? "SOUND ON" : "SOUND OFF";
+        if (sfxOn) sfxDing();
+      });
+      document.addEventListener("pointerdown", function(){
+        if (ensureAudio() && musicOn) startMusic();
+        paintMusic();
+      });
+
+      /* ================= SILENT-PRIME (iOS gesture unlock) ================= */
+      /* iOS/WKWebView grants "play with sound" only to a media element that
+         has already played under a user gesture. The elements ship muted
+         (muted autoplay is always allowed), so inside EVERY tap handler we
+         call primeWithSound synchronously: play muted, then unmute in the
+         same task — playback never leaves the gesture — and the element
+         becomes a sound-on player the page can then reload and drive.
+         primeState: idle | priming | ready. A prime counts as ready only
+         once the element actually plays (the 'playing' event) unmuted. */
+      function primeWithSound(el, done){
+        if (el._primeState === "ready"){ if (done) done(true); return; }
+        if (el._primeState === "priming"){
+          (el._primeWait = el._primeWait || []).push(done);
+          return;
+        }
+        el._primeState = "priming";
+        el._primeWait = [done];
+        try { el.pause(); } catch (e) {}
+        el.classList.add("silentplay");          /* never show the priming run */
+        var finished = false;
+        function finish(ok){
+          if (finished) return; finished = true;
+          el.removeEventListener("playing", onPlaying);
+          if (!ok){
+            el.classList.remove("silentplay");
+            el._primeState = "idle";
+          }
+          var ws = el._primeWait || []; el._primeWait = [];
+          for (var i = 0; i < ws.length; i++) if (ws[i]) ws[i](ok);
+        }
+        function onPlaying(){
+          /* the element is really playing muted, inside the tap: unmute now */
+          try { el.muted = false; } catch (e) {}
+          el.removeAttribute("muted");
+          setTimeout(function(){
+            var ok = !el.paused && !el.muted;
+            el.classList.remove("silentplay");
+            if (ok){ el._primeState = "ready"; finish(true); }
+            else finish(false);
+          }, 60);
+        }
+        el.addEventListener("playing", onPlaying);
+        el.muted = true;
+        var pr = el.play();
+        if (pr && pr.catch) pr.catch(function(){ finish(false); });
+        setTimeout(function(){ finish(false); }, 1800);
+      }
+
+      /* ================= CLIP PLAYBACK (fallback ladder) ================= */
+      var playToken = 0;
+      var pendingTap = null;         /* {q, kind} armed when a browser blocks play() */
+      var clipKind = "setup";        /* which segment the TV currently holds */
+      var clipMode = "video";        /* video | audio | text | tap */
+      function voiceStart(){
+        voicePlaying++;
+        if (voicePlaying === 1) duck(true);
+      }
+      function voiceEnd(){
+        voicePlaying = Math.max(0, voicePlaying - 1);
+        if (voicePlaying === 0) duck(false);
+      }
+      function playClip(q, kind, onDone){
+        /* Runs synchronously inside the tap handler. The clip starts from an
+           in-page Blob URL, and the element is silent-primed + unmuted inside
+           this same gesture chain before the sound-on start — the two things
+           iOS/WKWebView actually honor for programmatic playback. */
+        clipKind = kind; clipMode = "video";
+        pendingTap = null;
+        var token = ++playToken;
+        tvPlate.classList.remove("on");
+        tvPlate.classList.remove("tap");
+        setupBox.classList.remove("on");
+        tvVideo.style.display = "";
+        tvVideo.classList.remove("silentplay");
+        var vpath = kind === "setup" ? q.sv : q.pv;
+        voiceStart();
+        var settled = false, doneFired = false;
+        function settle(){ if (!settled){ settled = true; voiceEnd(); } }
+        function fireDone(){ if (!doneFired){ doneFired = true; if (onDone) onDone(); } }
+        function settleDone(){ settle(); fireDone(); }
+        tvVideo.onended = function(){ if (token === playToken) settleDone(); };
+        tvVideo.onerror = function(){ if (token === playToken) playAudioFallback(q, kind, token, settleDone); };
+        tvVideo.onplaying = function(){
+          /* if a stall-armed plate is up but the clip got going anyway, clear it */
+          if (token === playToken && pendingTap && clipMode === "tap"){
+            pendingTap = null; clipMode = "video";
+            tvPlate.classList.remove("on"); tvPlate.classList.remove("tap");
+          }
+        };
+        clipAudio.onended = null; clipAudio.onerror = null;
+        /* Blob URL if it is ready; otherwise the plain path now and a swap to
+           the Blob the moment it lands (deck preloads make this rare). */
+        var vsrc = blobSrc(vpath, "video/mp4", function(url){
+          if (token === playToken && tvVideo.getAttribute("src") !== url){
+            var t = 0; try { t = tvVideo.currentTime || 0; } catch (e) {}
+            tvVideo.src = url;
+            try { tvVideo.currentTime = t; } catch (e) {}
+            if (!tvVideo.paused){ var pp = tvVideo.play(); if (pp && pp.catch) pp.catch(function(){}); }
+          }
+        });
+        tvVideo.src = vsrc;
+        function startClip(){
+          if (token !== playToken){ settle(); return; }
+          try { tvVideo.pause(); } catch (e) {}
+          try { tvVideo.currentTime = 0; } catch (e) {}
+          tvVideo.muted = false;
+          tvVideo.removeAttribute("muted");
+          var pr = tvVideo.play();
+          if (pr && pr.catch) pr.catch(function(err){
+            if (token !== playToken) return;
+            /* Sound-on start still refused: do NOT burn the moment down the
+               fallback ladder (the audio element would be refused too and the
+               card would dead-end as text). Arm the tap plate instead — that
+               tap re-enters through the same gesture-bound path. */
+            if (err && err.name === "NotAllowedError") armTapPlay(q, kind, settle, onDone);
+            else playAudioFallback(q, kind, token, settleDone);
+          });
+          /* Stall net: no 'playing' within 1.6s means the webview swallowed
+             the start — arm the same tap plate rather than sit silent. */
+          setTimeout(function(){
+            if (token === playToken && clipMode === "video" && tvVideo.paused && !tvVideo.ended)
+              armTapPlay(q, kind, settle, onDone);
+          }, 1600);
+        }
+        primeWithSound(tvVideo, function(ok){
+          if (token !== playToken){ settle(); return; }
+          if (ok) startClip();
+          else armTapPlay(q, kind, settle, onDone);
+        });
+        /* safety: if neither end nor error ever fires, release the duck —
+           but never advance a chain past an armed tap-to-play plate:
+           that tap owns the replay and carries the chain with it */
+        setTimeout(function(){
+          if (token !== playToken) return;
+          if (clipMode === "tap") settle(); else settleDone();
+        }, 12000);
+      }
+      function armTapPlay(q, kind, settle, onDone){
+        clipMode = "tap";
+        pendingTap = { q: q, kind: kind, onDone: onDone };
+        if (settle) settle();
+        /* the moment hasn't played yet — don't let the reveal timer run
+           it off the screen while the plate waits for its tap */
+        if (phase === "reveal" && revealTimer){
+          clearTimeout(revealTimer);
+          revealTimer = setTimeout(afterReveal, 20000);
+        }
+        document.getElementById("tvPlateBig").textContent = "▶ TAP TO PLAY THE MOMENT";
+        document.getElementById("tvPlateSmall").textContent = "One tap — the " + q.show + " clip plays with sound.";
+        tvPlate.classList.add("on");
+        tvPlate.classList.add("tap");
+        tvStatus.textContent = "Tap the screen — the moment plays, then pick the ending.";
+      }
+      tvPlate.addEventListener("click", function(){
+        if (!pendingTap) return;
+        var p = pendingTap;
+        pendingTap = null;
+        tvPlate.classList.remove("tap");
+        ensureAudio();
+        playClip(p.q, p.kind, p.onDone);
+      });
+      function playAudioFallback(q, kind, token, settle){
+        clipMode = "audio";
+        tvVideo.pause(); tvVideo.style.display = "none";
+        document.getElementById("tvPlateBig").textContent = "LISTEN CLOSE";
+        document.getElementById("tvPlateSmall").textContent = "The moment is playing in sound only — " + q.show + ".";
+        tvPlate.classList.add("on");
+        clipAudio.onended = function(){ if (token === playToken && settle) settle(); };
+        clipAudio.onerror = function(){ if (token === playToken) showTextFallback(q, kind, settle); };
+        clipAudio.src = blobSrc(kind === "setup" ? q.sa : q.pa, "audio/mpeg", null);
+        var pr = clipAudio.play();
+        if (pr && pr.catch) pr.catch(function(){ if (token === playToken) showTextFallback(q, kind, settle); });
+      }
+      function showTextFallback(q, kind, settle){
+        clipMode = "text";
+        tvPlate.classList.remove("on");
+        tvVideo.style.display = "none";
+        if (kind === "setup"){
+          document.getElementById("setupText").textContent = cap(q.setup);
+          setupBox.classList.add("on");
+          tvStatus.textContent = "The clip wouldn't play — read the start, then pick the ending.";
+        }
+        if (settle) settle();
+      }
+      /* ================= THE WHOLE CLIP, AFTER EVERY PICK =================
+         John's rule: whether the pick is right or wrong, the whole clip
+         plays afterwards — setup + payoff back to back, uninterrupted,
+         before the game returns to the ball. The chain rides the same
+         gesture-primed, Blob-backed playClip path as every other play,
+         and the tap-to-play plate carries the chain if a start is blocked. */
+      function wholeBeat(q){
+        return ((q.sd ? q.sd : 3) + (q.pd ? q.pd : 2)) * 1000 + 2500;
+      }
+      function playWholeClip(q, onComplete){
+        playClip(q, "setup", function(){
+          playClip(q, "payoff", function(){
+            if (onComplete) onComplete();
+          });
+        });
+      }
+      function stopClips(){
+        playToken++;
+        pendingTap = null;
+        tvPlate.classList.remove("tap");
+        tvVideo.classList.remove("silentplay");
+        try { tvVideo.pause(); } catch (e) {}
+        try { clipAudio.pause(); } catch (e) {}
+        if (voicePlaying > 0){ voicePlaying = 0; duck(false); }
+      }
+
+      /* ================= ORBIT (the ball + half-tags) ================= */
+      var tags = [];   /* {q, el, a, speed, rx, ry, phase} */
+      function buildTags(list){
+        /* clear old tag buttons (keep the ball) */
+        var olds = orbitEl.querySelectorAll(".tag");
+        for (var i = 0; i < olds.length; i++) olds[i].remove();
+        tags = [];
+        var shuffled = shuffle(list.slice());
+        for (var k = 0; k < shuffled.length; k++){
+          (function(q, idx){
+            var el = document.createElement("button");
+            el.type = "button"; el.className = "tag";
+            var tw = q.show.length <= 11 ? 112 : q.show.length <= 17 ? 126 : q.show.length <= 22 ? 138 : 148;
+            el.style.width = tw + "px"; el.dataset.tw = tw;
+            var num = parseInt(q.id.slice(1), 10) || (idx + 1);
+            var numStr = "Nº " + (num < 10 ? "00" + num : num < 100 ? "0" + num : "" + num);
+            var inner = document.createElement("span"); inner.className = "t-inner";
+            var top = document.createElement("span"); top.className = "t-top"; top.textContent = "★ TBOT NETWORK";
+            var showEl = document.createElement("span"); showEl.className = "t-show"; showEl.textContent = q.show;
+            var bottom = document.createElement("span"); bottom.className = "t-bottom";
+            var admit = document.createElement("span"); admit.className = "t-admit";
+            admit.innerHTML = "ADMIT ONE <b>" + numStr + "</b>";
+            var code = document.createElement("span"); code.className = "t-code"; code.setAttribute("aria-hidden", "true");
+            bottom.appendChild(admit); bottom.appendChild(code);
+            inner.appendChild(top); inner.appendChild(showEl); inner.appendChild(bottom);
+            var perf = document.createElement("span"); perf.className = "t-perf"; perf.setAttribute("aria-hidden", "true");
+            el.appendChild(inner); el.appendChild(perf);
+            el.setAttribute("aria-label", "Play the " + q.show + " moment — ticket " + numStr);
+            /* Deal on click, not pointerdown: click is the user gesture every
+               browser (incl. iOS / phone webviews) accepts for unmuted video
+               playback. A play() call chained from pointerdown can be rejected
+               as "not user-activated", which silently killed the clip. Tags
+               move only ~5px during a tap, so click lands on the same tag. */
+            el.addEventListener("click", function(){
+              onTagTap(q, el);
+            });
+            orbitEl.appendChild(el);
+            tags.push({
+              q: q, el: el,
+              /* fresh seating every build: the shuffled order decides
+                 which open slot each ticket takes — no slot carries
+                 over from the last round */
+              wob: Math.random() * Math.PI * 2,
+              hw: tw / 2,
+              tilt: (Math.random() * 5 - 2.5)
+            });
+          })(shuffled[k], k);
+        }
+      }
+      /* Ticket field: every ticket gets its OWN slot in a grid laid over
+         the stage — slots never overlap, no ticket ever passes behind the
+         orb or behind another ticket, and every ticket stays fully opaque
+         at z-index 5 (above the orb), so each show name is readable and
+         each ticket is individually tappable at all times. Tickets hold
+         perfectly still in their slots — a stationary target is the
+         easiest to tap — while the orb and clouds keep the scene alive.
+         When a ticket is used it leaves and the rest reflow into the
+         open slots. */
+      function layoutTags(dt, now){
+        var W = orbitEl.clientWidth, H = orbitEl.clientHeight;
+        if (!W || !H || !tags.length) return;
+        var n = tags.length;
+        var cols = W >= 720 ? 5 : (W >= 520 ? 4 : 3);
+        if (cols > n) cols = n;
+        var rows = Math.ceil(n / cols);
+        var topPad = 96;                                   /* clear of the sign */
+        var bottomPad = mode === "lobby" ? 118 : 68;       /* clear of PLAY / hint / teaching line */
+        var sidePad = 10;
+        var availW = W - sidePad * 2;
+        var availH = Math.max(120, H - topPad - bottomPad);
+        var cellW = Math.min(availW / cols, 182);
+        var cellH = Math.min(availH / rows, 98);
+        var gridW = cellW * cols, gridH = cellH * rows;
+        var ox = (W - gridW) / 2;
+        var oy = topPad + Math.max(0, (availH - gridH) / 2);
+        for (var i = 0; i < n; i++){
+          var t = tags[i];
+          var col = i % cols, row = Math.floor(i / cols);
+          var inRow = (row === rows - 1) ? (n - row * cols) : cols;
+          var rowOx = ox + (cols - inRow) * cellW / 2;     /* centre a short last row */
+          var tw = parseFloat(t.el.dataset.tw) || 132;
+          /* shrink a ticket only as much as its own slot requires */
+          var fit = Math.min(1, (cellW - 8) / tw, (cellH - 6) / 54);
+          var cxp = rowOx + col * cellW + cellW / 2;
+          var cyp = oy + row * cellH + cellH / 2;
+          t.el.style.transform = "translate(" + (cxp - tw / 2) + "px," + (cyp - 27) + "px) rotate(" + (t.tilt || 0).toFixed(2) + "deg) scale(" + fit.toFixed(3) + ")";
+          t.el.style.zIndex = 5;
+          t.el.style.opacity = "1";
+        }
+      }
+
+      /* ================= VIEWS / HUD ================= */
+      function showView(v){
+        view = v;
+        ballView.classList.toggle("on", v === "ball");
+        momentView.classList.toggle("on", v === "moment");
+      }
+      function paintHUD(){
+        chipRight.innerHTML = mode === "round"
+          ? "RIGHT <b>" + right + "</b> · OF " + SET_SIZE
+          : "RIGHT <b>" + right + "</b>";
+        chipDealt.innerHTML = "DEALT <b>" + dealt + "</b>";
+        roundBox.innerHTML = "ON THE BALL<br />" + remaining.length + (remaining.length === 1 ? " TICKET" : " TICKETS");
+        if (mode === "lobby"){ chipTimer.textContent = "STUDIO OPEN"; chipTimer.classList.remove("low"); }
+        if (mode === "free"){ chipTimer.textContent = "FREE SAY"; chipTimer.classList.remove("low"); }
+      }
+      function paintElapsed(){
+        var s = Math.floor(elapsed);
+        var m = Math.floor(s / 60), ss = s % 60;
+        chipTimer.textContent = m + ":" + (ss < 10 ? "0" : "") + ss;
+        chipTimer.classList.remove("low");
+      }
+      function setMode(m){
+        mode = m;
+        bar.classList.toggle("play", m !== "lobby");
+        stage.classList.toggle("playing", m !== "lobby");
+        paintHUD();
+      }
+
+      /* ================= FLOW ================= */
+      function startRound(){
+        ensureAudio(); if (musicOn) startMusic();
+        stopClips();
+        if (revealTimer) clearTimeout(revealTimer);
+        right = 0; dealt = 0; lastQuote = null;
+        elapsed = 0; shownSec = -1;
+        remaining = QUOTES.slice();
+        buildTags(remaining);
+        setMode("round"); paintElapsed();
+        showView("ball");
+        document.getElementById("ballHint").textContent = "Tap a flying ticket — hear the moment.";
+      }
+      function startFree(){
+        ensureAudio(); if (musicOn) startMusic();
+        stopClips();
+        if (revealTimer) clearTimeout(revealTimer);
+        right = 0; dealt = 0; lastQuote = null;
+        remaining = QUOTES.slice();
+        buildTags(remaining);
+        setMode("free");
+        showView("ball");
+        document.getElementById("ballHint").textContent = "Free Say — tap a ticket, no clock.";
+      }
+      function onTagTap(q, el){
+        if (view !== "ball") return;
+        /* A tag tap must always play: from the lobby it starts the round
+           first, then deals that tag — a dead tag reads as a broken game. */
+        if (mode === "lobby") startRound();
+        dealMoment(q);
+      }
+      function dealMoment(q){
+        var idx = remaining.indexOf(q);
+        if (idx < 0) return;
+        remaining.splice(idx, 1);
+        /* take the tag off the ball */
+        for (var i = 0; i < tags.length; i++) if (tags[i].q === q){ tags[i].el.remove(); tags.splice(i, 1); break; }
+        current = q; lastQuote = q; dealt++;
+        phase = "pick";
+        document.getElementById("tvFrom").textContent = "— from " + q.show;
+        tvStatus.textContent = "Listen… how does the line end?";
+        document.getElementById("btnWatch").textContent = "WATCH AGAIN";
+        revealBox.classList.remove("on");
+        setupBox.classList.remove("on");
+        buildOptions(q);
+        showView("moment");
+        paintHUD();
+        playClip(q, "setup");
+      }
+      function buildOptions(q){
+        optionsEl.innerHTML = "";
+        var opts = shuffle([
+          { text: q.payoff, right: true },
+          { text: q.decoys[0], right: false },
+          { text: q.decoys[1], right: false }
+        ]);
+        opts.forEach(function(o){
+          var b = document.createElement("button");
+          b.type = "button"; b.className = "opt";
+          b.textContent = "“" + o.text + "”";
+          b.addEventListener("click", function(){ pickOption(b, o.right); });
+          optionsEl.appendChild(b);
+        });
+      }
+      function pickOption(btn, isRight){
+        if (phase !== "pick" || !current) return;
+        phase = "reveal";
+        var q = current;
+        var btns = optionsEl.querySelectorAll(".opt");
+        for (var i = 0; i < btns.length; i++){
+          btns[i].disabled = true;
+          if (btns[i] === btn) btns[i].classList.add(isRight ? "right" : "wrong");
+          else if (btns[i].textContent === "“" + q.payoff + "”") btns[i].classList.add("right");
+          else btns[i].classList.add("dim");
+        }
+        if (isRight){ right++; sfxDing(); tvStatus.textContent = "That's the line! Now the whole moment, start to finish:"; }
+        else { sfxBuzz(); tvStatus.textContent = "Not quite — here's the whole moment, start to finish:"; }
+        document.getElementById("revealSetup").textContent = cap(q.setup);
+        document.getElementById("revealPayoff").textContent = q.payoff;
+        document.getElementById("revealFrom").textContent = "— from " + q.show;
+        revealBox.classList.add("on");
+        document.getElementById("btnWatch").textContent = "WATCH THE WHOLE CLIP AGAIN";
+        paintHUD();
+        /* right or wrong, the WHOLE clip plays afterwards — setup then
+           payoff, uninterrupted — and only then back to the ball */
+        playWholeClip(q, function(){
+          if (phase === "reveal" && current === q) afterReveal();
+        });
+        if (revealTimer) clearTimeout(revealTimer);
+        revealTimer = setTimeout(afterReveal, wholeBeat(q));
+      }
+      function afterReveal(){
+        if (revealTimer) clearTimeout(revealTimer);
+        revealTimer = null;
+        stopClips();
+        if (remaining.length === 0){
+          if (mode === "round"){ endRound(true); return; }   /* the 15th moment's reveal completed the set */
+          if (mode === "free"){
+            remaining = QUOTES.slice();
+            buildTags(remaining);
+            document.getElementById("ballHint").textContent = "The whole deck flew — fresh tickets are back on the ball.";
+          }
+        }
+        current = null;
+        showView("ball");
+        paintHUD();
+      }
+      function skipMoment(){
+        if (!current) return;
+        if (phase === "reveal"){ afterReveal(); return; }
+        /* pass on this one: the true ending still plays and reveals */
+        phase = "reveal";
+        var q = current;
+        var btns = optionsEl.querySelectorAll(".opt");
+        for (var i = 0; i < btns.length; i++){
+          btns[i].disabled = true;
+          if (btns[i].textContent === "“" + q.payoff + "”") btns[i].classList.add("right");
+          else btns[i].classList.add("dim");
+        }
+        tvStatus.textContent = "Passed — here's the whole moment, start to finish:";
+        document.getElementById("revealSetup").textContent = cap(q.setup);
+        document.getElementById("revealPayoff").textContent = q.payoff;
+        document.getElementById("revealFrom").textContent = "— from " + q.show;
+        revealBox.classList.add("on");
+        document.getElementById("btnWatch").textContent = "WATCH THE WHOLE CLIP AGAIN";
+        playWholeClip(q, function(){
+          if (phase === "reveal" && current === q) afterReveal();
+        });
+        if (revealTimer) clearTimeout(revealTimer);
+        revealTimer = setTimeout(afterReveal, wholeBeat(q));
+      }
+      function endRound(completedSet){
+        if (revealTimer) clearTimeout(revealTimer);
+        stopClips();
+        var wasRound = mode === "round";
+        if (wasRound && right > best){
+          best = right;
+          try { localStorage.setItem("what-they-say-best", String(best)); } catch (e) {}
+        }
+        setMode("lobby");
+        showCard(wasRound, wasRound && !!completedSet);
+        paintHUD();
+      }
+      var cardSeq = 0;
+      function showCard(wasRound, completedSet){
+        var seq = ++cardSeq;
+        document.getElementById("cardTitle").textContent = !wasRound ? "Free Say — Done" : (completedSet ? "SET COMPLETE" : "SET ENDED");
+        document.getElementById("cardCount").textContent = right;
+        document.getElementById("cardBigLabel").textContent = wasRound ? "LINES RIGHT · OF " + SET_SIZE : "LINES YOU GOT RIGHT";
+        var badge = document.getElementById("cardBadge");
+        badge.textContent = "FIRST LINES IN";
+        /* ---- rank row: completed PLAY sets only (FREE SAY never posts) ---- */
+        var rankEl = document.getElementById("cardRank");
+        rankEl.hidden = true; rankEl.textContent = ""; rankEl.classList.remove("note");
+        if (wasRound && completedSet){
+          var secs = Math.floor(elapsed);
+          rankEl.hidden = false; rankEl.classList.add("note");
+          if (scorebookLive()){
+            rankEl.textContent = "Checking the book…";
+            postScore(right, secs);
+            readRank(right, secs, function(res){
+              if (seq !== cardSeq) return;   /* a newer card owns the row now */
+              if (res){
+                rankEl.classList.remove("note");
+                rankEl.textContent = res.rank === 1
+                  ? "You rank #1 of " + res.total + (res.total === 1 ? " player" : " players") + " — top of the board!"
+                  : "You rank #" + res.rank + " of " + res.total + " players";
+                var tier = rankTier(res.rank);
+                if (tier) badge.textContent = tier;
+              } else {
+                rankEl.textContent = "Score posted — the ranking couldn't load just now";
+              }
+            });
+          } else {
+            rankEl.textContent = "The ranking couldn't load just now";
+          }
+        }
+        var wrap = document.getElementById("cardLastWrap");
+        var btnMoment = document.getElementById("btnMoment");
+        var btnEpisode = document.getElementById("btnEpisode");
+        if (lastQuote){
+          wrap.style.display = "";
+          btnMoment.style.display = "";
+          document.getElementById("cardLastLine").textContent = "“" + cap(lastQuote.setup) + " " + lastQuote.payoff + "”";
+          document.getElementById("cardLastFrom").textContent = "— from " + lastQuote.show;
+          /* full-episode link follows THIS card's last quote: the episode
+             id is stored on the quote itself; omit the link if it's absent */
+          if (lastQuote.vid){
+            btnEpisode.href = "https://www.youtube.com/watch?v=" + lastQuote.vid;
+            btnEpisode.setAttribute("aria-label", "Watch the full episode of " + lastQuote.show + " on YouTube");
+            btnEpisode.style.display = "";
+          } else {
+            btnEpisode.style.display = "none";
+            btnEpisode.removeAttribute("href");
+          }
+        } else {
+          wrap.style.display = "none";
+          btnMoment.style.display = "none";
+          btnEpisode.style.display = "none";
+          document.getElementById("cardVideoWrap").classList.remove("on");
+        }
+        document.getElementById("cardBest").innerHTML = "Your best: <b>" + best + "</b> of " + SET_SIZE;
+        overlay.classList.add("open");
+      }
+      function toLobby(){
+        if (revealTimer) clearTimeout(revealTimer);
+        stopClips();
+        right = 0; dealt = 0; lastQuote = null; current = null;
+        remaining = QUOTES.slice();
+        buildTags(remaining);
+        setMode("lobby");
+        showView("ball");
+        document.getElementById("ballHint").textContent = "Tap a flying ticket — hear the moment.";
+        paintHUD();
+      }
+
+      /* ================= MAIN LOOP (orbit + clock) ================= */
+      function tick(now){
+        var dt = Math.min(0.05, (now - lastTick) / 1000 || 0);
+        lastTick = now;
+        if (view === "ball") layoutTags(dt, now);
+        if (mode === "round"){
+          elapsed += dt;
+          var s = Math.floor(elapsed);
+          if (s !== shownSec){ shownSec = s; paintElapsed(); }
+        }
+        rafId = requestAnimationFrame(tick);
+      }
+      lastTick = performance.now();
+      rafId = requestAnimationFrame(tick);
+
+      /* ================= CONTROLS ================= */
+      document.getElementById("btnStart").addEventListener("click", startRound);
+      document.getElementById("btnPlay").addEventListener("click", startRound);
+      document.getElementById("btnFree").addEventListener("click", function(){
+        if (mode === "lobby") startFree();
+      });
+      document.getElementById("btnAction").addEventListener("click", function(){
+        ensureAudio(); if (musicOn) startMusic();
+        if (mode === "lobby"){ startRound(); if (remaining.length) dealMoment(remaining[Math.floor(Math.random() * remaining.length)]); return; }
+        if (view === "moment"){ skipMoment(); return; }
+        if (remaining.length) dealMoment(remaining[Math.floor(Math.random() * remaining.length)]);
+      });
+      document.getElementById("btnEnd").addEventListener("click", function(){
+        if (mode === "round" || mode === "free") endRound(false);
+      });
+      document.getElementById("btnReset").addEventListener("click", function(){ toLobby(); });
+      document.getElementById("btnWatch").addEventListener("click", function(){
+        if (!current) return;
+        if (phase === "reveal"){
+          /* in the reveal, watch-again replays the WHOLE clip and holds
+             the card on screen until it has played through */
+          var q = current;
+          if (revealTimer) clearTimeout(revealTimer);
+          playWholeClip(q, function(){
+            if (phase === "reveal" && current === q) afterReveal();
+          });
+          revealTimer = setTimeout(afterReveal, wholeBeat(q));
+        } else {
+          playClip(current, clipKind);
+        }
+      });
+      document.getElementById("btnAgain").addEventListener("click", function(){
+        overlay.classList.remove("open");
+        document.getElementById("cardVideoWrap").classList.remove("on");
+        var cv = document.getElementById("cardVideo"); try { cv.pause(); } catch (e) {}
+        startRound();
+      });
+      document.getElementById("btnLobby").addEventListener("click", function(){
+        overlay.classList.remove("open");
+        document.getElementById("cardVideoWrap").classList.remove("on");
+        var cv = document.getElementById("cardVideo"); try { cv.pause(); } catch (e) {}
+        toLobby();
+      });
+      document.getElementById("btnMoment").addEventListener("click", function(){
+        if (!lastQuote) return;
+        ensureAudio();
+        var wrap = document.getElementById("cardVideoWrap");
+        var cv = document.getElementById("cardVideo");
+        wrap.classList.add("on");
+        voiceStart();
+        var done = false;
+        function finish(){ if (!done){ done = true; voiceEnd(); } }
+        cv.onended = function(){
+          if (cv.dataset.part === "setup"){
+            cv.dataset.part = "payoff";
+            cv.src = blobSrc(lastQuote.pv, "video/mp4", null);
+            cv.muted = false; cv.removeAttribute("muted");
+            var p2 = cv.play(); if (p2 && p2.catch) p2.catch(finish);
+          } else finish();
+        };
+        cv.onerror = function(){
+          /* fall back to the two audio cuts back to back */
+          clipAudio.onended = function(){
+            if (clipAudio.dataset.part === "setup"){
+              clipAudio.dataset.part = "payoff"; clipAudio.src = blobSrc(lastQuote.pa, "audio/mpeg", null); clipAudio.play();
+            } else finish();
+          };
+          clipAudio.dataset.part = "setup"; clipAudio.src = blobSrc(lastQuote.sa, "audio/mpeg", null);
+          var pa = clipAudio.play(); if (pa && pa.catch) pa.catch(finish);
+        };
+        /* same iOS path as the TV: Blob src, silent-primed and unmuted
+           inside this tap before the sound-on start */
+        cv.dataset.part = "setup";
+        cv.src = blobSrc(lastQuote.sv, "video/mp4", null);
+        primeWithSound(cv, function(ok){
+          if (!ok){ cv.onerror(); return; }
+          try { cv.pause(); cv.currentTime = 0; } catch (e) {}
+          cv.muted = false; cv.removeAttribute("muted");
+          var p = cv.play(); if (p && p.catch) p.catch(function(){ cv.onerror(); });
+        });
+        setTimeout(finish, 16000);
+      });
+
+      buildTags(QUOTES);
+      remaining = QUOTES.slice();
+      paintHUD();
+      paintMusic();
+    </script>
+  </body>
+</html>
