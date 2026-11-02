@@ -2753,6 +2753,8 @@
       var bedParked = false;          /* decks paused at a full stop (a clip owns the stage) */
       var bedTimer = null;            /* the 50ms driver while the bed is on */
       var bedRetryAt = 0;             /* last self-heal play() retry in bedDrive */
+      var bedMuted = false;           /* decks running muted (autoplay fallback) until the first tap unmutes them */
+      var bedGestureSeen = false;     /* a real tap has reached the page (primeBed) */
       function makeBedDeck(){
         var el = new Audio(BED_FILE); el.preload = "auto";
         return { el: el, share: 0 };
@@ -2777,9 +2779,9 @@
         if (!AC){
           var Ctx = window.AudioContext || window.webkitAudioContext;
           if (!Ctx) return false;
-          AC = new Ctx();
+          try { AC = new Ctx(); } catch (e) { return false; }
         }
-        if (AC.state === "suspended") AC.resume();
+        if (AC.state === "suspended"){ var rp = AC.resume(); if (rp && rp.catch) rp.catch(function(){}); }
         return true;
       }
       function paintMusic(){
@@ -2830,45 +2832,29 @@
         if (bedFading){ var n = bedDecks[1 - bedCur]; if (n.el.paused) playBedDeck(n); }
       }
       /* GESTURE UNLOCK FOR THE DECKS (John's flag, 2026-11-02 —
-         "The music didn't come on when I opened the game"): every
-         other sound in the game is unlocked inside a real tap —
-         the clip element rides primeWithSound, the async cues ride
-         primeAsyncCues — but the bed decks were created at parse
-         time and only ever started from the document pointerdown,
-         the one gesture this page already learned iOS / phone
-         webviews can refuse for media playback (the ticket deal
-         moved to click for exactly that reason: a play() chained
-         from pointerdown reads as "not user-activated"). A refused
-         deck play() was swallowed whole by playBedDeck's catch,
-         bedOn stayed true so later taps only re-ran the same
-         refused pointerdown start, and bedDrive never retried a
-         paused deck — so on the phone the bed could not sound at
-         all, from open, whatever the levels and gates said. The
-         file, the gate and the levels were all verified fine; the
-         start itself was the fault. primeBed gives the decks the
-         same unlock as everything else: a muted play inside the
-         tap (muted playback is always allowed), after which the
-         script-driven play() calls — bedDrive's unpark after a
-         clip, its self-heal retry — are honored. The settle hands
-         the live deck to bedDrive (unmuted, already playing) and
-         re-parks any deck that should not be sounding right now;
-         the unlock survives the pause. */
+         "Music didn't start when you open this game", reported
+         again after the muted-prime build): the bed now attempts
+         its start ON OPEN (bedStartOnOpen, below) instead of
+         waiting for a tap. Where the browser allows sound-on
+         autoplay the song is simply playing when the game opens.
+         Where it refuses, the decks fall back to a MUTED rolling
+         start — the song is already playing, silently, from open
+         — and primeBed's whole job shrinks to the one move no
+         engine can refuse: on the first tap it UNMUTES the decks
+         (muting is a property, not a play() call, so there is no
+         start left for a webview to decline) and kicks any deck
+         that still sits paused. The unlock is repeatable, not a
+         one-shot prime: every tap re-runs it, so a deck muted by
+         the autoplay fallback can never stay muted, and a deck
+         parked by a clip comes back through bedDrive's unpark
+         already unlocked. */
       function primeBed(){
-        bedDecks.forEach(function(d){
-          var el = d.el;
-          if (el._bedPrimed) return;
-          el._bedPrimed = true;
-          el.muted = true;
-          var p = el.play();
-          function settle(){
-            var live = bedOn && !bedParked && bedTargetLevel() > 0
-              && (d === bedDecks[bedCur] || bedFading);
-            if (!live){ try { el.pause(); } catch (e) {} }
-            el.muted = false;
-          }
-          if (p && p.then) p.then(settle).catch(function(){ el.muted = false; el._bedPrimed = false; });
-          else settle();
-        });
+        bedGestureSeen = true;
+        if (bedMuted){
+          bedMuted = false;
+          bedDecks.forEach(function(d){ d.el.muted = false; });
+        }
+        kickBed();
       }
       /* The bed's 50ms driver: tween the master level toward the
          gate's target, run the loop crossfade, park at a full stop,
@@ -2935,6 +2921,39 @@
         stopBed();
         paintMusic();
       }
+      /* START ON OPEN (John's flag, 2026-11-02 — "Music didn't
+         start when you open this game"): the bed attempts its
+         start the moment the page loads, in the lobby, instead of
+         waiting for the first tap to bring it up. The deck starts
+         UNMUTED: where the browser allows sound-on autoplay
+         (desktop, an engaged webview, a permissive embed) the
+         song is playing when the game opens, full stop. Where
+         the platform refuses — the phone rule — the start leaves
+         the deck paused; the probe below sees that and falls the
+         decks back to a MUTED rolling start, so the song is
+         already underway (silently) from open and the first tap
+         anywhere only has to unmute it in primeBed. If even the
+         muted start is refused, the decks sit paused-but-armed:
+         bedDrive's self-heal keeps retrying, and the first tap's
+         primeBed kick + startMusic land the start inside a real
+         gesture. No path leaves the lobby silent by design. */
+      function bedStartOnOpen(){
+        if (bedOn || !musicOn) return;
+        bedOn = true;
+        startBed();
+        paintMusic();
+        var d = bedDecks[0];
+        var heard = false;
+        d.el.addEventListener("playing", function(){ heard = true; });
+        setTimeout(function(){
+          if (bedGestureSeen || bedMuted || !bedOn) return;
+          if (heard || !d.el.paused) return;   /* sound-on autoplay landed: the song is on */
+          bedMuted = true;
+          bedDecks.forEach(function(x){ x.el.muted = true; });
+          playBedDeck(d);
+        }, 900);
+      }
+      bedStartOnOpen();
       /* Bed levels — Lift Off turned down again (John's call,
          2026-11-02): the bed now sits at 0.08, half its previous
          0.16 level (which was itself less than half the old 0.35),
@@ -3322,7 +3341,7 @@
       /* no SOUND toggle remains: sfxOn stays true and every cue plays */
       document.addEventListener("pointerdown", function(){
         primeBed();
-        if (ensureAudio() && musicOn) startMusic();
+        if (musicOn) startMusic();   /* the bed never waits on the tone context: ensureAudio runs inside startMusic for the ding/buzz only */
         primeAsyncCues();
         paintMusic();
       });
@@ -3333,7 +3352,7 @@
          it within the same tap */
       document.addEventListener("click", function(){
         primeBed();
-        if (ensureAudio() && musicOn) startMusic();
+        if (musicOn) startMusic();
         paintMusic();
       });
 
