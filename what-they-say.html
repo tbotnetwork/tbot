@@ -917,7 +917,8 @@
       }
       .tally b{ color:var(--gold-bright); font-size:17px; }
       /* the live streak rides under RIGHT in the same bar seat:
-         how close the player is to 5 in a row, always visible */
+         the running streak against the streak to beat, always
+         visible — and the count runs past 5: a streak of 6 shows 6 */
       .tally .streak{ font-size:10px; letter-spacing:.1em; line-height:1.2; }
       .tally .streak b{ font-size:13px; }
       #btnMusic{ grid-column:1; grid-row:2; font-size:11.5px; padding:2px 4px; }
@@ -1696,7 +1697,7 @@
       /* The visible build stamp, shown on the lobby bag line: if a
          phone is serving a cached older page, its stamp gives it away
          at a glance — that was one of the open repeat doors. */
-      var BUILD_STAMP = "BUILD 2026-11-02 · BEAT-THE-STREAK-47";
+      var BUILD_STAMP = "BUILD 2026-11-02 · STREAK-COUNTS-PAST-5-47";
       /* The two shows that crowded the deck (Wake & Bake x6 and Meta
          Street Journal x6 = 12 of 47 moments): together they may hold
          at most BIG_TWO_CAP seats in any one round. */
@@ -2336,8 +2337,10 @@
          right picks; a wrong pick (or a pass) resets it to zero.
          bestStreak is the longest run this round — the round's own
          score, kept on this device only. roundWon latches the
-         moment the fifth straight right lands; the round ends on
-         the win card once that moment's reveal finishes. */
+         moment the fifth straight right lands, but the round does
+         NOT end there: the streak keeps counting past 5 while
+         tickets and clock remain, and the end card names the true
+         best streak — a run of 6 is scored and shown as 6. */
       var streak = 0, bestStreak = 0, roundWon = false;
       var bestStreakBest = 0;   /* best streak ever on this device */
       try { bestStreakBest = parseInt(localStorage.getItem("what-they-say-best-streak") || "0", 10) || 0; } catch (e) { bestStreakBest = 0; }
@@ -2450,6 +2453,27 @@
             else if (ci.right < 0 && lab.indexOf("right") >= 0) ci.right = i;
             else if (ci.sec < 0 && lab.indexOf("second") >= 0) ci.sec = i;
           }
+          /* The book's real column titles are the form's own question
+             labels, and they are not the words the lookup above hunts
+             for: the name column is titled "John" and the seconds
+             column "1" (only "Right" matches). A label-only lookup
+             therefore left name and seconds unfound, every read
+             bailed to null, and the streak mark sat on its floor of
+             5 no matter what the book held. Fill any column the
+             labels didn't name from the table's own shape: the name
+             is the one text column, and the number columns are the
+             streak then the seconds, in book order. */
+          if (ci.name < 0){
+            for (var s2 = 0; s2 < cols.length; s2++){
+              if (cols[s2].type === "string" && s2 !== ci.right && s2 !== ci.sec){ ci.name = s2; break; }
+            }
+          }
+          var numCols = [];
+          for (var n2 = 0; n2 < cols.length; n2++){
+            if (cols[n2].type === "number" && n2 !== ci.name && n2 !== ci.right && n2 !== ci.sec) numCols.push(n2);
+          }
+          if (ci.right < 0 && numCols.length) ci.right = numCols.shift();
+          if (ci.sec < 0 && numCols.length) ci.sec = numCols.shift();
           if (ci.name < 0 || ci.right < 0 || ci.sec < 0) return finish(null);
           var out = [];
           var rows = table.rows || [];
@@ -2517,9 +2541,19 @@
          honest mark standing — never a stale invention, never a
          number the book didn't give. Re-read on every load and
          every return to the tab, off the same warm-book read as
-         the ranking. */
+         the ranking.
+         A STREAK COUNTS WHAT IT REACHES (John's call, 2026-11-02 —
+         "if I get 6, it should be 6 not 5"): reaching 5 wins the
+         round's honour but no longer ends the round or caps the
+         count — the streak keeps running while tickets and clock
+         remain, bestStreak records the true run, and the mark
+         follows it the moment it is topped, mid-round and on the
+         card. This device's own best streak also feeds the mark
+         on load, so a 6 earned here reads 6 here even before the
+         book catches up. */
       var WIN_STREAK = 5;
       var beatMark = WIN_STREAK;
+      if (bestStreakBest > beatMark) beatMark = bestStreakBest;   /* this device's own best counts toward the mark from the first paint */
       var chipBeat = document.getElementById("chipBeat");
       var counterBeat = document.getElementById("counterBeat");
       var cardBeat = document.getElementById("cardBeat");
@@ -3345,7 +3379,7 @@
         momentView.classList.toggle("on", v === "moment");
       }
       function paintHUD(){
-        chipRight.innerHTML = "RIGHT <b>" + right + "</b><span class=\"streak\">STREAK <b>" + streak + "</b>/5</span>";
+        chipRight.innerHTML = "RIGHT <b>" + right + "</b><span class=\"streak\">STREAK <b>" + streak + "</b>/" + beatMark + "</span>";
         chipDealt.innerHTML = "DEALT <b>" + dealt + "</b>";
         if (mode === "lobby"){ chipTimer.textContent = "STUDIO OPEN"; chipTimer.classList.remove("low"); }
         if (mode === "free"){ chipTimer.textContent = "FREE SAY"; chipTimer.classList.remove("low"); }
@@ -3777,7 +3811,8 @@
         if (isRight){
           right++; streak++;
           if (streak > bestStreak) bestStreak = streak;
-          if (streak >= 5 && mode === "round") roundWon = true;   /* the fifth straight right wins the round — the card fires when this reveal finishes */
+          if (streak >= WIN_STREAK && mode === "round") roundWon = true;   /* the fifth straight right wins the round's honour — but the round plays on and the streak keeps counting past 5 */
+          if (mode === "round" && bestStreak > beatMark){ beatMark = bestStreak; paintBeat(); }   /* topping the mark raises it on the spot, mid-round: a streak of 6 makes the number to beat 6, right then */
           sfxDing(); tvStatus.textContent = "THAT'S THE LINE! And now — the whole moment, start to finish:";
         }
         else { streak = 0; sfxBuzz(); tvStatus.textContent = "Not quite — roll the whole moment, start to finish:"; }
@@ -3811,7 +3846,10 @@
         stopClips();
         if (mode === "round"){
           completedMoments++;
-          if (roundWon){ endRound(false); return; }   /* 5 IN A ROW landed — the win card, whatever is left on the clock or the ball */
+          /* no early end at 5 in a row: roundWon is latched, the
+             streak keeps counting, and the round ends on the
+             buzzer, the last ticket, or END GAME — the card then
+             names the true best streak, 6 included */
           if (clockDead){ endRound(true); return; }   /* time died mid-moment — it finished its reveal, now the card */
           if (remaining.length === 0){ endRound(false); return; }   /* the fifth ticket is done — round finished, whatever is left on the clock */
         }
@@ -3889,7 +3927,7 @@
       var cardSeq = 0;
       function showCard(wasRound, byClock){
         var seq = ++cardSeq;
-        document.getElementById("cardTitle").textContent = !wasRound ? "Free Say — Done" : (roundWon ? "YOU DID IT — 5 IN A ROW!" : (byClock ? "BUZZER!" : (dealt >= STAGE_N && remaining.length === 0 ? "Round Complete!" : "ROUND ENDED")));
+        document.getElementById("cardTitle").textContent = !wasRound ? "Free Say — Done" : (roundWon ? "YOU DID IT — " + bestStreak + " IN A ROW!" : (byClock ? "BUZZER!" : (dealt >= STAGE_N && remaining.length === 0 ? "Round Complete!" : "ROUND ENDED")));
         document.getElementById("cardCount").textContent = wasRound ? bestStreak : right;
         document.getElementById("cardBigLabel").textContent = wasRound ? "BEST STREAK IN A ROW" : "LINES YOU GOT RIGHT";
         var playedEl = document.getElementById("cardPlayed");
