@@ -613,19 +613,40 @@
          politician's website (their recorded site, else
          their chamber's official site — set on the link
          as the card opens). It reads as tappable: pointer
-         cursor, a tap press on the picture, and the small
-         hint line under the seat pill. */
+         cursor, a tap press on the picture, and the words
+         "Tap on me" riding ON the picture itself as a
+         banner across its lower portion — inside the
+         link, so the words are part of the tappable
+         picture and never cover the figure's head. */
       #packLastLink {
+        position: relative;
         display: block;
+        width: fit-content;
+        max-width: 100%;
+        margin: 0 auto;
         cursor: pointer;
         -webkit-tap-highlight-color: transparent;
         border-radius: 12px;
       }
-      #packLastLink:active #packLastCanvas { transform: scale(0.98); }
+      #packLastLink:active { transform: scale(0.98); }
       #packLastLink:focus-visible { outline: 2px solid #ffbe1a; outline-offset: 3px; }
-      .pack-last-hint {
-        font-size: 12.5px; font-weight: 700; color: var(--ink-soft);
-        margin: -4px 0 10px;
+      .pack-last-overlay {
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
+        padding: 7px 10px;
+        border-radius: 999px;
+        background: rgba(10, 18, 34, 0.88);
+        border: 1px solid rgba(255, 190, 26, 0.75);
+        color: #ffdf7e;
+        font-size: 15px;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+        line-height: 1.2;
+        text-align: center;
+        pointer-events: none;
+        box-shadow: 0 4px 12px rgba(6, 20, 38, 0.45);
       }
       .pack-last-seat {
         display: inline-block;
@@ -723,7 +744,7 @@
         .pack-rank.note { font-size: 12.5px; }
         #packLastCanvas { height: min(24dvh, 200px); }
         .pack-last-seat { margin: 7px 0 9px; }
-        .pack-last-hint { margin: -3px 0 7px; }
+        .pack-last-overlay { font-size: 13.5px; bottom: 8px; padding: 6px 8px; }
         .pack-none { margin-bottom: 9px; }
         .over-show { margin-bottom: 5px; padding: 7px 10px; }
         .over-show .show-name { font-size: 16px; }
@@ -743,7 +764,7 @@
         .pack-last-label { margin-bottom: 4px; }
         #packLastCanvas { height: min(18dvh, 150px); }
         .pack-last-seat { font-size: 13.5px; margin: 6px 0 7px; }
-        .pack-last-hint { font-size: 12px; margin: -2px 0 5px; }
+        .pack-last-overlay { font-size: 12.5px; bottom: 6px; left: 6px; right: 6px; padding: 5px 6px; }
         .pack-none { font-size: 14.5px; margin-bottom: 7px; }
         .over-show { margin-bottom: 4px; padding: 6px 9px; }
         .over-show .show-name { font-size: 15px; }
@@ -932,9 +953,8 @@
         <p class="pack-rank" id="packRankLine" hidden></p>
         <div id="packLastBlock">
           <p class="pack-last-label">LAST POLITICIAN CAUGHT</p>
-          <a id="packLastLink" href="https://www.house.gov" target="_blank" rel="noopener"><canvas id="packLastCanvas" width="220" height="300" aria-label="The last politician caught in Catch'em, pictured full-body, head to toe"></canvas></a>
+          <a id="packLastLink" href="https://www.house.gov" target="_blank" rel="noopener"><canvas id="packLastCanvas" width="220" height="300" aria-label="The last politician caught in Catch'em, pictured full-body, head to toe"></canvas><span class="pack-last-overlay" aria-hidden="true">Tap on me</span></a>
           <p class="pack-last-seat" id="packLastSeat"></p>
-          <p class="pack-last-hint">Tap the picture to visit their website</p>
         </div>
         <p class="pack-none" id="packNone" hidden>Nobody caught this time — the TNET came up empty.</p>
         <p class="over-show" id="showLine" hidden><span class="show-name" id="showName"></span><a class="show-meta" id="showMeta" href="#" target="_blank" rel="noopener" hidden></a></p>
