@@ -8,7 +8,7 @@
     <title>WashingBot, DC</title>
     <meta name="application-name" content="WashingBot, DC" />
     <meta name="theme-color" content="#8ec3ee" />
-    <meta name="description" content="WashingBot, DC — CATCH'EM is the game: how many can you catch in 35 sec? The start screen is the lobby: there you can set YOUR STATE with the My state button — your device locates you entirely on-device (the coordinates never leave the phone and are never stored) and the lobby shows your state. The lobby offers two starts side by side: CATCH'EM plays ALL STATES — full-body politicians, head to toe, fall from the sky over the Capitol plaza, every one of the 470 Senate and House seats can fall — and PLAY MY STATE, live once your state is set, plays a round of only your state's seats (its House districts plus its Senate seats). Either way the TBOT stands at the bottom HOLDING the TNET, a net stretched across the plaza with both hands on its gold rim; the NET is the catcher, and the player slides the TBOT and the TNET together left and right along the bottom under a falling politician, by dragging on the field or holding the arrow keys. A politician who comes down into the TNET is caught by the TNET and packs into his seat-stamped crate, counted CAUGHT; one who hits the ground outside the TNET is MISSED, and anyone still falling at 0:00 counts neither way. At 0:00 — or when Done is pressed — the Catch'em card shows the CAUGHT and MISSED counts and the LAST POLITICIAN CAUGHT, pictured full-body with his seat label — or, if nobody was caught, the card says so plainly with no picture — together with your best catch count on this device and a month-matched TBOT show plate whose Watch line links the picked episode. The game carries a NUMBER TO BEAT — the top Caught in the shared Catch'em scorebook, read live from the book itself: it shows as a pill under the title in the lobby, rides under the score pill while a round runs, and stands on the Catch'em card with whether the round beat it; a PLAY MY STATE round instead carries that state's own device best as its number to beat. There is no jump and no bounce in CATCH'EM: steering is the whole game. They got elected — they won: the plaza is dressed for the celebration, confetti, bunting and winner bills under a bright sky." />
+    <meta name="description" content="WashingBot, DC — CATCH'EM is the game: how many can you catch in 35 sec? The start screen is the lobby: there you can set YOUR STATE with the My state button — your device locates you entirely on-device (the coordinates never leave the phone and are never stored) and the lobby shows your state. The lobby offers two starts side by side: CATCH'EM plays ALL STATES — full-body politicians, head to toe, fall from the sky over the Capitol plaza, every one of the 470 Senate and House seats can fall — and PLAY MY STATE, live once your state is set, plays a round of only your state's seats (its House districts plus its Senate seats). Either way the TBOT stands at the bottom HOLDING the TNET, a net shaped like the Capitol — a dome in the middle, a wing to each side — stretched across the plaza with both hands on its gold rim; the NET is the catcher, and the player slides the TBOT and the TNET together left and right along the bottom under a falling politician, by dragging on the field or holding the arrow keys. A politician who comes down into the TNET is caught by the TNET and packs into his seat-stamped crate, counted CAUGHT; one who hits the ground outside the TNET is MISSED, and anyone still falling at 0:00 counts neither way. At 0:00 — or when Done is pressed — the Catch'em card shows the CAUGHT and MISSED counts and the LAST POLITICIAN CAUGHT, pictured full-body with his seat label — or, if nobody was caught, the card says so plainly with no picture — together with your best catch count on this device and a month-matched TBOT show plate whose Watch line links the picked episode. The game carries a NUMBER TO BEAT — the top Caught in the shared Catch'em scorebook, read live from the book itself: it shows as a pill under the title in the lobby, rides under the score pill while a round runs, and stands on the Catch'em card with whether the round beat it; a PLAY MY STATE round instead carries that state's own device best as its number to beat. There is no jump and no bounce in CATCH'EM: steering is the whole game. They got elected — they won: the plaza is dressed for the celebration, confetti, bunting and winner bills under a bright sky." />
     <style>
       :root {
         color-scheme: light dark;
@@ -803,7 +803,7 @@
     </style>
   </head>
   <body>
-    <canvas id="stage" aria-label="The U.S. Capitol over its plaza, where CATCH'EM is played: full-body politicians, head to toe, fall from the sky — every one of the 470 Senate and House seats can fall — and the TBOT stands at the bottom HOLDING the TNET, a net stretched across the plaza with both hands on its gold rim; the NET is the catcher, and the player slides the TBOT and the TNET together left and right along the bottom under a falling politician, by dragging on the field or holding the arrow keys; a politician who comes down into the TNET is caught by the TNET and packs into his seat-stamped crate, counted CAUGHT, and one who hits the ground outside the TNET is MISSED; the round runs 35 seconds, the clock riding the CAUGHT · MISSED pill at the top with the number to beat — the top score in the shared scorebook — riding under it, and at 0:00 — or when Done is pressed — the Catch'em card shows the counts and the last politician caught; there is no jump and no bounce, steering is the whole game"></canvas>
+    <canvas id="stage" aria-label="The U.S. Capitol over its plaza, where CATCH'EM is played: full-body politicians, head to toe, fall from the sky — every one of the 470 Senate and House seats can fall — and the TBOT stands at the bottom HOLDING the TNET, a net shaped like the Capitol — a dome in the middle, a wing to each side — stretched across the plaza with both hands on its gold rim; the NET is the catcher, and the player slides the TBOT and the TNET together left and right along the bottom under a falling politician, by dragging on the field or holding the arrow keys; a politician who comes down into the TNET is caught by the TNET and packs into his seat-stamped crate, counted CAUGHT, and one who hits the ground outside the TNET is MISSED; the round runs 35 seconds, the clock riding the CAUGHT · MISSED pill at the top with the number to beat — the top score in the shared scorebook — riding under it, and at 0:00 — or when Done is pressed — the Catch'em card shows the counts and the last politician caught; there is no jump and no bounce, steering is the whole game"></canvas>
 
     <!-- Background music: Tears For Fears, "Everybody
          Wants To Rule The World" — the track John picked
@@ -3317,81 +3317,192 @@
           ctx.restore();
         }
         // THE TNET at the bottom of the plaza, HELD BY THE
-        // TBOT (drawPackBot, behind it): a net stretched
-        // across the bottom — mesh basket on a gold rim,
-        // its name stamped across the front, and the TBOT's
-        // grip hands over the rim's two ends. The net IS
-        // the catcher, and it never leaves the bottom (no
-        // jump, no bounce); the player slides the TBOT and
-        // the net together left–right under the fall.
+        // TBOT (drawPackBot, behind it): the catching basket
+        // SHAPED LIKE THE CAPITOL (John's word) — a central
+        // DOME rising in the middle, a lower WING extending
+        // to each side, the mesh net filling the silhouette,
+        // a gold rim riding its roofline, its name stamped
+        // across the front, and the TBOT's grip hands over
+        // the rim's two ends. The reshape is paint only: the
+        // mouth line (packNetMouthY) and the half-width
+        // (packNetHalf) that judge a catch are exactly what
+        // they were, so what counts as CAUGHT never moved.
+        // The net IS the catcher, and it never leaves the
+        // bottom (no jump, no bounce); the player slides
+        // the TBOT and the net together left–right under
+        // the fall.
         function drawPackNet(nowMs2) {
           var half = packNetHalf();
           var nx = packNetX;
           var gy = groundY();
           var mouthY = packNetMouthY();
           var depth = 30;
+          var bottomY = mouthY + depth;
+          // The Capitol profile's measures, all off the
+          // net's own half-width so the basket keeps its
+          // footprint at every screen size: the dome takes
+          // the middle stretch, its drum steps up off the
+          // wing line, and the dome's peak — with the little
+          // lantern on top — is the basket's highest point.
+          var domeHalf = half * 0.36;
+          var drumTopY = mouthY - 9;
+          var domePeakY = mouthY - 24;
           ctx.save();
           // The net's ground shadow.
           ctx.fillStyle = "rgba(10, 12, 10, 0.32)";
           ctx.beginPath(); ctx.ellipse(nx, gy + 4, half * 1.04, 5.5, 0, 0, Math.PI * 2); ctx.fill();
-          // The basket: a sagging top edge, sides drawn in,
-          // a curved bottom — the mesh clipped inside it.
+          // The Capitol silhouette: in at the left wing's
+          // end (where the TBOT's hand grips), flat across
+          // the wing, up the drum, over the dome, down the
+          // other side, flat across the right wing, then
+          // the basket's drawn-in sides and curved bottom.
           function basketPath() {
             ctx.beginPath();
             ctx.moveTo(nx - half, mouthY);
-            ctx.quadraticCurveTo(nx, mouthY + 11, nx + half, mouthY);
-            ctx.lineTo(nx + half - 10, mouthY + depth);
-            ctx.quadraticCurveTo(nx, mouthY + depth + 9, nx - half + 10, mouthY + depth);
+            ctx.lineTo(nx - domeHalf, mouthY);
+            ctx.lineTo(nx - domeHalf, drumTopY);
+            ctx.bezierCurveTo(nx - domeHalf, drumTopY - 12, nx - domeHalf * 0.42, domePeakY, nx, domePeakY);
+            ctx.bezierCurveTo(nx + domeHalf * 0.42, domePeakY, nx + domeHalf, drumTopY - 12, nx + domeHalf, drumTopY);
+            ctx.lineTo(nx + domeHalf, mouthY);
+            ctx.lineTo(nx + half, mouthY);
+            ctx.lineTo(nx + half - 10, bottomY);
+            ctx.quadraticCurveTo(nx, bottomY + 9, nx - half + 10, bottomY);
             ctx.closePath();
           }
+          function domePath() {
+            ctx.beginPath();
+            ctx.moveTo(nx - domeHalf, drumTopY);
+            ctx.bezierCurveTo(nx - domeHalf, drumTopY - 12, nx - domeHalf * 0.42, domePeakY, nx, domePeakY);
+            ctx.bezierCurveTo(nx + domeHalf * 0.42, domePeakY, nx + domeHalf, drumTopY - 12, nx + domeHalf, drumTopY);
+            ctx.closePath();
+          }
+          // The marble: a pale stone gradient, light at
+          // the dome, settling bluer toward the base.
+          var marble = ctx.createLinearGradient(0, domePeakY - 12, 0, bottomY + 9);
+          marble.addColorStop(0, "#fdfcf5");
+          marble.addColorStop(0.55, "#eef1ec");
+          marble.addColorStop(1, "#cfdce8");
           basketPath();
-          ctx.fillStyle = "rgba(196, 226, 246, 0.20)";
+          ctx.fillStyle = marble;
           ctx.fill();
+          // The mesh net, clipped inside the silhouette,
+          // with a cool shade inside the dome so it reads
+          // round against the wings.
           ctx.save();
           basketPath();
           ctx.clip();
-          ctx.strokeStyle = "rgba(230, 244, 252, 0.55)";
+          domePath();
+          ctx.fillStyle = "rgba(148, 178, 208, 0.30)";
+          ctx.fill();
+          ctx.strokeStyle = "rgba(96, 128, 158, 0.34)";
           ctx.lineWidth = 1;
           for (var gx = nx - half; gx <= nx + half; gx += 10) {
-            ctx.beginPath(); ctx.moveTo(gx, mouthY - 2); ctx.lineTo(gx, mouthY + depth + 10); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(gx, domePeakY - 12); ctx.lineTo(gx, bottomY + 10); ctx.stroke();
           }
-          for (var gy2 = mouthY + 4; gy2 <= mouthY + depth + 8; gy2 += 8) {
+          for (var gy2 = domePeakY - 8; gy2 <= bottomY + 8; gy2 += 8) {
             ctx.beginPath(); ctx.moveTo(nx - half - 2, gy2); ctx.lineTo(nx + half + 2, gy2); ctx.stroke();
           }
           ctx.restore();
-          // The rim: a heavy gold-edged bar across the mouth.
+          // The dome's ribs, running from its base ring up
+          // toward the peak.
+          ctx.strokeStyle = "rgba(70, 92, 116, 0.55)";
+          ctx.lineWidth = 1.2;
+          [-0.62, -0.31, 0, 0.31, 0.62].forEach(function (rt) {
+            ctx.beginPath();
+            ctx.moveTo(nx + domeHalf * rt, drumTopY);
+            ctx.quadraticCurveTo(nx + domeHalf * rt * 0.72, (drumTopY + domePeakY) / 2, nx + domeHalf * rt * 0.14, domePeakY + 1);
+            ctx.stroke();
+          });
+          // The dome's base ring, in gold.
+          ctx.strokeStyle = "#c9920a";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(nx - domeHalf, drumTopY);
+          ctx.lineTo(nx + domeHalf, drumTopY);
+          ctx.stroke();
+          // The drum's little windows, in a row under the
+          // dome.
+          ctx.fillStyle = "rgba(38, 56, 78, 0.75)";
+          [-0.66, -0.33, 0, 0.33, 0.66].forEach(function (wt) {
+            ctx.fillRect(nx + domeHalf * wt - 1.1, drumTopY + 2.5, 2.2, 5.5);
+          });
+          // The lantern on the dome's peak — the basket's
+          // highest point, a tiny column and crown where
+          // the Statue of Freedom stands on the real dome.
+          ctx.fillStyle = "#2c3e55";
+          ctx.fillRect(nx - 2.4, domePeakY - 4.5, 4.8, 4.5);
+          ctx.strokeStyle = "#2c3e55";
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.moveTo(nx, domePeakY - 4.5);
+          ctx.lineTo(nx, domePeakY - 9.5);
+          ctx.stroke();
+          ctx.beginPath(); ctx.arc(nx, domePeakY - 10.5, 1.7, 0, Math.PI * 2); ctx.fill();
+          // The wings' entablature lines and their columns,
+          // one run on each side of the drum.
+          ctx.strokeStyle = "rgba(70, 92, 116, 0.5)";
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(nx - half + 5, mouthY + 7);
+          ctx.lineTo(nx - domeHalf - 4, mouthY + 7);
+          ctx.moveTo(nx + domeHalf + 4, mouthY + 7);
+          ctx.lineTo(nx + half - 5, mouthY + 7);
+          ctx.stroke();
+          [-1, 1].forEach(function (side) {
+            for (var ci = 0; ci < 3; ci++) {
+              var cxp = nx + side * (domeHalf + 10 + ci * ((half - domeHalf - 16) / 2));
+              ctx.beginPath(); ctx.moveTo(cxp, mouthY + 10); ctx.lineTo(cxp, bottomY - 3); ctx.stroke();
+            }
+          });
+          // The gold rim, riding the Capitol roofline from
+          // grip to grip: a heavy dark under-stroke with
+          // the gold line over it, the net's rim as it was —
+          // now bent over the dome.
+          function rooflinePath(off) {
+            ctx.beginPath();
+            ctx.moveTo(nx - half, mouthY + off);
+            ctx.lineTo(nx - domeHalf, mouthY + off);
+            ctx.lineTo(nx - domeHalf, drumTopY + off);
+            ctx.bezierCurveTo(nx - domeHalf, drumTopY - 12 + off, nx - domeHalf * 0.42, domePeakY + off, nx, domePeakY + off);
+            ctx.bezierCurveTo(nx + domeHalf * 0.42, domePeakY + off, nx + domeHalf, drumTopY - 12 + off, nx + domeHalf, drumTopY + off);
+            ctx.lineTo(nx + domeHalf, mouthY + off);
+            ctx.lineTo(nx + half, mouthY + off);
+          }
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
           ctx.strokeStyle = "#14181f";
           ctx.lineWidth = 5;
-          ctx.lineCap = "round";
-          ctx.beginPath();
-          ctx.moveTo(nx - half, mouthY);
-          ctx.quadraticCurveTo(nx, mouthY + 11, nx + half, mouthY);
+          rooflinePath(0);
           ctx.stroke();
           ctx.strokeStyle = "#ffbe1a";
           ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(nx - half, mouthY - 2);
-          ctx.quadraticCurveTo(nx, mouthY + 9, nx + half, mouthY - 2);
+          rooflinePath(-2);
           ctx.stroke();
           // The basket's outline under the rim.
+          basketPath();
           ctx.strokeStyle = "rgba(20, 24, 31, 0.8)";
           ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(nx - half, mouthY);
-          ctx.lineTo(nx - half + 10, mouthY + depth);
-          ctx.quadraticCurveTo(nx, mouthY + depth + 9, nx + half - 10, mouthY + depth);
-          ctx.lineTo(nx + half, mouthY);
           ctx.stroke();
           ctx.lineCap = "butt";
-          // Its name, stamped across the basket's front.
+          ctx.lineJoin = "miter";
+          // Its name, stamped on a navy plaque across the
+          // basket's front, centred under the drum between
+          // the wings — the plate keeps the lettering
+          // legible over the pale marble.
+          var plaqueW = 60, plaqueH = 16, plaqueY = mouthY + depth / 2 + 3;
+          ctx.fillStyle = "rgba(10, 18, 34, 0.92)";
+          ctx.beginPath();
+          if (ctx.roundRect) ctx.roundRect(nx - plaqueW / 2, plaqueY - plaqueH / 2, plaqueW, plaqueH, 8);
+          else ctx.rect(nx - plaqueW / 2, plaqueY - plaqueH / 2, plaqueW, plaqueH);
+          ctx.fill();
+          ctx.strokeStyle = "rgba(255, 190, 26, 0.75)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
           ctx.font = "900 11px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
-          ctx.fillStyle = "#ffffff";
-          ctx.strokeStyle = "rgba(10, 14, 20, 0.85)";
-          ctx.lineWidth = 3;
+          ctx.fillStyle = "#ffe9b0";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.strokeText("TNET", nx, mouthY + depth / 2 + 3);
-          ctx.fillText("TNET", nx, mouthY + depth / 2 + 3);
+          ctx.fillText("TNET", nx, plaqueY + 0.5);
           // THE TBOT'S GRIP HANDS over the rim's two ends —
           // both hands ON the gold rim, holding the net.
           var gripR = clamp(botW() * 0.85 * 0.062, 5, 9);
