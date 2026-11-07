@@ -4590,9 +4590,16 @@
         // default: the label
         // reads the switch state, and the track starts inside
         // the player's own tap on CATCH'EM (or on the switch
-        // itself), the way browsers require.
+        // itself), the way browsers require. Once started it
+        // heals itself: any pause the player did not ask for
+        // is resumed (see THE SELF-HEAL below), so the song
+        // cannot silently stop while the switch reads on.
         var musicWanted = true;
         var musicPlaying = false;
+        var musicArmed = false; // a start was asked for from a player's own tap (CATCH'EM, PLAY MY STATE, Catch again, the Music switch)
+        var musicStarted = false; // a start has actually succeeded — the tap unlocked the track
+        var musicHeldBySwitch = false; // the pause on the element right now came from the Music switch itself
+        var musicRetryTimer = null;
         bgMusic.loop = true;
         bgMusic.volume = 0.5;
         if (window.navigator && "audioSession" in window.navigator) {
@@ -4603,18 +4610,65 @@
         }
         function tryStartMusic() {
           if (!musicWanted) return;
+          musicArmed = true;
           try {
             var p = bgMusic.play();
-            if (p && p.then) p.then(function () { musicPlaying = true; }, function () { musicPlaying = false; });
-            else musicPlaying = !bgMusic.paused;
+            if (p && p.then) p.then(function () { musicPlaying = true; musicStarted = true; }, function () { musicPlaying = false; });
+            else { musicPlaying = !bgMusic.paused; if (musicPlaying) musicStarted = true; }
           } catch (e) { musicPlaying = false; }
         }
         function stopMusic() {
+          musicHeldBySwitch = true;
           try { bgMusic.pause(); } catch (e) { /* nothing playing */ }
           musicPlaying = false;
+          musicHeldBySwitch = false;
         }
-        bgMusic.addEventListener("playing", function () { musicPlaying = true; });
-        bgMusic.addEventListener("pause", function () { musicPlaying = false; });
+        // THE SELF-HEAL: the track used to stop for good the
+        // first time anything outside the switch paused it —
+        // the phone's audio session interrupting the element
+        // (the catch pop's own AudioContext grabbing the
+        // session on iOS is the regular trigger), an app
+        // switch, a stall — because nothing ever called
+        // play() again until the next round, while the label
+        // still read "Music: on". Now any pause the player
+        // did not ask for is healed: a debounced retry on the
+        // pause itself, a resume when the page comes back
+        // into view, a resume riding the player's next touch
+        // anywhere (this game is steered by dragging, so a
+        // touch is never far off), and a once-a-second
+        // watchdog over the whole life of the page. The heal
+        // only ever RESUMES a track a player's tap already
+        // started — it never starts the music on its own,
+        // and it never overrides the Music switch: a pause
+        // the switch itself made, or the switch standing at
+        // off, leaves the track stopped.
+        function healMusic() {
+          if (!musicWanted || musicHeldBySwitch || !musicArmed) return;
+          if (typeof document !== "undefined" && document.hidden) return;
+          if (!bgMusic.paused && !bgMusic.ended) return;
+          tryStartMusic();
+        }
+        function queueMusicHeal() {
+          if (musicRetryTimer) return;
+          musicRetryTimer = setTimeout(function () { musicRetryTimer = null; healMusic(); }, 400);
+        }
+        bgMusic.addEventListener("playing", function () { musicPlaying = true; musicStarted = true; });
+        bgMusic.addEventListener("pause", function () {
+          musicPlaying = false;
+          if (!musicHeldBySwitch) queueMusicHeal();
+        });
+        bgMusic.addEventListener("ended", function () { musicPlaying = false; queueMusicHeal(); });
+        bgMusic.addEventListener("stalled", function () { queueMusicHeal(); });
+        bgMusic.addEventListener("error", function () {
+          musicPlaying = false;
+          try { bgMusic.load(); } catch (e) { /* the heal below still makes its try */ }
+          queueMusicHeal();
+        });
+        document.addEventListener("visibilitychange", function () {
+          if (!document.hidden) healMusic();
+        });
+        window.addEventListener("pointerdown", function () { healMusic(); }, true);
+        setInterval(healMusic, 1000);
         musicBtn.addEventListener("click", function () {
           // The switch answers to the LABEL the player sees:
           // reads "on" → off; reads "off" → on, started inside
@@ -4634,6 +4688,7 @@
           return {
             wanted: musicWanted,
             playing: musicPlaying,
+            started: musicStarted,
             engine: "element",
             elementPaused: bgMusic.paused,
             elementTime: bgMusic.currentTime || 0,
