@@ -4600,20 +4600,54 @@
         var musicStarted = false; // a start has actually succeeded — the tap unlocked the track
         var musicHeldBySwitch = false; // the pause on the element right now came from the Music switch itself
         var musicRetryTimer = null;
+        // THE HARD-RESET LEDGER (the iOS no-sound repair):
+        // musicSilentPlays counts play() promises that
+        // RESOLVED while the element still read paused and
+        // no "playing" event had fired — the signature of
+        // a track iOS accepted but never actually sounded.
+        // musicHealStrikes counts heal attempts in a row
+        // that found the element still stopped. Either one
+        // reaching its mark escalates the heal to the hard
+        // reset (see healMusic below), which may fire once
+        // per round — musicHardResetUsed is re-armed by
+        // every beginRound.
+        var musicPlayingEvent = false; // the element's own "playing" event has fired for the latest start
+        var musicSilentPlays = 0;
+        var musicHealStrikes = 0;
+        var musicHardResetUsed = false;
         bgMusic.loop = true;
         bgMusic.volume = 0.3;
-        if (window.navigator && "audioSession" in window.navigator) {
-          try { window.navigator.audioSession.type = "playback"; } catch (e) { /* older browser — nothing to set */ }
+        function assertPlaybackSession() {
+          if (window.navigator && "audioSession" in window.navigator) {
+            try { window.navigator.audioSession.type = "playback"; } catch (e) { /* older browser — nothing to set */ }
+          }
         }
+        assertPlaybackSession();
         function setMusicLabel() {
           musicBtn.textContent = musicWanted ? "Music: on" : "Music: off";
         }
         function tryStartMusic() {
           if (!musicWanted) return;
           musicArmed = true;
+          musicPlayingEvent = false;
           try {
             var p = bgMusic.play();
-            if (p && p.then) p.then(function () { musicPlaying = true; musicStarted = true; }, function () { musicPlaying = false; });
+            if (p && p.then) p.then(function () {
+              if (!bgMusic.paused) {
+                // The element is genuinely sounding (the
+                // "playing" event itself also clears the
+                // ledger when it lands).
+                musicPlaying = true; musicStarted = true;
+                musicSilentPlays = 0; musicHealStrikes = 0;
+              } else if (!musicPlayingEvent) {
+                // play() RESOLVED yet the element still
+                // reads paused and no "playing" event
+                // fired: a silent start — count it toward
+                // the hard-reset escalation.
+                musicPlaying = false;
+                musicSilentPlays++;
+              }
+            }, function () { musicPlaying = false; });
             else { musicPlaying = !bgMusic.paused; if (musicPlaying) musicStarted = true; }
           } catch (e) { musicPlaying = false; }
         }
@@ -4641,18 +4675,61 @@
         // started — it never starts the music on its own,
         // and it never overrides the Music switch: a pause
         // the switch itself made, or the switch standing at
-        // off, leaves the track stopped.
+        // off, leaves the track stopped. And when the plain
+        // retries keep failing — the element still paused,
+        // or play() resolving with no "playing" event — the
+        // heal escalates once per round to THE HARD RESET
+        // below: reload the element, restore the playhead,
+        // re-assert the playback session, and play again.
+        // THE HARD RESET: when ordinary heal retries keep
+        // finding the element stopped — or play() keeps
+        // resolving without a "playing" event — the plain
+        // play() retry is not enough on iOS: the element
+        // itself is wedged in a dead audio session. Once
+        // per round the heal escalates: remember where the
+        // track stands, reload the element (load() tears
+        // down and rebuilds its pipeline), put the playhead
+        // back, re-assert the playback audio session, and
+        // play again. The same guards as every heal apply:
+        // it only ever resumes a track a player's tap
+        // started, and it never overrides the Music switch.
+        function hardResetMusic() {
+          if (!musicWanted || musicHeldBySwitch || !musicArmed) return;
+          var resumeAt = 0;
+          try { resumeAt = bgMusic.currentTime || 0; } catch (e) { resumeAt = 0; }
+          try { bgMusic.load(); } catch (e) { /* the play below still makes its try */ }
+          try { if (resumeAt > 0) bgMusic.currentTime = resumeAt; } catch (e) { /* metadata not back yet — the loop restarts at the top instead */ }
+          assertPlaybackSession();
+          musicSilentPlays = 0;
+          musicHealStrikes = 0;
+          tryStartMusic();
+        }
         function healMusic() {
           if (!musicWanted || musicHeldBySwitch || !musicArmed) return;
           if (typeof document !== "undefined" && document.hidden) return;
-          if (!bgMusic.paused && !bgMusic.ended) return;
+          if (!bgMusic.paused && !bgMusic.ended) { musicHealStrikes = 0; musicSilentPlays = 0; return; }
+          // Every heal attempt re-asserts the playback
+          // audio session before it touches play(): on iOS
+          // the session type can fall back when another
+          // context (the catch pop's, say) has held it.
+          assertPlaybackSession();
+          musicHealStrikes++;
+          if (!musicHardResetUsed && (musicHealStrikes >= 3 || musicSilentPlays >= 2)) {
+            musicHardResetUsed = true;
+            hardResetMusic();
+            return;
+          }
           tryStartMusic();
         }
         function queueMusicHeal() {
           if (musicRetryTimer) return;
           musicRetryTimer = setTimeout(function () { musicRetryTimer = null; healMusic(); }, 400);
         }
-        bgMusic.addEventListener("playing", function () { musicPlaying = true; musicStarted = true; });
+        bgMusic.addEventListener("playing", function () {
+          musicPlaying = true; musicStarted = true;
+          musicPlayingEvent = true;
+          musicSilentPlays = 0; musicHealStrikes = 0;
+        });
         bgMusic.addEventListener("pause", function () {
           musicPlaying = false;
           if (!musicHeldBySwitch) queueMusicHeal();
@@ -4770,8 +4847,20 @@
             roundBeat = { caught: readCatchBest(filter), missed: null };
           }
           rankCardSeq++; // a fresh round supersedes any rank chain still reading for the last card
-          tryStartMusic();
+          // ORDERING (the iOS no-sound repair): the catch
+          // pop's WebAudio context is primed FIRST, so it
+          // grabs and resumes the phone's audio session
+          // before the music starts — nothing may seize the
+          // session after the music element is under way
+          // (a context resuming over a just-started element
+          // is what left the track silent on iOS). The
+          // hard-reset escalation also re-arms here: one
+          // hard reset per round.
+          musicHardResetUsed = false;
+          musicHealStrikes = 0;
+          musicSilentPlays = 0;
           primeChimeAudio();
+          tryStartMusic();
           packOn = true;
           packPols = [];
           packFx = [];
