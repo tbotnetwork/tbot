@@ -4600,7 +4600,8 @@
         // Diagnosis settled: the WebAudio path works on his
         // phone, the media-element path does not. So the music
         // now rides the path that works: the SAME full clip is
-        // fetched and decoded ONCE into an AudioBuffer, then
+        // decoded ONCE from its embedded base64 into an
+        // AudioBuffer, then
         // looped end to end through an AudioBufferSourceNode
         // and a GainNode at 0.3, on popCtx — the very context
         // primeChimeAudio / playBubblePop use — never a second,
@@ -4626,7 +4627,7 @@
         var musicStarted = false; // a start has actually sounded
         var musicArmed = false; // a start was asked for from a player's own tap (CATCH'EM, PLAY MY STATE, Catch again, the Music switch)
         var musicStartPending = false; // a start from a tap is in flight (clip decoding, or the context still resuming)
-        var musicBuffer = null; // the decoded clip — fetched and decoded once, then reused by every start
+        var musicBuffer = null; // the decoded clip — decoded once from the embedded base64, then reused by every start
         var musicBufferRequested = false;
         var musicBufferWaiters = [];
         var musicSource = null; // the live AudioBufferSourceNode, when one is rolling
@@ -4675,10 +4676,31 @@
           }
           return true;
         }
-        // Fetch + decode the clip once; every later start
-        // reuses the decoded buffer. A failed load clears its
-        // own request flag so the player's next tap can retry
-        // — no silent one-shot failure.
+        // Decode the clip once from the base64 embedded in
+        // MUSIC_SRC; every later start reuses the decoded
+        // buffer. NO fetch, NO XHR, no network API anywhere
+        // in this load path: iOS Safari will not fetch a
+        // data: URL, so the old loader's request rejected
+        // before decodeAudioData was ever reached
+        // and no AudioBuffer ever existed — while the catch
+        // pop, being synthesized, never fetched and always
+        // sounded. The payload becomes bytes through atob,
+        // converted in chunks so the ~840KB clip never rides
+        // one giant call. A failed decode clears its own
+        // request flag (see finish) so the player's next tap
+        // retries the decode — no silent one-shot failure.
+        function musicClipBytes() {
+          var b64 = MUSIC_SRC.slice(MUSIC_SRC.indexOf(",") + 1);
+          var bin = atob(b64);
+          var len = bin.length;
+          var bytes = new Uint8Array(len);
+          var CHUNK = 8192;
+          for (var start = 0; start < len; start += CHUNK) {
+            var end = Math.min(start + CHUNK, len);
+            for (var i = start; i < end; i++) bytes[i] = bin.charCodeAt(i);
+          }
+          return bytes.buffer;
+        }
         function loadMusicBuffer(done) {
           if (musicBuffer) { if (done) done(true); return; }
           if (done) musicBufferWaiters.push(done);
@@ -4693,14 +4715,9 @@
             }
           };
           try {
-            fetch(MUSIC_SRC).then(function (resp) {
-              if (!resp || !resp.ok) throw new Error("music fetch failed");
-              return resp.arrayBuffer();
-            }).then(function (bytes) {
-              var p = popCtx.decodeAudioData(bytes);
-              if (p && p.then) p.then(function (buf) { musicBuffer = buf; finish(true); }, function () { finish(false); });
-              else finish(false);
-            }, function () { finish(false); });
+            var p = popCtx.decodeAudioData(musicClipBytes());
+            if (p && p.then) p.then(function (buf) { musicBuffer = buf; finish(true); }, function () { finish(false); });
+            else finish(false);
           } catch (e) { finish(false); }
         }
         function stopMusicSource() {
