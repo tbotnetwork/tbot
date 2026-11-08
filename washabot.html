@@ -4586,7 +4586,7 @@
         // "Living in America" — James Brown —
         // the game song, extracted from John's
         // screen recording, looped behind the game at the locked
-        // music level 0.5 for this game. Music is ON by
+        // music level 0.3 for this game. Music is ON by
         // default: the label
         // reads the switch state, and the track starts inside
         // the player's own tap on CATCH'EM (or on the switch
@@ -4601,7 +4601,7 @@
         var musicHeldBySwitch = false; // the pause on the element right now came from the Music switch itself
         var musicRetryTimer = null;
         bgMusic.loop = true;
-        bgMusic.volume = 0.5;
+        bgMusic.volume = 0.3;
         if (window.navigator && "audioSession" in window.navigator) {
           try { window.navigator.audioSession.type = "playback"; } catch (e) { /* older browser — nothing to set */ }
         }
