@@ -2743,18 +2743,20 @@
             ctx.restore();
           }
 
-          // The number tent: a small folded tent card
-          // standing on the table, the way a real restaurant
-          // numbers its tables — a modest card, sized well
-          // inside the table's own footprint (John,
-          // 2026-11-08: the enlarged digits were too large;
-          // the tent and its number stay small and real).
+          // The number tent: a folded tent card standing
+          // on the table, the way a real restaurant numbers
+          // its tables — sized inside the table's own
+          // footprint, and stepped up a notch from the
+          // earlier card (John, 2026-11-08: that card's
+          // numbers read a bit small; the oversized digits
+          // before it were too large, so this lands between
+          // — roughly a third larger, still a real tent).
           // It sits clear of the guests, the place settings
           // and the show label under the table. When the
           // numbers re-deal it pops (numPop), so the change
           // is seen, not just made.
           var pop = 1 + (t.numPop > 0 ? Math.sin(t.numPop * Math.PI) * 0.22 : 0);
-          var tw = r * 0.74 * pop, th = r * 0.52 * pop;
+          var tw = r * 0.94 * pop, th = r * 0.66 * pop;
           var tx = cx - tw / 2, ty = cy - th * 0.42;
           ctx.save();
           ctx.shadowColor = "rgba(20, 10, 4, 0.28)";
@@ -2789,7 +2791,7 @@
           else ctx.rect(tx, ty, tw, th);
           ctx.stroke();
           ctx.fillStyle = "#2b1a12";
-          var numSize = Math.round(th * 0.58);
+          var numSize = Math.round(th * 0.62);
           ctx.font = "900 " + numSize + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
           // Fit guard: if a two-digit number ever measures
           // wider than the card in the player's font, step the
