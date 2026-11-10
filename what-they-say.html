@@ -975,6 +975,26 @@
       }
       .rankline{ margin-top:7px; font-weight:800; font-size:15px; letter-spacing:.03em; color:var(--ink); min-height:19px; }
       .rankline.note{ font-weight:600; font-size:13.5px; color:var(--ink-soft); }
+      /* The competition entry button (John's order — the same button
+         and flow as The Last TBOT In): one full-width button directly
+         under the rank line and its badge. A tap makes a picture of
+         this winner card, offers it through the share sheet (or
+         downloads it where sharing files is not available), and
+         opens the @TBOTgamevr DMs so the player can send the picture
+         as their entry (see the competition block in the script).
+         It wears the same face as the card's other full-width
+         buttons (#btnEpisode, the PLAY AGAIN row) and the same
+         medium size, so the whole card still fits one screen with
+         no scrolling. */
+      #competeBtn{
+        display:block; margin-top:8px; width:100%;
+        font-family:"Archivo",sans-serif; font-weight:800; letter-spacing:.06em; font-size:14.5px;
+        border-radius:12px; padding:10px 6px; text-align:center; text-decoration:none;
+        border:2px solid var(--gold-deep);
+        background:linear-gradient(180deg,var(--gold-bright),var(--gold)); color:#1b2440;
+      }
+      #competeBtn:active{ transform:scale(.97); }
+      #competeBtn:focus-visible{ outline:3px solid var(--gold-bright); outline-offset:2px; }
       .card .beatline{ margin-top:4px; font-weight:600; font-size:14.5px; color:var(--ink-soft); }
       .card .beatline b{ color:var(--ink); }
       .lastline{ margin-top:11px; text-align:left; background:rgba(201,151,47,.10); border:1.5px solid var(--gold); border-radius:12px; padding:10px 13px; }
@@ -1220,6 +1240,7 @@
         <div class="playedline" id="cardPlayed"></div>
         <div><span class="badge" id="cardBadge">FIRST LINES IN</span></div>
         <div class="rankline note" id="cardRank" hidden></div>
+        <a id="competeBtn" href="https://ig.me/m/tbotgamevr" target="_blank" rel="noopener noreferrer">Screenshot &amp; upload here</a>
         <div class="lastline" id="cardLastWrap">
           <span class="lab">THE LAST LINE</span>
           <div class="txt" id="cardLastLine">&mdash;</div>
@@ -4587,6 +4608,231 @@
           var p = cv.play(); if (p && p.catch) p.catch(function(){ cv.onerror(); });
         });
         setTimeout(finish, 16000);
+      });
+
+      /* ================= THE COMPETITION ENTRY PICTURE =================
+         The same button and flow as The Last TBOT In (John's order):
+         tapping "Screenshot & upload here" on the winner card makes a
+         PICTURE of this card for the @TBOTgamevr competition. The tap
+         does three things:
+           1. It draws the card — the result title, the score, the
+              played line, the last line and its show, the rank line,
+              and the badge — onto an offscreen canvas and turns it
+              into a 1080px-wide PNG image, drawn locally in the page.
+           2. On devices that can share files, the picture opens in
+              the share sheet so the player can send it; where file
+              sharing is not available, the picture downloads to the
+              device instead.
+           3. It opens the competition DM (the button's own href,
+              https://ig.me/m/tbotgamevr) in a new tab, so the player
+              can send the picture to @TBOTgamevr as their entry.
+         Instagram takes no message from a game on a player's behalf —
+         the send itself is the player's tap in the DM — so the
+         button's job is to put the picture in their hands and the DM
+         in front of them in one tap. The game itself sends no data
+         anywhere in this flow. The picture is a snapshot of the card
+         as it stands at the tap: a line the card is not showing (no
+         last line, the rank fallback note, a badge with no real rank
+         behind it) is not drawn. The DM tab opens synchronously
+         inside the tap and the share follows the moment the PNG is
+         encoded, so both ride the tap's user activation — and
+         nothing here can throw: a failed share falls back to the
+         download, and a blocked tab still leaves the player their
+         picture. */
+      var competeBtn = document.getElementById("competeBtn");
+      var competeShare = null; /* read-only test record of the latest entry tap (see TBOTCompete below) */
+      window.TBOTCompete = function(){ return competeShare; };
+
+      function roundedRectPath(g, x, y, w, h, r){
+        g.beginPath();
+        g.moveTo(x + r, y);
+        g.arcTo(x + w, y, x + w, y + h, r);
+        g.arcTo(x + w, y + h, x, y + h, r);
+        g.arcTo(x, y + h, x, y, r);
+        g.arcTo(x, y, x + w, y, r);
+        g.closePath();
+      }
+
+      /* The picture's contents, read off the card as it stands right
+         now: exactly the lines the player sees. The rank fallback
+         note ("couldn't be loaded") is not a rank and is left off;
+         the badge rides only with a real rank. */
+      function competeCardLines(){
+        var rankEl2 = document.getElementById("cardRank");
+        var rankShown = !!rankEl2 && !rankEl2.hidden && !rankEl2.classList.contains("note") && !!rankEl2.textContent;
+        var playedEl2 = document.getElementById("cardPlayed");
+        var wrapEl2 = document.getElementById("cardLastWrap");
+        var badgeEl2 = document.getElementById("cardBadge");
+        var countEl2 = document.getElementById("cardCount");
+        var labelEl2 = document.getElementById("cardBigLabel");
+        return {
+          show: lastQuote ? (lastQuote.show || "") : "",
+          result: document.getElementById("cardTitle").textContent || "",
+          score: (((countEl2 ? countEl2.textContent : "") + " " + (labelEl2 ? labelEl2.textContent : "")).replace(/\s+/g, " ")).replace(/^\s+|\s+$/g, ""),
+          played: playedEl2 && playedEl2.style.display !== "none" ? (playedEl2.textContent || "") : "",
+          lastLine: lastQuote && wrapEl2 && wrapEl2.style.display !== "none" ? (document.getElementById("cardLastLine").textContent || "") : "",
+          rank: rankShown ? rankEl2.textContent : "",
+          tier: rankShown && badgeEl2 ? (badgeEl2.textContent || "") : ""
+        };
+      }
+
+      /* Draw the winner card as one picture and hand back its PNG
+         bytes. The layout mirrors this card: its cream face inside a
+         gold border, the game title and result in the show type, the
+         score in gold, the rank in ink, the badge as the same gold
+         pill the card wears. The canvas is 1080px wide and sized to
+         its content, so every line the card shows is on the picture —
+         nothing clipped, nothing invented. */
+      function buildCompeteImage(lines){
+        var Wpx = 1080, PAD = 84;
+        var DISPLAY = '"Bungee","Archivo Black",sans-serif';
+        var BODY = '"Archivo",system-ui,sans-serif';
+        var measure = document.createElement("canvas").getContext("2d");
+        function wrap(text, font){
+          measure.font = font;
+          var words = String(text).split(/\s+/), out = [], cur = "";
+          for (var wi = 0; wi < words.length; wi++){
+            var trial = cur ? cur + " " + words[wi] : words[wi];
+            if (cur && measure.measureText(trial).width > Wpx - PAD * 2){ out.push(cur); cur = words[wi]; }
+            else cur = trial;
+          }
+          if (cur) out.push(cur);
+          return out;
+        }
+        var titleF = "44px " + DISPLAY, resultF = "54px " + DISPLAY,
+            scoreF = "800 52px " + BODY, playedF = "700 36px " + BODY,
+            labelF = "800 30px " + BODY, showF = "800 58px " + BODY,
+            lineF = "700 42px " + BODY, rankF = "800 46px " + BODY,
+            tierF = "800 38px " + BODY;
+        /* Stack the blocks top to bottom with the card's own rhythm —
+           each block carries its height and the gap that follows it —
+           then size the canvas to the stack. */
+        var blocks = [], contentH = 0;
+        function addText(text, font, color, lh, gapAfter){
+          var ls = wrap(text, font);
+          blocks.push({ kind: "text", font: font, color: color, lines: ls, lh: lh, gap: gapAfter });
+          contentH += ls.length * lh + gapAfter;
+        }
+        addText("WHAT TBOT SAY!?", titleF, "#8a5f14", 56, lines.result ? 30 : 0);
+        if (lines.result) addText(lines.result, resultF, "#1c1440", 68, lines.score ? 18 : 0);
+        if (lines.score) addText(lines.score, scoreF, "#8a5f14", 64, lines.played ? 14 : (lines.show || lines.lastLine || lines.rank ? 30 : 0));
+        if (lines.played) addText(lines.played, playedF, "#55497a", 46, (lines.show || lines.lastLine) ? 30 : 0);
+        if (lines.show){
+          addText("THE LAST LINE WAS FROM", labelF, "#8a5f14", 38, 10);
+          addText(lines.show, showF, "#1c1440", 70, lines.lastLine ? 12 : (lines.rank ? 30 : 0));
+        }
+        if (lines.lastLine) addText(lines.lastLine, lineF, "#1c1440", 54, lines.rank ? 30 : 0);
+        if (lines.rank) addText(lines.rank, rankF, "#1c1440", 58, lines.tier ? 26 : 0);
+        if (lines.tier){
+          measure.font = tierF;
+          blocks.push({ kind: "tier", w: Math.ceil(measure.measureText(lines.tier).width) + 72, gap: 0 });
+          contentH += 66;
+        }
+        var pic = document.createElement("canvas");
+        pic.width = Wpx;
+        pic.height = 76 + contentH + 60;
+        var g = pic.getContext("2d");
+        g.fillStyle = "#fbf7ea";
+        g.fillRect(0, 0, pic.width, pic.height);
+        g.strokeStyle = "#c9972f";
+        g.lineWidth = 6;
+        roundedRectPath(g, 22, 22, pic.width - 44, pic.height - 44, 30);
+        g.stroke();
+        g.textAlign = "center";
+        g.textBaseline = "middle";
+        var cy = 76;
+        for (var bi = 0; bi < blocks.length; bi++){
+          var b = blocks[bi];
+          if (b.kind === "tier"){
+            var tx = (Wpx - b.w) / 2;
+            g.fillStyle = "#f2c14e";
+            g.strokeStyle = "#8a5f14";
+            g.lineWidth = 5;
+            roundedRectPath(g, tx, cy, b.w, 66, 33);
+            g.fill();
+            g.stroke();
+            g.fillStyle = "#1b2440";
+            g.font = tierF;
+            g.fillText(lines.tier, Wpx / 2, cy + 35);
+            cy += 66 + b.gap;
+          } else {
+            g.font = b.font;
+            g.fillStyle = b.color;
+            for (var li = 0; li < b.lines.length; li++){
+              g.fillText(b.lines[li], Wpx / 2, cy + b.lh / 2);
+              cy += b.lh;
+            }
+            cy += b.gap;
+          }
+        }
+        return pic;
+      }
+
+      competeBtn.addEventListener("click", function(ev){
+        ev.preventDefault();
+        var lines = competeCardLines();
+        var rec = {
+          show: lines.show, result: lines.result, score: lines.score, played: lines.played,
+          rank: lines.rank, tier: lines.tier,
+          shared: false, downloaded: false, dmOpened: false, width: 0, height: 0
+        };
+        competeShare = rec;
+        var opened = null;
+        try { opened = window.open(competeBtn.href, "_blank", "noopener"); } catch (e) { /* the picture below still goes out */ }
+        rec.dmOpened = !!opened;
+        var pic = null, url = null;
+        try { pic = buildCompeteImage(lines); } catch (e) { pic = null; }
+        if (!pic) return;
+        rec.width = pic.width;
+        rec.height = pic.height;
+        function download(){
+          try {
+            var a = document.createElement("a");
+            a.href = url;
+            a.download = "what-tbot-say-winner-card.png";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            rec.downloaded = true;
+            setTimeout(function(){ try { window.URL.revokeObjectURL(url); } catch (e) { /* already gone */ } }, 5000);
+          } catch (e) { /* no route left on this device — the DM is still open */ }
+        }
+        function offer(blob){
+          if (!blob) return;
+          url = window.URL.createObjectURL(blob);
+          var file = null;
+          try { file = new File([blob], "what-tbot-say-winner-card.png", { type: "image/png" }); } catch (e) { file = null; }
+          if (file && navigator.canShare && navigator.share){
+            var payload = { files: [file] };
+            var can = false;
+            try { can = navigator.canShare(payload); } catch (e) { can = false; }
+            if (can){
+              var sp = null;
+              try { sp = navigator.share(payload); } catch (e) { sp = null; }
+              if (sp && sp.then){
+                sp.then(function(){ rec.shared = true; }, function(err){
+                  /* A dismissed sheet is the player's choice —
+                     anything else (the browser refusing the share)
+                     falls back to the download, so the picture still
+                     reaches them. */
+                  if (!err || err.name !== "AbortError") download();
+                });
+                return;
+              }
+            }
+          }
+          download();
+        }
+        if (pic.toBlob){
+          try { pic.toBlob(offer, "image/png"); return; } catch (e) { /* fall through to the data-URL route */ }
+        }
+        try {
+          var parts = pic.toDataURL("image/png").split(",");
+          var bin = window.atob(parts[1]);
+          var bytes = new Uint8Array(bin.length);
+          for (var i2 = 0; i2 < bin.length; i2++) bytes[i2] = bin.charCodeAt(i2);
+          offer(new Blob([bytes], { type: "image/png" }));
+        } catch (e) { /* no picture route on this device — the DM is still open */ }
       });
 
       buildTags(QUOTES);
