@@ -186,7 +186,7 @@
       /* THE BACKGROUND IS THE TIME GOING OUT (John's call): while a
          round runs, the lit studio background itself goes out with
          the clock — a gold light that drains away as the seconds go
-         (--tf = the fraction of the 2:00 left, set by paintClock),
+         (--tf = the fraction of the 2:15 left, set by paintClock),
          the room dimming behind it, until at the buzzer the
          background has gone dark. In the last seconds it burns hot. */
       .timebg{
@@ -1402,7 +1402,7 @@
          re-verified against the episode audio word by word. Unverifiable
          lines never ship. QUOTES is the whole verified pool, drawn from
          across the channel's catalog (multiple episodes per show where
-         the catalog yields them) — a PLAY round is a 2:00 run to
+         the catalog yields them) — a PLAY round is a 2:15 run to
          the buzzer on exactly fifteen tickets: play one and fourteen remain, then
          13-12-…-1, no refills and no repeats inside a round, and the
          round's score is your best streak.
@@ -1735,7 +1735,7 @@
         queuePreload(q.sa, "audio/mpeg"); queuePreload(q.pa, "audio/mpeg");
       });
       var STAGE_N = 15;         /* tickets in a PLAY round — John's call (2026-11-01): fifteen, and the round is won by getting 5 right in a row among them */
-      var ROUND_SECONDS = 120;  /* the PLAY buzzer: 2 minutes, counting down — John's call (2026-11-12): the clock the streak runs against */
+      var ROUND_SECONDS = 135;  /* the PLAY buzzer: 2 minutes 15 seconds, counting down — John's call (2026-11-12): the clock the streak runs against */
       /* The dealer's per-round caps, scaled with the round: at five
          tickets they were ≤2 a show, ≤2 for the big two together,
          ≤1 an episode, ≥4 distinct shows. At fifteen the same
@@ -2500,13 +2500,13 @@
       try { bestStreakBest = parseInt(localStorage.getItem("what-they-say-best-streak") || "0", 10) || 0; } catch (e) { bestStreakBest = 0; }
       var lastTick = 0, rafId = null;
       var revealTimer = null;
-      var timeLeft = ROUND_SECONDS, shownLeft = -1;   /* PLAY clock: counts DOWN from 2:00 to the buzzer */
+      var timeLeft = ROUND_SECONDS, shownLeft = -1;   /* PLAY clock: counts DOWN from 2:15 to the buzzer */
       var clockDead = false, autoPass = false;
-      var clockStarted = false;   /* the clock starts when the FIRST ticket is tapped (John's call): it sits at the full 2:00 while the dealt tickets wait on the ball, and only the first dealMoment of the round sets it running */
+      var clockStarted = false;   /* the clock starts when the FIRST ticket is tapped (John's call): it sits at the full 2:15 while the dealt tickets wait on the ball, and only the first dealMoment of the round sets it running */
       var completedMoments = 0;   /* moments whose reveal finished this round (the scorebook post gate) */
       var deck = [];              /* always empty in PLAY: no refill — the dealt tickets are the round */
       var roundDealtIds = [];     /* the ids dealWindow served for the PLAY round in progress: the round's unplayed tickets are returned to the bag when the round ends (see returnUnplayedTickets) */
-      var elapsedAtEnd = 0;       /* seconds the round actually took, captured when it ends (≤ 120) */
+      var elapsedAtEnd = 0;       /* seconds the round actually took, captured when it ends (≤ 135) */
       var best = 0, bestSecs = null;
       try {
         best = parseInt(localStorage.getItem("what-they-say-best") || "0", 10) || 0;
@@ -3998,7 +3998,7 @@
          PLAY (and FREE SAY) are served by the manager: he slides the
          tickets through the booth slot — about a second, never a
          cutscene — and only as they land on the stage does the round
-         actually start. The 2:00 buzzer clock does NOT start here:
+         actually start. The 2:15 buzzer clock does NOT start here:
          it starts when the first ticket is tapped (see dealMoment).
          Reduced motion stills the beat entirely: the tickets simply land. */
       var handingOver = false, handoverTimer = null;
@@ -4086,7 +4086,7 @@
         var idx = remaining.indexOf(q);
         if (idx < 0) return;
         /* THE CLOCK STARTS HERE (John's call): the first ticket tapped
-           in a PLAY round starts the 2:00 countdown — not PLAY, not
+           in a PLAY round starts the 2:15 countdown — not PLAY, not
            the handover, not the tickets landing. Later taps in the
            same round leave the running clock alone. FREE SAY has no
            clock, so it never touches this. */
@@ -4448,7 +4448,7 @@
         badge.textContent = "FIRST LINES IN";
         /* ---- rank row: timed PLAY rounds with at least one completed
            moment post the round's best streak + the actual elapsed
-           seconds (≤ 120; a buzzer-killed round posts 120, an early
+           seconds (≤ 135; a buzzer-killed round posts 135, an early
            finish posts its real time) to the scorebook, then read the
            board back for this player's standing. FREE SAY never
            posts. The board is a standing ranking only — no contest,
