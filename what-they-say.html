@@ -466,11 +466,17 @@
         .stage.handover .slot-ticket, .stage.handover .mgr{ animation:none !important; }
       }
       @media (max-height:740px){
-        .booth-wrap{ padding-bottom:48px; }
+        .booth-wrap{ padding-top:18px; padding-bottom:20px; }
         .marquee{ padding:5px 10px 7px; }
         .marquee .m-title{ font-size:clamp(20px,5.7vw,28px); }
         .booth-body{ padding:8px 10px 6px; }
         .counter{ padding:7px 10px 8px; }
+        /* the preview copy clamps to two lines at short heights,
+           so a long show name + cue can't push the booth's foot
+           (and its beat pill) down out of the stage */
+        .preview .pv-show{
+          display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+        }
       }
       /* Very short screens (an in-app webview can leave the stage
          barely 400px tall): shrink the booth itself so it fits its
@@ -478,15 +484,48 @@
          screen at the top and the counter pill stays fully inside
          the booth, never clipped at either edge */
       @media (max-height:640px){
-        .booth-wrap{ padding-top:16px; }
+        /* SHORT-SCREEN LOBBY, WHOLE BOOTH IN FRAME (John's flag —
+           "You have to beat streak line is Hidden"): on his phone
+           the app shell leaves the stage barely ~300px tall, and
+           even the tightened booth above ran taller than that —
+           the booth started at the marquee and its foot fell
+           below the stage, so the counter's YOU HAVE TO BEAT THE
+           STREAK pill sat hidden behind the bottom bar, reachable
+           only by scrolling the booth. Scrolling is not visibility:
+           at this height the booth itself compacts until the whole
+           booth — marquee, host, preview and the beat pill — fits
+           inside the stage at once. The savings come from the
+           preview screen (sized by the height budget through its
+           width, so it stays a true 16:9, never flattened), the
+           preview copy (two clamped lines), slimmer marquee bulbs
+           and title logo, and a tighter counter — the host figure
+           meet-scales inside its window as one unit, undistorted,
+           and nothing about the pill's wording or styling changes. */
+        .booth-wrap{ padding:10px 8px 12px; }
         .marquee{ padding:4px 10px 5px; }
+        .marquee .bulbs{ height:7px; background-size:22px 7px; }
         .marquee .m-title{ font-size:clamp(17px,5vw,21px); }
-        .booth-body{ padding:6px 8px 4px; }
+        .marquee .m-title .title-logo{ height:1.3em; }
+        .booth-body{ padding:6px 8px 4px; gap:8px; }
+        .preview{ gap:3px; }
+        .preview .pv-label{ font-size:8px; line-height:1.25; }
+        .preview .pv-screen{ width:min(100%, 23dvh); align-self:center; }
+        .preview .pv-show{ font-size:10.5px; line-height:1.25; }
         .counter{ padding:6px 8px 7px; }
+        .counter .slot{ width:92px; height:7px; }
         .counter .counter-line{ font-size:10.5px; margin-top:4px; }
+        .beat-pill{ margin-top:5px; font-size:11px; padding:4px 12px 4px calc(12px + .18em); }
+        .beat-pill b{ font-size:12.5px; }
       }
       @media (max-height:560px){
         .preview .pv-label{ display:none; }
+        /* the shortest screens give the preview copy one line and
+           the screen a smaller share of the height budget, so the
+           beat pill still clears the bottom bar */
+        .preview .pv-screen{ width:min(100%, 19dvh); }
+        .preview .pv-show{ -webkit-line-clamp:1; }
+        .counter .counter-line{ margin-top:3px; }
+        .beat-pill{ margin-top:4px; }
       }
       .sign .name{
         display:inline-flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:2px 9px;
