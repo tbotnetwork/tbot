@@ -1066,19 +1066,6 @@
       .lastline .lab{ font-size:10px; font-weight:800; letter-spacing:.26em; color:var(--gold-deep); }
       .lastline .txt{ font-size:16.5px; font-weight:800; line-height:1.35; margin-top:3px; }
       .lastline .from{ margin-top:4px; font-size:12.5px; font-weight:700; color:var(--ink-soft); letter-spacing:.05em; }
-      #cardVideoWrap{ display:none; margin-top:10px; }
-      #cardVideoWrap.on{ display:block; }
-      /* contain, never fill: a card clip that isn't 16:9 letterboxes
-         instead of stretching to the frame (John's squeeze fix) */
-      #cardVideo{ width:100%; aspect-ratio:16/9; object-fit:contain; background:#000; border-radius:10px; display:block; }
-      #btnMoment{
-        margin-top:10px; width:100%;
-        font-family:"Archivo",sans-serif; font-weight:800; letter-spacing:.06em; font-size:14.5px;
-        border-radius:12px; padding:11px 6px; cursor:pointer;
-        border:2px solid var(--gold-deep);
-        background:transparent; color:var(--ink);
-      }
-      #btnMoment:active{ transform:scale(.97); }
       #btnEpisode{
         display:block; margin-top:8px; width:100%;
         font-family:"Archivo",sans-serif; font-weight:800; letter-spacing:.06em; font-size:14.5px;
@@ -1355,8 +1342,6 @@
           <div class="txt" id="cardLastLine">&mdash;</div>
           <div class="from" id="cardLastFrom"></div>
         </div>
-        <div id="cardVideoWrap"><video id="cardVideo" playsinline muted preload="none"></video></div>
-        <button id="btnMoment" type="button">&#9654; WATCH THE MOMENT</button>
         <a id="btnEpisode" href="#" target="_blank" rel="noopener noreferrer">WATCH THE FULL EPISODE &#8599;</a>
         <div class="best" id="cardBest">Your best: <b>0</b> right</div>
         <div class="beatline" id="cardBeat">You have to beat the streak: <b>5</b></div>
@@ -4456,11 +4441,9 @@
           }
         }
         var wrap = document.getElementById("cardLastWrap");
-        var btnMoment = document.getElementById("btnMoment");
         var btnEpisode = document.getElementById("btnEpisode");
         if (lastQuote){
           wrap.style.display = "";
-          btnMoment.style.display = "";
           document.getElementById("cardLastLine").textContent = "“" + cap(lastQuote.setup) + " " + lastQuote.payoff + "”";
           document.getElementById("cardLastFrom").textContent = momentFrom(lastQuote);
           /* full-episode link follows THIS card's last quote: the episode
@@ -4475,9 +4458,7 @@
           }
         } else {
           wrap.style.display = "none";
-          btnMoment.style.display = "none";
           btnEpisode.style.display = "none";
-          document.getElementById("cardVideoWrap").classList.remove("on");
         }
         document.getElementById("cardBest").innerHTML = "Your best streak: <b>" + bestStreakBest + "</b> in a row";
         /* END CARD (Ocean spec): the card opens with the last show's
@@ -4684,56 +4665,12 @@
       });
       document.getElementById("btnAgain").addEventListener("click", function(){
         overlay.classList.remove("open");
-        document.getElementById("cardVideoWrap").classList.remove("on");
-        var cv = document.getElementById("cardVideo"); try { cv.pause(); } catch (e) {}
         startRound();
       });
       document.getElementById("btnLobby").addEventListener("click", function(){
         overlay.classList.remove("open");
-        document.getElementById("cardVideoWrap").classList.remove("on");
-        var cv = document.getElementById("cardVideo"); try { cv.pause(); } catch (e) {}
         toLobby();
       });
-      document.getElementById("btnMoment").addEventListener("click", function(){
-        if (!lastQuote) return;
-        ensureAudio();
-        var wrap = document.getElementById("cardVideoWrap");
-        var cv = document.getElementById("cardVideo");
-        wrap.classList.add("on");
-        voiceStart();
-        var done = false;
-        function finish(){ if (!done){ done = true; voiceEnd(); } }
-        cv.onended = function(){
-          if (cv.dataset.part === "setup"){
-            cv.dataset.part = "payoff";
-            cv.src = blobSrc(lastQuote.pv, "video/mp4", null);
-            cv.muted = false; cv.removeAttribute("muted");
-            var p2 = cv.play(); if (p2 && p2.catch) p2.catch(finish);
-          } else finish();
-        };
-        cv.onerror = function(){
-          /* fall back to the two audio cuts back to back */
-          clipAudio.onended = function(){
-            if (clipAudio.dataset.part === "setup"){
-              clipAudio.dataset.part = "payoff"; clipAudio.src = blobSrc(lastQuote.pa, "audio/mpeg", null); clipAudio.play();
-            } else finish();
-          };
-          clipAudio.dataset.part = "setup"; clipAudio.src = blobSrc(lastQuote.sa, "audio/mpeg", null);
-          var pa = clipAudio.play(); if (pa && pa.catch) pa.catch(finish);
-        };
-        /* same iOS path as the TV: Blob src, silent-primed and unmuted
-           inside this tap before the sound-on start */
-        cv.dataset.part = "setup";
-        cv.src = blobSrc(lastQuote.sv, "video/mp4", null);
-        primeWithSound(cv, function(ok){
-          if (!ok){ cv.onerror(); return; }
-          try { cv.pause(); cv.currentTime = 0; } catch (e) {}
-          cv.muted = false; cv.removeAttribute("muted");
-          var p = cv.play(); if (p && p.catch) p.catch(function(){ cv.onerror(); });
-        });
-        setTimeout(finish, 16000);
-      });
-
       /* ================= THE COMPETITION ENTRY PICTURE =================
          The same button and flow as The Last TBOT In (John's order):
          tapping "Screenshot & upload here" on the winner card makes a
