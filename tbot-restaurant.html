@@ -7,12 +7,12 @@
     <link rel="icon" href="data:," />
     <title>TBOT Restaurant</title>
     <meta name="application-name" content="TBOT Restaurant" />
-    <meta name="theme-color" content="#0b2239" />
+    <meta name="theme-color" content="#062a1e" />
     <meta name="description" content="TBOT Restaurant — you're the TBOT waiter aboard a yacht salon. The kitchen calls a table number; run the plate to the table wearing it. When the yacht rolls on a swell, the tables switch places and the numbers change." />
     <style>
       :root {
         color-scheme: light dark;
-        --page-bg: #0b2239;
+        --page-bg: #062a1e;
         --ink: #2b1a12;
         --ink-soft: rgba(43, 26, 18, 0.66);
         --bar-bg: rgba(255, 251, 244, 0.88);
@@ -25,7 +25,7 @@
       }
       @media (prefers-color-scheme: dark) {
         :root {
-          --page-bg: #06182b;
+          --page-bg: #03170f;
           --ink: #f7ecdd;
           --ink-soft: rgba(247, 236, 221, 0.62);
           --bar-bg: rgba(16, 30, 22, 0.88);
@@ -432,7 +432,7 @@
       .over-prize[hidden] { display: none; }
       .over-prize span {
         display: inline-block;
-        background: #0b1026;
+        background: #052e1f;
         color: #ffbe1a;
         font-weight: 800;
         padding: 8px 16px 10px;
@@ -2212,7 +2212,7 @@
           var kh = kitchenH();
           var gy = groundY();
           var floorTop = kh + (gy - kh) * 0.30;
-          return { y0: kh + 8, y1: floorTop };
+          return { y0: kh + 2, y1: floorTop };
         }
         var gulls = [], leaps = [], nextGullAt = 0, nextLeapAt = 0;
         var seaSeeded = false;
@@ -2252,7 +2252,7 @@
           // The deep surround first: any sliver the rocking
           // room uncovers at a corner reads as shadowed
           // ceiling, never as a hole in the world.
-          ctx.fillStyle = "#081b30";
+          ctx.fillStyle = "#04160f";
           ctx.fillRect(0, 0, W, H);
           ctx.save();
           ctx.beginPath();
@@ -2261,9 +2261,9 @@
           var horizon = band.y0 + (band.y1 - band.y0) * 0.44;
           // Sky.
           var sky = ctx.createLinearGradient(0, band.y0 - 26, 0, horizon);
-          sky.addColorStop(0, "#6fb9ec");
-          sky.addColorStop(0.55, "#a8dcf7");
-          sky.addColorStop(1, "#e8fbff");
+          sky.addColorStop(0, "#79bde9");
+          sky.addColorStop(0.55, "#b5e2f5");
+          sky.addColorStop(1, "#fdeecb");
           ctx.fillStyle = sky;
           ctx.fillRect(0, band.y0 - 26, W, horizon - band.y0 + 26);
           // Sun glow, high over the water.
@@ -2315,9 +2315,9 @@
           ctx.fillRect(boatX - 12, boatY - 2, 29, 2);
           // The sea itself.
           var sea = ctx.createLinearGradient(0, horizon, 0, band.y1 + 26);
-          sea.addColorStop(0, "#3d9cc6");
-          sea.addColorStop(0.5, "#2277a8");
-          sea.addColorStop(1, "#125e8f");
+          sea.addColorStop(0, "#37a892");
+          sea.addColorStop(0.5, "#1e7f8c");
+          sea.addColorStop(1, "#0e5f74");
           ctx.fillStyle = sea;
           ctx.fillRect(0, horizon, W, band.y1 + 26 - horizon);
           ctx.fillStyle = "rgba(255,255,255,0.35)";
@@ -2470,6 +2470,7 @@
         // once, so a round can never hunt a missing number.
         var rockAngle = 0, rockBob = 0;
         var swellStart = -1, swellSwitched = false, swellCount = 0;
+        var lastSwellSwitchAt = 0; // stamp of the last swell table-switch
         var nextSwellAt = performance.now() + 7000;
 
         function updateRock(nowMs) {
@@ -2500,6 +2501,7 @@
         function swellSwitch() {
           if (tables.length < 2) return;
           swellCount++;
+          lastSwellSwitchAt = performance.now();
           var order = [];
           for (var oi = 0; oi < tables.length; oi++) order.push(oi);
           for (var oj = order.length - 1; oj > 0; oj--) {
@@ -2514,8 +2516,17 @@
           layoutTables();
           dealNumbers();
           for (var ni = 0; ni < tables.length; ni++) tables[ni].numPop = 1;
-          if (gameOn && ticketNum != null) {
+          if (gameOn) {
+            // The roll announces itself — and it owns the
+            // banner slot: a party-leave "Numbers changed!"
+            // landing in the same beat is cleared first, so
+            // a swell is never announced as a plain renumber.
+            for (var fi2 = floats.length - 1; fi2 >= 0; fi2--) {
+              if (floats[fi2].text === "Numbers changed!") floats.splice(fi2, 1);
+            }
             addFloat(W / 2, kitchenH() + 34, "The yacht rolled — tables switched!", "#ffd166");
+          }
+          if (gameOn && ticketNum != null) {
             var stillThere = false;
             for (var sj = 0; sj < tables.length; sj++) {
               if (tables[sj].number === ticketNum) { stillThere = true; break; }
@@ -2540,12 +2551,13 @@
           // drew nothing, leaving the opaque wall painted over
           // the sea that drawSea had already drawn underneath.
           var floorTop = kh + (gy - kh) * 0.30;
-          // Wall: deep yacht teak-navy around the glass, lit warmer near the
-          // top where the pendants hang.
+          // Wall: deep emerald lacquer around the glass — the
+          // Sedna palette — lit warmer near the top where the
+          // pendants hang.
           var wall = ctx.createLinearGradient(0, 0, 0, gy);
-          wall.addColorStop(0, "#1b3a54");
-          wall.addColorStop(0.55, "#122a40");
-          wall.addColorStop(1, "#0c1f30");
+          wall.addColorStop(0, "#0d3b2a");
+          wall.addColorStop(0.55, "#082a1e");
+          wall.addColorStop(1, "#051f16");
           ctx.fillStyle = wall;
           ctx.fillRect(0, 0, W, gy);
           // ---------- The panoramic windows ----------
@@ -2557,13 +2569,13 @@
           // Teak mullions with brass edging divide the glass;
           // a faint tint and two glare streaks sit on the
           // panes, the way real glass catches the light.
-          var winY0 = kh + 8, winY1 = floorTop;
+          var winY0 = kh + 2, winY1 = floorTop;
           ctx.save();
           ctx.globalCompositeOperation = "destination-out";
           ctx.fillRect(10, winY0, W - 20, winY1 - winY0);
           ctx.restore();
           // Glass tint and glare, laid back over the holes.
-          ctx.fillStyle = "rgba(186,224,246,0.07)";
+          ctx.fillStyle = "rgba(110,215,175,0.06)";
           ctx.fillRect(10, winY0, W - 20, winY1 - winY0);
           ctx.fillStyle = "rgba(255,255,255,0.05)";
           ctx.beginPath();
@@ -2578,28 +2590,32 @@
           ctx.lineTo(W * 0.84, winY0);
           ctx.lineTo(W * 0.68, winY1);
           ctx.closePath(); ctx.fill();
-          // Mullions: dark teak uprights with a brass edge,
-          // and one horizontal rail at sitting eye height.
-          var mullStep = W >= 620 ? 118 : 92;
-          ctx.fillStyle = "#2c1e11";
+          // Mullions: slim emerald-lacquer uprights with a
+          // brass edge, widely spaced so the glass reads as
+          // one panoramic wall, and one slim horizontal rail
+          // low in the pane — the glass runs floor-to-ceiling,
+          // from just under the pass all the way to the deck.
+          var mullStep = W >= 620 ? 150 : 110;
+          ctx.fillStyle = "#06301f";
           for (var mx = 10 + mullStep; mx < W - 24; mx += mullStep) {
-            ctx.fillRect(mx - 7, winY0, 14, winY1 - winY0);
-            ctx.fillStyle = "#e8c268";
-            ctx.fillRect(mx - 7, winY0, 2.6, winY1 - winY0);
-            ctx.fillStyle = "#2c1e11";
+            ctx.fillRect(mx - 4.5, winY0, 9, winY1 - winY0);
+            ctx.fillStyle = "#d4af37";
+            ctx.fillRect(mx - 4.5, winY0, 2, winY1 - winY0);
+            ctx.fillStyle = "#06301f";
           }
-          var railY = winY0 + (winY1 - winY0) * 0.55;
-          ctx.fillStyle = "#2c1e11";
-          ctx.fillRect(10, railY - 6, W - 20, 12);
-          ctx.fillStyle = "#e8c268";
-          ctx.fillRect(10, railY - 6, W - 20, 2.6);
-          // The outer frame: teak outside, brass inside.
-          ctx.strokeStyle = "#241708";
-          ctx.lineWidth = 10;
+          var railY = winY0 + (winY1 - winY0) * 0.62;
+          ctx.fillStyle = "#06301f";
+          ctx.fillRect(10, railY - 3.5, W - 20, 7);
+          ctx.fillStyle = "#d4af37";
+          ctx.fillRect(10, railY - 3.5, W - 20, 1.8);
+          // The outer frame: deep emerald lacquer outside, a
+          // brass pinstripe inside.
+          ctx.strokeStyle = "#052e1f";
+          ctx.lineWidth = 7;
           ctx.strokeRect(10, winY0, W - 20, winY1 - winY0);
-          ctx.strokeStyle = "#e8c268";
-          ctx.lineWidth = 2.4;
-          ctx.strokeRect(15.5, winY0 + 5.5, W - 31, winY1 - winY0 - 11);
+          ctx.strokeStyle = "#d4af37";
+          ctx.lineWidth = 2.2;
+          ctx.strokeRect(14, winY0 + 4, W - 28, winY1 - winY0 - 8);
 
           // ---------- The wood floor ----------
           // Real planks: narrow boards laid in staggered
@@ -2687,7 +2703,7 @@
             py += plankH;
           }
           // A woven runner rug down the middle aisle — deep
-          // red with a gold border, the boards showing all
+          // emerald with a gold border, the boards showing all
           // around it.
           var rugW = clamp(W * 0.17, 92, 176);
           var rugX = W / 2 - rugW / 2;
@@ -2695,8 +2711,8 @@
           ctx.fillStyle = "rgba(24,9,6,0.35)";
           ctx.fillRect(rugX + 3, rugY + 4, rugW, rugH);
           var rugGrad = ctx.createLinearGradient(0, rugY, 0, rugY + rugH);
-          rugGrad.addColorStop(0, "#263a63");
-          rugGrad.addColorStop(1, "#1a2a4a");
+          rugGrad.addColorStop(0, "#0e4d33");
+          rugGrad.addColorStop(1, "#07381f");
           ctx.fillStyle = rugGrad;
           ctx.fillRect(rugX, rugY, rugW, rugH);
           // The weave: fine horizontal threads and a muted
@@ -2750,7 +2766,7 @@
           ctx.fillRect(0, gy - 90, W, 90);
           ctx.restore();
           // Baseboard where the wainscot meets the floor.
-          ctx.fillStyle = "#241708";
+          ctx.fillStyle = "#04231a";
           ctx.fillRect(0, floorTop - 5, W, 5);
           ctx.fillStyle = "rgba(255,235,190,0.14)";
           ctx.fillRect(0, floorTop - 5, W, 1.2);
@@ -2785,7 +2801,7 @@
 
           // The kitchen pass: a steel counter across the top,
           // three warm pendant lamps, and the KITCHEN sign.
-          ctx.fillStyle = "#0d2318";
+          ctx.fillStyle = "#07301f";
           ctx.fillRect(0, 0, W, kh - 24);
           var steel = ctx.createLinearGradient(0, kh - 26, 0, kh);
           steel.addColorStop(0, "#eef2f4");
@@ -2862,8 +2878,8 @@
             ctx.closePath(); ctx.fill();
             // Crystal drops under the shade, catching the light.
             ctx.fillStyle = "rgba(240,248,255,0.9)";
-            for (var cd = -1; cd <= 1; cd++) {
-              ctx.beginPath(); ctx.arc(lx + cd * 6, 41.5, 1.5, 0, Math.PI * 2); ctx.fill();
+            for (var cd = -2; cd <= 2; cd++) {
+              ctx.beginPath(); ctx.arc(lx + cd * 5, 41.5, 1.5, 0, Math.PI * 2); ctx.fill();
             }
             ctx.fillStyle = "#ffc456";
             ctx.beginPath(); ctx.arc(lx, 39, 3.6, 0, Math.PI * 2); ctx.fill();
@@ -2871,7 +2887,7 @@
           // The sign.
           ctx.font = "800 12px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
           var signW = ctx.measureText("KITCHEN").width + 22;
-          ctx.fillStyle = "#0b1026";
+          ctx.fillStyle = "#052e1f";
           ctx.beginPath();
           if (ctx.roundRect) ctx.roundRect(W / 2 - signW / 2, 8, signW, 21, 6);
           else ctx.rect(W / 2 - signW / 2, 8, signW, 21);
@@ -2910,9 +2926,10 @@
             }
             ctx.save();
             ctx.globalAlpha = gAlpha;
-            // Dining chairs behind each guest — walnut backs
-            // with a curved top rail, two open slats and side
-            // posts, so the guests sit IN something real.
+            // Dining chairs behind each guest — emerald
+            // velvet-upholstered backs with a curved top rail,
+            // two open slats and side posts, so the guests sit
+            // IN something real.
             for (var ci2 = 0; ci2 < t.guests.length; ci2++) {
               var cSide = ci2 === 0 ? -1 : 1;
               var chx = cx + cSide * r * 0.52;
@@ -2925,21 +2942,27 @@
               else ctx.rect(chx - chw / 2 + 2, chy - chh / 2 + 3, chw, chh);
               ctx.fill();
               var chairGrad = ctx.createLinearGradient(0, chy - chh / 2, 0, chy + chh / 2);
-              chairGrad.addColorStop(0, "#774e2b");
-              chairGrad.addColorStop(0.5, "#5a3a1e");
-              chairGrad.addColorStop(1, "#3c2510");
+              chairGrad.addColorStop(0, "#1c6b47");
+              chairGrad.addColorStop(0.5, "#0f5136");
+              chairGrad.addColorStop(1, "#073a24");
               ctx.fillStyle = chairGrad;
               ctx.beginPath();
               if (ctx.roundRect) ctx.roundRect(chx - chw / 2, chy - chh / 2, chw, chh, r * 0.13);
               else ctx.rect(chx - chw / 2, chy - chh / 2, chw, chh);
               ctx.fill();
               // The open slats: two dark gaps with a mid rail.
-              ctx.fillStyle = "rgba(22,11,4,0.6)";
+              ctx.fillStyle = "rgba(3,26,17,0.55)";
               ctx.fillRect(chx - chw * 0.3, chy - chh * 0.18, chw * 0.6, chh * 0.13);
               ctx.fillRect(chx - chw * 0.3, chy + chh * 0.08, chw * 0.6, chh * 0.13);
               // Top-rail highlight and post shading.
               ctx.fillStyle = "rgba(255,222,165,0.28)";
               ctx.fillRect(chx - chw / 2 + 2, chy - chh / 2 + 1.5, chw - 4, 2.2);
+              // Brass nailhead studs along the top rail — the
+              // upholsterer's finish on a fine-dining chair.
+              ctx.fillStyle = "#d4af37";
+              for (var stud = -2; stud <= 2; stud++) {
+                ctx.beginPath(); ctx.arc(chx + stud * chw * 0.16, chy - chh / 2 + 5.5, 1.3, 0, Math.PI * 2); ctx.fill();
+              }
               ctx.fillStyle = "rgba(0,0,0,0.22)";
               ctx.fillRect(chx + chw / 2 - 4, chy - chh / 2 + 3, 2.4, chh - 6);
               ctx.fillRect(chx - chw / 2 + 1.6, chy - chh / 2 + 3, 2.4, chh - 6);
@@ -2960,15 +2983,15 @@
           // skirt below the top edge first (its lower rim in
           // shade), then the top itself lit from the upper
           // left, with soft fold shading running outward.
-          ctx.fillStyle = "#b9c2c8";
+          ctx.fillStyle = "#ddd5c0";
           ctx.beginPath(); ctx.ellipse(cx, cy + r * 0.1, r * 0.99, r * 0.8, 0, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = "#a7b1b8";
+          ctx.fillStyle = "#c8bda2";
           ctx.beginPath(); ctx.ellipse(cx, cy + r * 0.13, r * 0.99, r * 0.78, 0, 0, Math.PI); ctx.fill();
           var cloth = ctx.createRadialGradient(cx - r * 0.38, cy - r * 0.42, r * 0.12, cx, cy, r * 1.08);
           cloth.addColorStop(0, "#ffffff");
-          cloth.addColorStop(0.55, "#eff2f3");
-          cloth.addColorStop(0.85, "#d5dbdf");
-          cloth.addColorStop(1, "#bfc8cd");
+          cloth.addColorStop(0.55, "#f7f2e4");
+          cloth.addColorStop(0.85, "#e2dac4");
+          cloth.addColorStop(1, "#cbc0a4");
           ctx.fillStyle = cloth;
           ctx.beginPath(); ctx.ellipse(cx, cy, r, r * 0.8, 0, 0, Math.PI * 2); ctx.fill();
           // Cloth folds: faint shaded wedges from the centre
@@ -2976,7 +2999,7 @@
           ctx.save();
           ctx.beginPath(); ctx.ellipse(cx, cy, r, r * 0.8, 0, 0, Math.PI * 2); ctx.clip();
           for (var fld = -2; fld <= 2; fld++) {
-            ctx.fillStyle = "rgba(120,132,140,0.07)";
+            ctx.fillStyle = "rgba(122,110,78,0.08)";
             ctx.beginPath();
             ctx.moveTo(cx + fld * r * 0.18, cy - r * 0.05);
             ctx.lineTo(cx + fld * r * 0.3 - r * 0.05, cy + r * 0.82);
@@ -2989,6 +3012,21 @@
           ctx.beginPath(); ctx.ellipse(cx, cy, r, r * 0.8, 0, 0, Math.PI * 2); ctx.stroke();
           ctx.fillStyle = "rgba(255,255,255,0.5)";
           ctx.beginPath(); ctx.ellipse(cx - r * 0.14, cy - r * 0.16, r * 0.55, r * 0.36, -0.15, 0, Math.PI * 2); ctx.fill();
+          // An emerald runner band dressed down the middle
+          // of the cloth, edged with fine gold pinstripes —
+          // the Sedna table dressing.
+          ctx.save();
+          ctx.beginPath(); ctx.ellipse(cx, cy, r, r * 0.8, 0, 0, Math.PI * 2); ctx.clip();
+          var bandGrad = ctx.createLinearGradient(cx - r * 0.17, 0, cx + r * 0.17, 0);
+          bandGrad.addColorStop(0, "#0a4530");
+          bandGrad.addColorStop(0.5, "#11603f");
+          bandGrad.addColorStop(1, "#0a4530");
+          ctx.fillStyle = bandGrad;
+          ctx.fillRect(cx - r * 0.17, cy - r * 0.82, r * 0.34, r * 1.64);
+          ctx.fillStyle = "#d4af37";
+          ctx.fillRect(cx - r * 0.185, cy - r * 0.82, r * 0.022, r * 1.64);
+          ctx.fillRect(cx + r * 0.163, cy - r * 0.82, r * 0.022, r * 1.64);
+          ctx.restore();
           // Place settings: a rimmed plate at each seat, a
           // folded napkin, cutlery lines, a water glass with
           // a glint — and the centrepiece between them.
@@ -2999,20 +3037,23 @@
             ctx.beginPath(); ctx.ellipse(setX, setY + 1.6, r * 0.175, r * 0.11, 0, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = "#eef1f3";
             ctx.beginPath(); ctx.ellipse(setX, setY, r * 0.17, r * 0.11, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.strokeStyle = "#b9c2c8";
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = "#c9a227";
+            ctx.lineWidth = 1.2;
             ctx.stroke();
-            ctx.fillStyle = "#dde3e7";
+            ctx.fillStyle = "#e9e2cf";
             ctx.beginPath(); ctx.ellipse(setX, setY, r * 0.1, r * 0.06, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = "rgba(201,162,39,0.65)";
+            ctx.lineWidth = 0.8;
+            ctx.beginPath(); ctx.ellipse(setX, setY, r * 0.135, r * 0.085, 0, 0, Math.PI * 2); ctx.stroke();
             // Cutlery.
-            ctx.strokeStyle = "#9aa6ad";
+            ctx.strokeStyle = "#caa64f";
             ctx.lineWidth = Math.max(1.2, r * 0.03);
             ctx.beginPath();
             ctx.moveTo(setX - r * 0.24, setY - r * 0.08); ctx.lineTo(setX - r * 0.24, setY + r * 0.09);
             ctx.moveTo(setX + r * 0.24, setY - r * 0.08); ctx.lineTo(setX + r * 0.24, setY + r * 0.09);
             ctx.stroke();
             // Folded napkin.
-            ctx.fillStyle = psi2 < 0 ? "#b03a34" : "#33523f";
+            ctx.fillStyle = psi2 < 0 ? "#0e5f3c" : "#08402a";
             ctx.beginPath();
             ctx.moveTo(setX - r * 0.07, setY - r * 0.26);
             ctx.lineTo(setX + r * 0.07, setY - r * 0.26);
@@ -3030,7 +3071,7 @@
           ctx.beginPath(); ctx.ellipse(cx, cy - r * 0.3, r * 0.13, r * 0.07, 0, 0, Math.PI * 2); ctx.fill();
           ctx.beginPath(); ctx.ellipse(cx - r * 0.08, cy - r * 0.36, r * 0.07, r * 0.05, -0.5, 0, Math.PI * 2); ctx.fill();
           ctx.beginPath(); ctx.ellipse(cx + r * 0.08, cy - r * 0.36, r * 0.07, r * 0.05, 0.5, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = "#7a4a28";
+          ctx.fillStyle = "#a37f33";
           ctx.beginPath(); ctx.ellipse(cx, cy - r * 0.24, r * 0.05, r * 0.045, 0, 0, Math.PI * 2); ctx.fill();
           var flick = 1 + Math.sin(nowMs / 130 + cx) * 0.18;
           var cGlow = ctx.createRadialGradient(cx + r * 0.24, cy - r * 0.3, 1, cx + r * 0.24, cy - r * 0.3, r * 0.3);
@@ -3048,7 +3089,7 @@
             ctx.globalAlpha = clamp(t.plateT * 1.6, 0, 1);
             ctx.fillStyle = "#f4f7f8";
             ctx.beginPath(); ctx.ellipse(cx, cy + r * 0.3, r * 0.3, r * 0.19, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.strokeStyle = "#9fb0b8";
+            ctx.strokeStyle = "#c9a227";
             ctx.lineWidth = 1.4;
             ctx.stroke();
             ctx.fillStyle = "#d8dee2";
@@ -3371,7 +3412,13 @@
           for (var j = 0; j < tables.length; j++) {
             if (tables[j].number === ticketNum) { stillThere = true; break; }
           }
-          addFloat(W / 2, kitchenH() + 30, "Numbers changed!", "#ffd166");
+          // "Numbers changed!" belongs to THIS event alone —
+          // a party leaving and the numbers re-dealt. If a
+          // swell just rolled the room, the roll's own callout
+          // owns the moment and this renumber stays quiet.
+          if (performance.now() - lastSwellSwitchAt > 1400) {
+            addFloat(W / 2, kitchenH() + 30, "Numbers changed!", "#ffd166");
+          }
           if (!stillThere && gameOn) {
             newTicket();
             addFloat(W / 2, kitchenH() + 56, "Table " + oldTicket + " left — new ticket!", "#ffffff");
