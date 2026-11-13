@@ -2211,8 +2211,14 @@
         function windowBand() {
           var kh = kitchenH();
           var gy = groundY();
-          var floorTop = kh + (gy - kh) * 0.30;
-          return { y0: kh + 2, y1: floorTop };
+          // Floor-to-ceiling glass (the Sedna standard): the
+          // window wall runs from just under the kitchen pass
+          // all the way down to the deck line, so the sea is
+          // behind the WHOLE dining floor — both rows of
+          // tables, at every seat. Only the slim deck strip
+          // below this line is solid floor.
+          var deckTop = kh + (gy - kh) * 0.86;
+          return { y0: kh + 2, y1: deckTop };
         }
         var gulls = [], leaps = [], nextGullAt = 0, nextLeapAt = 0;
         var seaSeeded = false;
@@ -2282,7 +2288,7 @@
           ctx.fillStyle = "rgba(255,255,255,0.95)";
           for (var ci3 = 0; ci3 < 4; ci3++) {
             var clx = ((roomHash(ci3 * 3.3 + 0.7) * (W + 320) + nowMs * 0.006 * (1 + ci3 * 0.4)) % (W + 320)) - 160;
-            var cly = band.y0 + 4 + ci3 * 9 + roomHash(ci3 * 7.9) * 8;
+            var cly = band.y0 + 6 + ci3 * 17 + roomHash(ci3 * 7.9) * 22;
             var cls = 0.7 + roomHash(ci3 * 5.1) * 0.7;
             ctx.beginPath(); ctx.ellipse(clx, cly, 40 * cls, 9 * cls, 0, 0, Math.PI * 2); ctx.fill();
             ctx.beginPath(); ctx.ellipse(clx + 22 * cls, cly + 2, 27 * cls, 7 * cls, 0, 0, Math.PI * 2); ctx.fill();
@@ -2324,7 +2330,7 @@
           ctx.fillRect(0, horizon, W, 1.2);
           // Sun glitter: short bright dashes that twinkle
           // and crawl on the water.
-          for (var spi = 0; spi < 48; spi++) {
+          for (var spi = 0; spi < 96; spi++) {
             var spx = roomHash(spi * 7.7 + 1.3) * W;
             var spy = horizon + 4 + roomHash(spi * 3.1 + 0.4) * Math.max(band.y1 - horizon - 8, 6);
             var tw2 = 0.5 + 0.5 * Math.sin(nowMs / 340 + spi * 1.7);
@@ -2334,8 +2340,8 @@
           // Slow wave lines rolling under the windows.
           ctx.strokeStyle = "rgba(255,255,255,0.28)";
           ctx.lineWidth = 2;
-          for (var wv = 0; wv < 3; wv++) {
-            var wy = horizon + 9 + wv * Math.max((band.y1 - horizon) / 3.4, 8);
+          for (var wv = 0; wv < 5; wv++) {
+            var wy = horizon + 9 + wv * Math.max((band.y1 - horizon) / 5.4, 8);
             var wOff = (nowMs * 0.014 * (wv + 1)) % 52;
             ctx.beginPath();
             for (var wx = -52 + wOff; wx < W; wx += 52) {
@@ -2550,7 +2556,13 @@
           // mullions, the frame) got a NaN height and silently
           // drew nothing, leaving the opaque wall painted over
           // the sea that drawSea had already drawn underneath.
-          var floorTop = kh + (gy - kh) * 0.30;
+          // Floor-to-ceiling glass (the Sedna standard): the
+          // deck strip — the only solid floor left — starts
+          // at 86% of the salon's height, so the glass wall
+          // runs from the ceiling line under the pass all the
+          // way down to this deck line, behind and between
+          // every table on the floor.
+          var floorTop = kh + (gy - kh) * 0.86;
           // Wall: deep emerald lacquer around the glass — the
           // Sedna palette — lit warmer near the top where the
           // pendants hang.
@@ -2560,6 +2572,11 @@
           wall.addColorStop(1, "#051f16");
           ctx.fillStyle = wall;
           ctx.fillRect(0, 0, W, gy);
+          // Below the deck line (the toolbar's ground) the
+          // room cache stays solid deep emerald, so the sea
+          // never leaks into the corners beside the toolbar.
+          ctx.fillStyle = "#03170f";
+          ctx.fillRect(0, gy, W, H - gy + 2);
           // ---------- The panoramic windows ----------
           // The salon's glass wall: a yacht dining room is
           // mostly window. The panes are CLEARED out of this
@@ -2592,9 +2609,12 @@
           ctx.closePath(); ctx.fill();
           // Mullions: slim emerald-lacquer uprights with a
           // brass edge, widely spaced so the glass reads as
-          // one panoramic wall, and one slim horizontal rail
-          // low in the pane — the glass runs floor-to-ceiling,
-          // from just under the pass all the way to the deck.
+          // one panoramic wall, running the FULL height of
+          // the glass — from just under the pass all the way
+          // down to the deck line — with two slim horizontal
+          // rails crossing them, so the tall panes read as
+          // one floor-to-ceiling window wall behind every
+          // table, top row and bottom row alike.
           var mullStep = W >= 620 ? 150 : 110;
           ctx.fillStyle = "#06301f";
           for (var mx = 10 + mullStep; mx < W - 24; mx += mullStep) {
@@ -2603,11 +2623,14 @@
             ctx.fillRect(mx - 4.5, winY0, 2, winY1 - winY0);
             ctx.fillStyle = "#06301f";
           }
-          var railY = winY0 + (winY1 - winY0) * 0.62;
-          ctx.fillStyle = "#06301f";
-          ctx.fillRect(10, railY - 3.5, W - 20, 7);
-          ctx.fillStyle = "#d4af37";
-          ctx.fillRect(10, railY - 3.5, W - 20, 1.8);
+          var railFracs = [0.34, 0.68];
+          for (var rfi = 0; rfi < railFracs.length; rfi++) {
+            var railY = winY0 + (winY1 - winY0) * railFracs[rfi];
+            ctx.fillStyle = "#06301f";
+            ctx.fillRect(10, railY - 3.5, W - 20, 7);
+            ctx.fillStyle = "#d4af37";
+            ctx.fillRect(10, railY - 3.5, W - 20, 1.8);
+          }
           // The outer frame: deep emerald lacquer outside, a
           // brass pinstripe inside.
           ctx.strokeStyle = "#052e1f";
@@ -2756,7 +2779,7 @@
             pool.addColorStop(0, "rgba(255,196,86,0.10)");
             pool.addColorStop(1, "rgba(255,196,86,0)");
             ctx.fillStyle = pool;
-            ctx.fillRect(lx2 - 130, floorTop, 260, 190);
+            ctx.fillRect(lx2 - 130, floorTop, 260, Math.min(190, Math.max(gy - floorTop, 10)));
           }
           // The floor falls off into shadow at the very bottom.
           var fShade = ctx.createLinearGradient(0, gy - 90, 0, gy);
@@ -2933,37 +2956,78 @@
             for (var ci2 = 0; ci2 < t.guests.length; ci2++) {
               var cSide = ci2 === 0 ? -1 : 1;
               var chx = cx + cSide * r * 0.52;
-              var chy = cy - r * 1.24 + gSink;
-              var chw = r * 0.8 * gScale, chh = r * 0.68 * gScale;
+              var chy = cy - r * 1.22 + gSink;
+              // The chair back is WIDER and TALLER than the
+              // guest seated in it, so a clear frame of emerald
+              // velvet shows on both sides of the guest and
+              // above their shoulders — the velvet must read
+              // as emerald at game scale, never as a dark body
+              // with a green top.
+              var chw = r * 1.08 * gScale, chh = r * 0.9 * gScale;
               // Chair shadow on the floor/wall behind.
               ctx.fillStyle = "rgba(16,8,3,0.18)";
               ctx.beginPath();
-              if (ctx.roundRect) ctx.roundRect(chx - chw / 2 + 2, chy - chh / 2 + 3, chw, chh, r * 0.13);
+              if (ctx.roundRect) ctx.roundRect(chx - chw / 2 + 2, chy - chh / 2 + 3, chw, chh, r * 0.14);
               else ctx.rect(chx - chw / 2 + 2, chy - chh / 2 + 3, chw, chh);
               ctx.fill();
-              var chairGrad = ctx.createLinearGradient(0, chy - chh / 2, 0, chy + chh / 2);
-              chairGrad.addColorStop(0, "#1c6b47");
-              chairGrad.addColorStop(0.5, "#0f5136");
-              chairGrad.addColorStop(1, "#073a24");
+              // Emerald velvet: a saturated green that stays
+              // green in shadow, lit from the upper left.
+              var chairGrad = ctx.createLinearGradient(chx - chw / 2, chy - chh / 2, chx + chw * 0.3, chy + chh / 2);
+              chairGrad.addColorStop(0, "#2cb06e");
+              chairGrad.addColorStop(0.45, "#129153");
+              chairGrad.addColorStop(1, "#076638");
               ctx.fillStyle = chairGrad;
               ctx.beginPath();
-              if (ctx.roundRect) ctx.roundRect(chx - chw / 2, chy - chh / 2, chw, chh, r * 0.13);
+              if (ctx.roundRect) ctx.roundRect(chx - chw / 2, chy - chh / 2, chw, chh, r * 0.14);
               else ctx.rect(chx - chw / 2, chy - chh / 2, chw, chh);
               ctx.fill();
-              // The open slats: two dark gaps with a mid rail.
-              ctx.fillStyle = "rgba(3,26,17,0.55)";
-              ctx.fillRect(chx - chw * 0.3, chy - chh * 0.18, chw * 0.6, chh * 0.13);
-              ctx.fillRect(chx - chw * 0.3, chy + chh * 0.08, chw * 0.6, chh * 0.13);
-              // Top-rail highlight and post shading.
-              ctx.fillStyle = "rgba(255,222,165,0.28)";
+              // The plush inner panel: a lighter velvet inset
+              // with a soft sheen across its top, and two
+              // tuft buttons — upholstery, not slats, so no
+              // dark gaps break the green up.
+              var panX = chx - chw * 0.36, panY = chy - chh * 0.36;
+              var panW = chw * 0.72, panH = chh * 0.72;
+              var panGrad = ctx.createLinearGradient(0, panY, 0, panY + panH);
+              panGrad.addColorStop(0, "#3cc47e");
+              panGrad.addColorStop(0.55, "#17a05e");
+              panGrad.addColorStop(1, "#0a7a41");
+              ctx.fillStyle = panGrad;
+              ctx.beginPath();
+              if (ctx.roundRect) ctx.roundRect(panX, panY, panW, panH, r * 0.1);
+              else ctx.rect(panX, panY, panW, panH);
+              ctx.fill();
+              var sheen2 = ctx.createRadialGradient(chx - chw * 0.14, panY + panH * 0.2, 1, chx - chw * 0.14, panY + panH * 0.2, chw * 0.5);
+              sheen2.addColorStop(0, "rgba(190,255,215,0.34)");
+              sheen2.addColorStop(1, "rgba(190,255,215,0)");
+              ctx.fillStyle = sheen2;
+              ctx.beginPath();
+              if (ctx.roundRect) ctx.roundRect(panX, panY, panW, panH, r * 0.1);
+              else ctx.rect(panX, panY, panW, panH);
+              ctx.fill();
+              ctx.fillStyle = "rgba(4,64,32,0.65)";
+              ctx.beginPath(); ctx.arc(chx - chw * 0.17, chy - chh * 0.08, Math.max(1.3, r * 0.026), 0, Math.PI * 2); ctx.fill();
+              ctx.beginPath(); ctx.arc(chx + chw * 0.17, chy - chh * 0.08, Math.max(1.3, r * 0.026), 0, Math.PI * 2); ctx.fill();
+              ctx.beginPath(); ctx.arc(chx, chy + chh * 0.18, Math.max(1.3, r * 0.026), 0, Math.PI * 2); ctx.fill();
+              // Top-rail highlight.
+              ctx.fillStyle = "rgba(255,222,165,0.34)";
               ctx.fillRect(chx - chw / 2 + 2, chy - chh / 2 + 1.5, chw - 4, 2.2);
-              // Brass nailhead studs along the top rail — the
-              // upholsterer's finish on a fine-dining chair.
-              ctx.fillStyle = "#d4af37";
-              for (var stud = -2; stud <= 2; stud++) {
-                ctx.beginPath(); ctx.arc(chx + stud * chw * 0.16, chy - chh / 2 + 5.5, 1.3, 0, Math.PI * 2); ctx.fill();
+              // Brass nailhead studs along the top rail AND
+              // down both sides — the upholsterer's finish on
+              // a fine-dining chair, bright enough to catch
+              // the eye at game scale.
+              ctx.fillStyle = "#ffd76a";
+              var studR = Math.max(1.5, r * 0.03);
+              for (var stud = -3; stud <= 3; stud++) {
+                ctx.beginPath(); ctx.arc(chx + stud * chw * 0.135, chy - chh / 2 + 5.5, studR, 0, Math.PI * 2); ctx.fill();
               }
-              ctx.fillStyle = "rgba(0,0,0,0.22)";
+              for (var sstud = 0; sstud < 3; sstud++) {
+                var ssy = chy - chh * 0.18 + sstud * chh * 0.24;
+                ctx.beginPath(); ctx.arc(chx - chw / 2 + 4, ssy, studR, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(chx + chw / 2 - 4, ssy, studR, 0, Math.PI * 2); ctx.fill();
+              }
+              // Post shading, kept light so the frame stays
+              // emerald rather than reading black.
+              ctx.fillStyle = "rgba(0,40,20,0.18)";
               ctx.fillRect(chx + chw / 2 - 4, chy - chh / 2 + 3, 2.4, chh - 6);
               ctx.fillRect(chx - chw / 2 + 1.6, chy - chh / 2 + 3, 2.4, chh - 6);
             }
@@ -3031,39 +3095,76 @@
           // folded napkin, cutlery lines, a water glass with
           // a glint — and the centrepiece between them.
           for (var psi2 = -1; psi2 <= 1; psi2 += 2) {
-            var setX = cx + psi2 * r * 0.44;
-            var setY = cy + r * 0.34;
+            // The settings sit a step wider and a step
+            // toward the viewer than the tent card, so the
+            // plate, flatware and napkin are never swallowed
+            // by the tent — small, but each one distinct.
+            var setX = cx + psi2 * r * 0.52;
+            var setY = cy + r * 0.38;
             ctx.fillStyle = "rgba(90,100,108,0.18)";
-            ctx.beginPath(); ctx.ellipse(setX, setY + 1.6, r * 0.175, r * 0.11, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = "#eef1f3";
-            ctx.beginPath(); ctx.ellipse(setX, setY, r * 0.17, r * 0.11, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.strokeStyle = "#c9a227";
-            ctx.lineWidth = 1.2;
+            ctx.beginPath(); ctx.ellipse(setX, setY + 1.6, r * 0.2, r * 0.125, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "#f4f6f7";
+            ctx.beginPath(); ctx.ellipse(setX, setY, r * 0.19, r * 0.12, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = "#d4af37";
+            ctx.lineWidth = Math.max(1.6, r * 0.03);
             ctx.stroke();
             ctx.fillStyle = "#e9e2cf";
-            ctx.beginPath(); ctx.ellipse(setX, setY, r * 0.1, r * 0.06, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.strokeStyle = "rgba(201,162,39,0.65)";
-            ctx.lineWidth = 0.8;
-            ctx.beginPath(); ctx.ellipse(setX, setY, r * 0.135, r * 0.085, 0, 0, Math.PI * 2); ctx.stroke();
-            // Cutlery.
-            ctx.strokeStyle = "#caa64f";
-            ctx.lineWidth = Math.max(1.2, r * 0.03);
+            ctx.beginPath(); ctx.ellipse(setX, setY, r * 0.115, r * 0.068, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = "rgba(201,162,39,0.8)";
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.ellipse(setX, setY, r * 0.15, r * 0.092, 0, 0, Math.PI * 2); ctx.stroke();
+            // Gold flatware: a fork on the left of the plate,
+            // a knife on the right — solid bright-gold shapes
+            // with real heads, not hairlines, so the gold
+            // reads at game scale against the ivory cloth.
+            var cutW = Math.max(2.6, r * 0.05);
+            var cutTop = setY - r * 0.095, cutBot = setY + r * 0.1;
+            ctx.fillStyle = "#e8bc45";
+            // Fork: handle plus a three-tine head.
+            ctx.fillRect(setX - r * 0.235 - cutW / 2, cutTop + r * 0.05, cutW, cutBot - cutTop - r * 0.05);
+            for (var tine = -1; tine <= 1; tine++) {
+              ctx.fillRect(setX - r * 0.235 + tine * cutW * 0.85 - cutW * 0.32, cutTop, cutW * 0.64, r * 0.055);
+            }
+            ctx.fillRect(setX - r * 0.235 - cutW * 1.1, cutTop + r * 0.045, cutW * 2.2, r * 0.02);
+            // Knife: handle plus a blade that widens upward.
+            ctx.fillRect(setX + r * 0.235 - cutW / 2, cutTop + r * 0.06, cutW, cutBot - cutTop - r * 0.06);
             ctx.beginPath();
-            ctx.moveTo(setX - r * 0.24, setY - r * 0.08); ctx.lineTo(setX - r * 0.24, setY + r * 0.09);
-            ctx.moveTo(setX + r * 0.24, setY - r * 0.08); ctx.lineTo(setX + r * 0.24, setY + r * 0.09);
-            ctx.stroke();
-            // Folded napkin.
-            ctx.fillStyle = psi2 < 0 ? "#0e5f3c" : "#08402a";
-            ctx.beginPath();
-            ctx.moveTo(setX - r * 0.07, setY - r * 0.26);
-            ctx.lineTo(setX + r * 0.07, setY - r * 0.26);
-            ctx.lineTo(setX, setY - r * 0.14);
+            ctx.moveTo(setX + r * 0.235 - cutW * 0.9, cutTop + r * 0.065);
+            ctx.lineTo(setX + r * 0.235 - cutW * 0.9, cutTop + r * 0.005);
+            ctx.quadraticCurveTo(setX + r * 0.235 + cutW * 0.4, cutTop - r * 0.01, setX + r * 0.235 + cutW * 0.9, cutTop + r * 0.03);
+            ctx.lineTo(setX + r * 0.235 + cutW * 0.9, cutTop + r * 0.065);
             ctx.closePath(); ctx.fill();
+            // A glint down each handle.
+            ctx.fillStyle = "rgba(255,246,200,0.85)";
+            ctx.fillRect(setX - r * 0.235 - cutW * 0.18, cutTop + r * 0.07, cutW * 0.36, cutBot - cutTop - r * 0.09);
+            ctx.fillRect(setX + r * 0.235 - cutW * 0.18, cutTop + r * 0.08, cutW * 0.36, cutBot - cutTop - r * 0.1);
+            // Folded emerald napkin ON the plate: a bright
+            // saturated emerald triangle with a gold fold
+            // line — unmistakably green against the white
+            // plate at any table size.
+            ctx.fillStyle = "#0da35c";
+            ctx.beginPath();
+            ctx.moveTo(setX - r * 0.105, setY + r * 0.055);
+            ctx.lineTo(setX + r * 0.105, setY + r * 0.055);
+            ctx.lineTo(setX, setY - r * 0.1);
+            ctx.closePath(); ctx.fill();
+            ctx.fillStyle = "#075c33";
+            ctx.beginPath();
+            ctx.moveTo(setX, setY - r * 0.1);
+            ctx.lineTo(setX + r * 0.105, setY + r * 0.055);
+            ctx.lineTo(setX, setY + r * 0.055);
+            ctx.closePath(); ctx.fill();
+            ctx.strokeStyle = "#d4af37";
+            ctx.lineWidth = Math.max(1.1, r * 0.02);
+            ctx.beginPath();
+            ctx.moveTo(setX - r * 0.105, setY + r * 0.055);
+            ctx.lineTo(setX + r * 0.105, setY + r * 0.055);
+            ctx.stroke();
             // Water glass.
-            ctx.fillStyle = "rgba(190,220,235,0.5)";
-            ctx.beginPath(); ctx.ellipse(setX + psi2 * r * 0.3, setY - r * 0.2, r * 0.055, r * 0.075, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = "rgba(255,255,255,0.75)";
-            ctx.beginPath(); ctx.ellipse(setX + psi2 * r * 0.3 - r * 0.02, setY - r * 0.23, r * 0.016, r * 0.03, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "rgba(190,220,235,0.55)";
+            ctx.beginPath(); ctx.ellipse(setX + psi2 * r * 0.31, setY - r * 0.21, r * 0.06, r * 0.08, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "rgba(255,255,255,0.8)";
+            ctx.beginPath(); ctx.ellipse(setX + psi2 * r * 0.31 - r * 0.02, setY - r * 0.24, r * 0.018, r * 0.032, 0, 0, Math.PI * 2); ctx.fill();
           }
           // Centrepiece: a little vase of greenery with a
           // candle beside it, flame flickering with the room.
@@ -3147,8 +3248,8 @@
           facet.addColorStop(1, "rgba(146,118,74,0.13)");
           ctx.fillStyle = facet;
           ctx.fillRect(tx + tw * 0.62, ty + 2, tw * 0.38 - 2, th - 4);
-          ctx.strokeStyle = "rgba(43,26,18,0.45)";
-          ctx.lineWidth = Math.max(1.1, r * 0.024);
+          ctx.strokeStyle = "rgba(43,26,18,0.6)";
+          ctx.lineWidth = Math.max(1.3, r * 0.028);
           ctx.beginPath();
           if (ctx.roundRect) ctx.roundRect(tx, ty, tw, th, 3);
           else ctx.rect(tx, ty, tw, th);
