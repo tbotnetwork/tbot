@@ -2411,6 +2411,52 @@
             if (over > 0) floorTop = Math.max(maxTop2, 0);
             winY0 = ceilH; // the glass starts under the (possibly compressed) ceiling band
           }
+          // THE CHANDELIER CLEARANCE: the three crystal
+          // chandeliers over the pass hang at fixed points
+          // of the room's width — the sixths, in paintRoom —
+          // and the row NEVER moves sideways. Sideways was
+          // the old answer, and it was the defect: whenever
+          // the KITCHEN sign over the waiter at the pass
+          // rose into the crystals' reach, the middle
+          // fixture was shoved toward the right one and the
+          // pair clustered, breaking the row's equal gaps.
+          // The clearance is made vertically instead, here:
+          // the sign's top at its pass spot (the waiter's
+          // home, 14px above the floor line, his sprite's
+          // head above that, the sign's 6px gap and 21px
+          // plaque above that) is measured against the
+          // fixtures' lowest point — a lower-tier crystal
+          // drop, or the finial, whichever hangs lower —
+          // and if the sign would reach it, the pass band
+          // grows taller by borrowing height from the glass
+          // (down to the same 52px floor the guarantee above
+          // uses), then from the ceiling band (floor 16) —
+          // while floorTop, the floor line every table
+          // stands on, does not move a pixel, and neither
+          // does any fixture. On any screen tall enough that
+          // the sign already clears the crystals — the usual
+          // case — nothing is borrowed and the room is
+          // exactly as it was. (The waiter's other sign
+          // spot, his lobby park down on the floor, rides a
+          // full figure-height below this band and can never
+          // reach the fixtures, so only the pass spot is
+          // measured.)
+          var sHeadOff = (bodySize() * 1.12 / SPRITE_BODY_FRAC) * SPRITE_ASPECT * SPRITE_BODY_CY;
+          var signTopAbs = floorTop - 14 - sHeadOff - 27;
+          var chHalfAbs = clamp(W * 0.085, 48, 84) * 0.46;
+          for (var cbi = 0; cbi < 8; cbi++) {
+            var pchHAbs = clamp(kh * 0.46, 34, 58);
+            var fixBotAbs = (floorTop - kh) + Math.max(pchHAbs * 0.80 + chHalfAbs * 0.18 + 7.3, pchHAbs * 0.90 + 5.5);
+            var cDeficit = fixBotAbs - (signTopAbs - 4);
+            if (cDeficit <= 0) break;
+            var cRoom = Math.max(0, winH - 52) + Math.max(0, ceilH - 16);
+            if (cRoom <= 0) break;
+            var cStep = Math.min(cDeficit, cRoom);
+            var cGlass = Math.min(cStep, Math.max(0, winH - 52));
+            winH -= cGlass; kh += cGlass;
+            var cCeil = cStep - cGlass;
+            if (cCeil > 0) { ceilH -= cCeil; kh += cCeil; winY0 = ceilH; }
+          }
           return {
             kh: kh, gy: gy,
             ceilH: ceilH,
@@ -3282,43 +3328,19 @@
           var pchH = clamp(kh * 0.46, 34, 58);
           var pchW = clamp(W * 0.085, 48, 84);
           var passLx = [W / 6, W / 2, (W * 5) / 6];
-          // The sign's spots — over the waiter behind the
-          // counter in a round (centred on W / 2), and over
-          // his lobby park position (centred on W / 2, or
-          // half a cell to its right on a five-column
-          // floor, where he parks in the aisle — that spot
-          // rides at the floor's top edge, far below this
-          // band, so only its height is checked here) — and
-          // on shorter screens the in-round spot rises into
-          // this band. If either spot would collide with
-          // the middle chandelier, the middle fixture is
-          // nudged sideways just enough for sign and
-          // crystal to read clean and separate (and the
-          // right fixture follows if the middle one then
-          // crowds it). No chandelier is ever shrunk or
-          // removed, and on screens where the sign already
-          // clears the crystal — the usual case — nothing
-          // here moves at all.
-          ctx.font = "800 12px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
-          var kSignHalf = (ctx.measureText("KITCHEN").width + 22) / 2;
-          var kS2 = bodySize() * 1.12;
-          var kHeadOff = (kS2 / SPRITE_BODY_FRAC) * SPRITE_ASPECT * SPRITE_BODY_CY;
-          var chHalf = pchW * 0.46;
-          // The middle fixture's lowest point: the crystal
-          // drops under its lower tier.
-          var chBot = kt + pchH * 0.80 + chHalf * 0.18 + 7.3;
-          var kSignTops = [(kb - 14) - kHeadOff - 27, (kb + 58) - kHeadOff - 27];
-          for (var ksi = 0; ksi < kSignTops.length; ksi++) {
-            if (kSignTops[ksi] < chBot && kSignTops[ksi] + 21 > kt) {
-              passLx[1] = W / 2 + kSignHalf + chHalf + 5;
-              if (passLx[2] - passLx[1] < chHalf * 2 + 4) passLx[2] = passLx[1] + chHalf * 2 + 4;
-              if (passLx[2] + chHalf > W - 2) {
-                var kEx = passLx[2] + chHalf - (W - 2);
-                passLx[2] -= kEx; passLx[1] -= kEx;
-              }
-              break;
-            }
-          }
+          // The row hangs at the sixths and NOWHERE else —
+          // in the lobby, mid-shift, on any screen. An
+          // earlier pass answered a rising KITCHEN sign by
+          // nudging the middle fixture sideways toward the
+          // right one, which clustered the pair and broke
+          // the row's equal gaps; the clearance is made in
+          // hallDims now (the pass band borrows height from
+          // the glass whenever the sign would reach the
+          // lowest crystal), so by the time the room is
+          // painted the middle fixture already clears the
+          // sign. No fixture ever moves sideways, is shrunk,
+          // or is removed, and the two gaps between the
+          // three fixtures stay equal in every state.
           for (var li = 0; li < 3; li++) {
             var lx = passLx[li];
             // The warm glow the pendants gave the pass.
