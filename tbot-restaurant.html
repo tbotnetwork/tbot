@@ -2077,23 +2077,47 @@
           };
         }
 
-        // The floor: the tables in a grid between the kitchen
-        // pass and the toolbar — four across on a wide screen,
-        // two across and four down on a phone. A packed floor
-        // (Pack 'em) widens the grid and shrinks the tables a
-        // step so the extra tables still fit the room.
+        // The floor: EVERY table stands on the hall's floor
+        // plane — the grid fills exactly the floor, from its
+        // back edge (hallDims' floorTop, where the window
+        // wall rises) down to the ground line above the
+        // toolbar. No slot ever sits over the glass: a
+        // table's whole silhouette — chair backs and guests
+        // above its centre, cloth, contact shadow and show
+        // label below — fits inside its floor cell (see the
+        // radius fit below), so the sea and sky show only
+        // ABOVE the tables' skyline, never behind or around
+        // a table's body. Four across on a wide screen, two
+        // across and four down on a phone; a packed floor
+        // (Pack 'em) widens the grid and shrinks the tables
+        // a step so the extra tables still fit the floor.
         function layoutTables() {
           var count = tables.length;
           var packed = count > TABLE_COUNT;
-          // A packed floor starts a step lower, so its first
-          // row clears the waiter parked in front of the pass.
-          var top = kitchenH() + 46 + (packed ? 34 : 0);
-          var bottom = groundY() - 56;
+          var top = hallDims().floorTop;
+          var bottom = groundY();
           var wide = W >= 620;
-          var cols = wide ? (count > 12 ? 5 : 4) : (packed ? 3 : 2);
-          var rows = Math.ceil(count / cols);
+          var cols = wide ? (count > 12 ? 5 : 4) : (packed ? 4 : 2);
+          var rows = Math.max(1, Math.ceil(count / cols));
           var cellW = W / cols;
-          var cellH = Math.max((bottom - top) / rows, packed ? 52 : 60);
+          var cellH = Math.max((bottom - top) / rows, 30);
+          // The radius is fitted to the floor cell, not just
+          // the grid pitch: a dressed table reaches about
+          // 1.68r + 2 above its centre (chair backs and
+          // guests) and 0.92r + 19 below it (cloth, contact
+          // shadow, show label) — 2.62r + 25 of vertical room
+          // in all — so the fitted radius keeps the whole
+          // table standing on the floor, in front of the
+          // glass, never in it. And because a table reaches
+          // further above its centre than below it, each
+          // slot seats the table's whole silhouette centred
+          // in its cell, not the table's centre: slotOffY
+          // places the centre so the chair backs clear the
+          // floor's back edge by the same margin the label
+          // clears the ground line.
+          var tableR = clamp(Math.min(cellW * 0.30, (cellH - 25) / 2.62), 12, 60);
+          var topExt = 1.68 * tableR + 2, botExt = 0.92 * tableR + 19;
+          var slotOffY = topExt + (cellH - topExt - botExt) / 2;
           for (var i = 0; i < tables.length; i++) {
             // Each table owns a SLOT on the floor and keeps
             // it for the whole round; its x/y ease toward
@@ -2102,13 +2126,13 @@
             if (tables[i].slot < 0) tables[i].slot = i;
             var c = tables[i].slot % cols, r = Math.floor(tables[i].slot / cols);
             tables[i].slotX = cellW * (c + 0.5);
-            tables[i].slotY = top + cellH * (r + 0.5);
+            tables[i].slotY = top + cellH * r + slotOffY;
             if (!tables[i].placed) {
               tables[i].x = tables[i].slotX;
               tables[i].y = tables[i].slotY;
               tables[i].placed = true;
             }
-            tables[i].r = clamp(Math.min(cellW, cellH) * 0.30, packed ? 26 : 32, 60);
+            tables[i].r = tableR;
           }
           waiter.homeX = W / 2;
           waiter.homeY = kitchenH() - 14;
@@ -2179,7 +2203,10 @@
         // times a second. The cache rebuilds on resize.
         var roomCache = null, roomCacheKey = "";
         function drawRoom(nowMs) {
-          var key = W + "x" + H + "@" + DPR + "/" + groundY();
+          // The floor line moves with the table count (a
+          // packed floor runs deeper — see hallDims), so the
+          // count is part of the cache key.
+          var key = W + "x" + H + "@" + DPR + "/" + groundY() + "/" + tables.length;
           if (!roomCache || roomCacheKey !== key) {
             roomCache = document.createElement("canvas");
             roomCache.width = Math.max(1, Math.round(W * DPR));
@@ -2197,26 +2224,54 @@
 
         // ---------- Hall geometry ----------
         // One set of measures for the palace hall, shared by
-        // the sea (which must fill exactly the glass) and by
-        // the cached room painting: the coffered-ceiling band
-        // under the kitchen pass, the tall arched windows
-        // below it running down to the marble floor, and the
-        // wall piers at the sides carrying the gilt mirrors.
+        // the sea (which must fill exactly the glass), by the
+        // cached room painting, and by the table layout: the
+        // coffered-ceiling band under the kitchen pass, the
+        // tall arched windows below it, the FLOOR below them,
+        // and the wall piers at the sides carrying the gilt
+        // mirrors.
+        //
+        // THE FLOOR LINE (floorTop) is the back edge of the
+        // floor — the line the window wall rises from. The
+        // windows keep a tall, grand height (about a pane's
+        // width, so each arch keeps its proportions), and
+        // EVERYTHING below that line is floor: the marble
+        // and the great rug are painted over the base of the
+        // glass in the cached room, the sea is drawn only
+        // down to this line, and the table grid lives
+        // entirely below it (see layoutTables) — so a table
+        // can never sit in the windows, and no sea can ever
+        // show behind a table's body or between a table and
+        // the floor it stands on. A packed floor (Pack 'em)
+        // runs a step deeper — the window wall gives up a
+        // little of its height so all sixteen tables still
+        // stand on the floor.
         function hallDims() {
           var kh = kitchenH();
           var gy = groundY();
           var salonH = Math.max(gy - kh, 60);
           var ceilH = clamp(salonH * 0.085, 26, 50);
+          var winY0 = kh + ceilH;
           var winX0 = clamp(W * 0.07, 34, 92);
+          var winX1 = W - winX0;
+          var arches = W >= 620 ? 5 : 3;
+          var pierW = clamp(W * 0.02, 11, 20);
+          var paneW = ((winX1 - winX0) - pierW * (arches - 1)) / arches;
+          var winH = clamp(paneW * 1.02, 118, 300);
+          if (tables.length > TABLE_COUNT) winH -= Math.min(38, winH * 0.16);
+          var floorTop = winY0 + winH;
+          // On a very short screen, still leave a real floor.
+          var maxFloorTop = gy - 140;
+          if (maxFloorTop > winY0 + 60 && floorTop > maxFloorTop) floorTop = maxFloorTop;
           return {
             kh: kh, gy: gy,
             ceilH: ceilH,
-            winY0: kh + ceilH,
-            floorTop: kh + salonH * 0.80,
+            winY0: winY0,
+            floorTop: floorTop,
             winX0: winX0,
-            winX1: W - winX0,
-            arches: W >= 620 ? 5 : 3,
-            pierW: clamp(W * 0.02, 11, 20)
+            winX1: winX1,
+            arches: arches,
+            pierW: pierW
           };
         }
 
@@ -2559,14 +2614,19 @@
           ctx.fillRect(0, winY0, W, 1.4);
 
           // ---------- The arched windows ----------
-          // Tall arched windows, floor-to-ceiling in spirit:
-          // each pane rises from the marble sill to a round
-          // arch under the cornice. The panes are CLEARED
-          // out of this cached painting, so the living sea
-          // at sunset — sky, sun, gulls, dolphins — drawn
-          // under the room every frame shows through the
-          // glass (see drawSea). Stone piers with gold trim
-          // stand between the arches.
+          // Tall arched windows: each pane rises from the
+          // marble sill at the back edge of the floor to a
+          // round arch under the cornice — and stops there.
+          // The glass never runs behind the tables: below
+          // the sill the marble floor and the great rug are
+          // painted over the wall (see the floor below), in
+          // front of where the glass would be. The panes are
+          // CLEARED out of this cached painting, so the
+          // living sea at sunset — sky, sun, gulls, dolphins
+          // — drawn under the room every frame shows through
+          // the glass (see drawSea), above the tables'
+          // skyline only. Stone piers with gold trim stand
+          // between the arches.
           var nA = d.arches, pierW = d.pierW;
           var spanW = winX1 - winX0;
           var paneW = (spanW - pierW * (nA - 1)) / nA;
@@ -2709,6 +2769,12 @@
           }
 
           // ---------- The marble floor ----------
+          // The hall's real floor plane: it fills the whole
+          // lower part of the room, from the sill at the back
+          // edge (floorTop) down to the ground line, painted
+          // IN FRONT of the base of the window wall — this
+          // opaque marble is what the tables stand on, and
+          // no sea can show through it or under a table.
           // Polished marble tiles in staggered rows, the
           // rows growing a shade taller as they come toward
           // the viewer — the floor's perspective. Each tile
