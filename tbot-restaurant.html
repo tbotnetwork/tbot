@@ -2089,7 +2089,7 @@
         // tufts arcing outward. The bodies vary like real
         // people: slim athletic women, slim muscular men,
         // heavy builds — dealt per guest (see newParty) on
-        // top of the dealt 1.35×–1.75× sizes.
+        // top of the dealt 1.80×–2.35× sizes.
         //
         // They are picture cut-outs now, not drawings: six
         // photographs (seated and standing × the three
@@ -2587,8 +2587,13 @@
         // party leaves and a new one is dealt (seatNewParty,
         // resetFloor, a fresh table), the new guests draw new
         // sexes and sizes. Sizes run seat by seat between
-        // 1.35× and 1.75× the table radius, around the old
-        // uniform 1.55× — and a pair at one table always
+        // 1.80× and 2.35× the table radius — true adult
+        // human size against the room's furniture (a seated
+        // guest's head and torso rising naturally above the
+        // tabletop, booth heads at the bench backs' tops,
+        // the bar guest at full proportion to counter and
+        // stool, walkers at full standing height against
+        // the pass) — and a pair at one table always
         // differs in size, so no two tables read as identical
         // pairs. Women read as women and men as men from
         // the BODY BUILD alone — the real TBOT people,
@@ -2600,23 +2605,27 @@
         // The floor layout fit, the per-row floor
         // guarantee and the lobby bubble's silhouette
         // clearance are all derived from the LARGEST variant
-        // (1.75×) — see DINER_TOP_R / DINER_SPAN_R below and
+        // (2.35×) — see DINER_TOP_R / DINER_SPAN_R below and
         // layoutTables / seatRestDesc — so even the biggest
         // diner never covers its number tent (the tent paints
         // after the guests, on top), never overlaps a
         // neighbouring table at 14 or 16, and the bubble
         // still clears the tallest silhouettes.
-        var DINER_SIZE_MIN = 1.35, DINER_SIZE_MAX = 1.75;
+        var DINER_SIZE_MIN = 1.80, DINER_SIZE_MAX = 2.35;
         // A diner's reach above its table's centre, in table
-        // radii, at the largest size: the 1.55× figure's
-        // measured 2.44r scaled by 1.75 / 1.55.
-        var DINER_TOP_R = 2.44 * (DINER_SIZE_MAX / 1.55);
+        // radii, at the largest size: the seat anchor sits
+        // 0.47r above the centre, and the tallest seated
+        // photograph (sit-m: seat line 0.672 of its height,
+        // head 0.317) rises 0.672 × PEOPLE_HEAD_U / 0.317 ≈
+        // 1.11 of its size unit above that anchor.
+        var DINER_TOP_R = 0.47 + 1.11 * DINER_SIZE_MAX;
         // A diner's sideways span from its table's centre, in
         // table radii, at the largest size: its seat sits
         // 0.52r out and the widest figure's half span at
-        // 1.75× is (1.75 / SPRITE_BODY_FRAC) / 2 ≈ 1.48r — 2.00r in all.
-        // (The black-plastic people's hair arcs reach ±0.82
-        // of their size unit ≈ 1.44r — inside this envelope.)
+        // 2.35× is (2.35 / SPRITE_BODY_FRAC) / 2 ≈ 1.99r — 2.51r in all.
+        // (The photographed people's widest half span is
+        // ≈ 0.40 of their size unit ≈ 1.44r from the centre
+        // in all — well inside this envelope.)
         var DINER_SPAN_R = 0.52 + (DINER_SIZE_MAX / SPRITE_BODY_FRAC) / 2;
 
         function newGuest(nowMs, sex, size) {
@@ -2642,7 +2651,7 @@
           var s2 = rand(DINER_SIZE_MIN, DINER_SIZE_MAX);
           var tries = 0;
           while (Math.abs(s2 - s1) < 0.15 && tries < 12) { s2 = rand(DINER_SIZE_MIN, DINER_SIZE_MAX); tries++; }
-          if (Math.abs(s2 - s1) < 0.15) s2 = clamp(s1 + (s1 < 1.55 ? 0.2 : -0.2), DINER_SIZE_MIN, DINER_SIZE_MAX);
+          if (Math.abs(s2 - s1) < 0.15) s2 = clamp(s1 + (s1 < (DINER_SIZE_MIN + DINER_SIZE_MAX) / 2 ? 0.2 : -0.2), DINER_SIZE_MIN, DINER_SIZE_MAX);
           var sex1 = Math.random() < 0.5 ? "f" : "m";
           var sex2 = Math.random() < 0.65 ? (sex1 === "f" ? "m" : "f") : sex1;
           return [newGuest(nowMs, sex1, s1), newGuest(nowMs, sex2, s2)];
@@ -2731,7 +2740,7 @@
           // The radius is fitted to the floor cell, not just
           // the grid pitch: a dressed table reaches about
           // DINER_TOP_R r + 2 above its centre (the seated
-          // guests at their LARGEST size, 1.75× — see
+          // guests at their LARGEST size, 2.35× — see
           // drawTable — with headroom for their hop) and 0.92r + 19 below it (cloth, contact
           // shadow, show label) — (DINER_TOP_R + 0.92)r + 21 of vertical room
           // in all — so the fitted radius keeps the whole
@@ -2753,12 +2762,13 @@
           // their enlarged readable size on a compressed
           // floor.
           // Sideways the fit is derived from the largest
-          // diner too: at 1.75× a diner's sprite spans
-          // DINER_SPAN_R (2.00r) from the table's centre (see
+          // diner too: at 2.35× a diner's sprite spans
+          // DINER_SPAN_R (2.51r) from the table's centre (see
           // drawTable), so the width factor steps down to
-          // 0.245 — the span then takes 0.49 of the cell's
-          // width, still inside the half-pitch, and even the
-          // biggest neighbours never touch at 14 or 16.
+          // 0.245 — the photographed people's real span then
+          // takes about 0.35 of the cell's width, still
+          // inside the half-pitch, and even the biggest
+          // neighbours never touch at 14 or 16.
           var tableR = clamp(Math.min(cellW * 0.245, (cellH - 21) / (DINER_TOP_R + 0.92)), 5, 60);
           var topExt = DINER_TOP_R * tableR + 2, botExt = 0.92 * tableR + 19;
           var slotOffY = topExt + (cellH - topExt - botExt) / 2;
@@ -2935,9 +2945,9 @@
           if (maxFloorTop > kh + ceilH + 60 && floorTop > maxFloorTop) floorTop = maxFloorTop;
           // THE SHORT-SCREEN FLOOR GUARANTEE: the floor must
           // hold EVERY row's full silhouette — at the layout's
-          // own fit, a row needs 3.36r + 21 of height, and the
+          // own fit, a row needs 4.00r + 21 of height, and the
           // radius is never asked below 12 for fit alone, so
-          // each row is guaranteed 3.36 * 12 + 21 ≈ 62px of
+          // each row is guaranteed 4.00 * 12 + 21 ≈ 69px of
           // floor. If the room's stack (ceiling + glass +
           // pass) would leave less than that, the stack gives
           // way in order — the glass shortens first, then the
@@ -2948,7 +2958,7 @@
           // floorTop − kh) and every table still stands
           // below the sill; only the proportions above the
           // floor compress, never the floor itself.
-          var needFloor = gridRows(tables.length) * 62;
+          var needFloor = gridRows(tables.length) * 69;
           var maxTop2 = gy - needFloor;
           if (floorTop > maxTop2) {
             var over = floorTop - maxTop2;
@@ -3374,7 +3384,7 @@
           // thin gold border ring and a subtle inner ring.
           // Centred on the table at 1.9× the table
           // radius — wide enough to hold the table and the
-          // enlarged (1.55×) diners seated behind it — but
+          // enlarged diners seated behind it — but
           // capped at the cell's half-pitch, so on the packed
           // 14- and 16-table floors neighbouring rugs stay
           // separate and never overlap. The weave and the
@@ -3542,7 +3552,7 @@
           // the real people, photographed (see
           // drawPhotoPerson), men and women and heavy
           // builds, each at their
-          // own size (1.35×–1.75× the table radius, fixed
+          // own size (1.80×–2.35× the table radius, fixed
           // while their party sits; see newParty). A leaving
           // party is not drawn here at all — its people have
           // stood up and are walking off the floor (see the
@@ -3576,7 +3586,7 @@
               var g = t.guests[gi];
               var side = gi === 0 ? -1 : 1;
               var gx = cx + side * r * 0.52;
-              var gSize = (typeof g.size === "number") ? g.size : 1.55;
+              var gSize = (typeof g.size === "number") ? g.size : 2.08;
               var gAmp = gSize / 0.95;
               var bob = Math.sin(nowMs / 620 + g.bobPh) * 1.6 * gAmp;
               var hop = t.happyT > 0 ? -Math.sin(t.happyT * Math.PI) * r * 0.22 * gAmp : 0;
@@ -3988,7 +3998,7 @@
         // growing upward from its seat, its bob and hop
         // scaled by its own size.
         function drawSeatedGuest(g, gx, seatBottomY, r, t, nowMs, anim) {
-          var gSize = (typeof g.size === "number") ? g.size : 1.55;
+          var gSize = (typeof g.size === "number") ? g.size : 2.08;
           var gAmp = gSize / 0.95;
           var bob = Math.sin(nowMs / 620 + g.bobPh) * 1.6 * gAmp;
           var hop = t.happyT > 0 ? -Math.sin(t.happyT * Math.PI) * r * 0.22 * gAmp : 0;
