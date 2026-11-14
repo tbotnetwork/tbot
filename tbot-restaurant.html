@@ -2150,7 +2150,7 @@
         // back edge (hallDims' floorTop, where the window
         // wall rises) down to the ground line above the
         // toolbar. No slot ever sits over the glass: a
-        // table's whole silhouette — chair backs and guests
+        // table's whole silhouette — guests
         // above its centre, cloth, contact shadow and show
         // label below — fits inside its floor cell (see the
         // radius fit below), so the sea and sky show only
@@ -2189,8 +2189,8 @@
           var cellH = Math.max((bottom - top) / rows, 1);
           // The radius is fitted to the floor cell, not just
           // the grid pitch: a dressed table reaches about
-          // 1.68r + 2 above its centre (chair backs and
-          // guests) and 0.92r + 19 below it (cloth, contact
+          // 1.68r + 2 above its centre (the seated
+          // guests, with headroom) and 0.92r + 19 below it (cloth, contact
           // shadow, show label) — 2.62r + 25 of vertical room
           // in all — so the fitted radius keeps the whole
           // table standing on the floor, in front of the
@@ -2198,7 +2198,7 @@
           // further above its centre than below it, each
           // slot seats the table's whole silhouette centred
           // in its cell, not the table's centre: slotOffY
-          // places the centre so the chair backs clear the
+          // places the centre so the guests clear the
           // floor's back edge by the same margin the label
           // clears the ground line.
           // The radius floor steps DOWN with the cell (to 5,
@@ -3514,106 +3514,6 @@
             }
             ctx.save();
             ctx.globalAlpha = gAlpha;
-            // Dining chairs behind each guest — palace
-            // chairs in the reel's colours: sapphire-blue
-            // velvet backs inside gold frames, with a gold
-            // crest on the top rail, so the guests sit IN
-            // something real.
-            for (var ci2 = 0; ci2 < t.guests.length; ci2++) {
-              var cSide = ci2 === 0 ? -1 : 1;
-              var chx = cx + cSide * r * 0.52;
-              var chy = cy - r * 1.22 + gSink;
-              // The chair back is WIDER and TALLER than the
-              // guest seated in it, so a clear frame of gold
-              // and sapphire velvet shows on both sides of
-              // the guest and above their shoulders — the
-              // blue must read as sapphire at game scale,
-              // never as a dark body with a coloured top.
-              var chw = r * 1.08 * gScale, chh = r * 0.9 * gScale;
-              // Chair shadow on the floor/wall behind.
-              ctx.fillStyle = "rgba(16,8,3,0.18)";
-              ctx.beginPath();
-              if (ctx.roundRect) ctx.roundRect(chx - chw / 2 + 2, chy - chh / 2 + 3, chw, chh, r * 0.14);
-              else ctx.rect(chx - chw / 2 + 2, chy - chh / 2 + 3, chw, chh);
-              ctx.fill();
-              // The gold frame: the whole back is gilt
-              // first, and the velvet is inset into it, so a
-              // bright gold border frames the blue on every
-              // side.
-              var frameGrad = ctx.createLinearGradient(chx - chw / 2, chy - chh / 2, chx + chw * 0.3, chy + chh / 2);
-              frameGrad.addColorStop(0, "#e7c65a");
-              frameGrad.addColorStop(0.5, "#c9a227");
-              frameGrad.addColorStop(1, "#96731d");
-              ctx.fillStyle = frameGrad;
-              ctx.beginPath();
-              if (ctx.roundRect) ctx.roundRect(chx - chw / 2, chy - chh / 2, chw, chh, r * 0.14);
-              else ctx.rect(chx - chw / 2, chy - chh / 2, chw, chh);
-              ctx.fill();
-              // Sapphire velvet: a saturated royal blue that
-              // stays blue in shadow, lit from the upper
-              // left, inset into the gold frame.
-              var fr2 = Math.max(3, r * 0.075);
-              var velGrad = ctx.createLinearGradient(chx - chw / 2, chy - chh / 2, chx + chw * 0.3, chy + chh / 2);
-              velGrad.addColorStop(0, "#2f66c4");
-              velGrad.addColorStop(0.45, "#1d4f9e");
-              velGrad.addColorStop(1, "#123a7d");
-              ctx.fillStyle = velGrad;
-              ctx.beginPath();
-              if (ctx.roundRect) ctx.roundRect(chx - chw / 2 + fr2, chy - chh / 2 + fr2, chw - fr2 * 2, chh - fr2 * 2, r * 0.1);
-              else ctx.rect(chx - chw / 2 + fr2, chy - chh / 2 + fr2, chw - fr2 * 2, chh - fr2 * 2);
-              ctx.fill();
-              // The plush inner panel: a lighter sapphire
-              // inset with a soft sheen across its top, and
-              // tuft buttons — upholstery, not slats, so no
-              // dark gaps break the blue up.
-              var panX = chx - chw * 0.34, panY = chy - chh * 0.34;
-              var panW = chw * 0.68, panH = chh * 0.68;
-              var panGrad = ctx.createLinearGradient(0, panY, 0, panY + panH);
-              panGrad.addColorStop(0, "#4a80d8");
-              panGrad.addColorStop(0.55, "#2a5cb4");
-              panGrad.addColorStop(1, "#1a4390");
-              ctx.fillStyle = panGrad;
-              ctx.beginPath();
-              if (ctx.roundRect) ctx.roundRect(panX, panY, panW, panH, r * 0.09);
-              else ctx.rect(panX, panY, panW, panH);
-              ctx.fill();
-              var sheen2 = ctx.createRadialGradient(chx - chw * 0.14, panY + panH * 0.2, 1, chx - chw * 0.14, panY + panH * 0.2, chw * 0.5);
-              sheen2.addColorStop(0, "rgba(200,222,255,0.34)");
-              sheen2.addColorStop(1, "rgba(200,222,255,0)");
-              ctx.fillStyle = sheen2;
-              ctx.beginPath();
-              if (ctx.roundRect) ctx.roundRect(panX, panY, panW, panH, r * 0.09);
-              else ctx.rect(panX, panY, panW, panH);
-              ctx.fill();
-              ctx.fillStyle = "rgba(8,30,70,0.7)";
-              ctx.beginPath(); ctx.arc(chx - chw * 0.16, chy - chh * 0.07, Math.max(1.3, r * 0.026), 0, Math.PI * 2); ctx.fill();
-              ctx.beginPath(); ctx.arc(chx + chw * 0.16, chy - chh * 0.07, Math.max(1.3, r * 0.026), 0, Math.PI * 2); ctx.fill();
-              ctx.beginPath(); ctx.arc(chx, chy + chh * 0.17, Math.max(1.3, r * 0.026), 0, Math.PI * 2); ctx.fill();
-              // The gold crest: a small gilt oval crowning
-              // the top rail at its centre.
-              var crestGrad = ctx.createLinearGradient(0, chy - chh / 2 - 1, 0, chy - chh / 2 + chh * 0.13);
-              crestGrad.addColorStop(0, "#f0d488");
-              crestGrad.addColorStop(1, "#a87f24");
-              ctx.fillStyle = crestGrad;
-              ctx.beginPath(); ctx.ellipse(chx, chy - chh / 2 + chh * 0.045, chw * 0.13, chh * 0.055, 0, 0, Math.PI * 2); ctx.fill();
-              ctx.strokeStyle = "rgba(120,84,20,0.7)";
-              ctx.lineWidth = 1;
-              ctx.stroke();
-              // Gold nailhead studs along the frame's inner
-              // edge, top and down both sides — the
-              // upholsterer's finish on a palace chair,
-              // bright enough to catch the eye at game scale.
-              ctx.fillStyle = "#ffd76a";
-              var studR = Math.max(1.5, r * 0.03);
-              for (var stud = -3; stud <= 3; stud++) {
-                ctx.beginPath(); ctx.arc(chx + stud * chw * 0.125, chy - chh / 2 + fr2 + 3.5, studR, 0, Math.PI * 2); ctx.fill();
-              }
-              for (var sstud = 0; sstud < 3; sstud++) {
-                var ssy = chy - chh * 0.16 + sstud * chh * 0.24;
-                ctx.beginPath(); ctx.arc(chx - chw / 2 + fr2 + 2, ssy, studR, 0, Math.PI * 2); ctx.fill();
-                ctx.beginPath(); ctx.arc(chx + chw / 2 - fr2 - 2, ssy, studR, 0, Math.PI * 2); ctx.fill();
-              }
-            }
             for (var gi = 0; gi < t.guests.length; gi++) {
               var g = t.guests[gi];
               var side = gi === 0 ? -1 : 1;
@@ -3661,7 +3561,7 @@
           ctx.beginPath(); ctx.ellipse(cx - r * 0.14, cy - r * 0.16, r * 0.55, r * 0.36, -0.15, 0, Math.PI * 2); ctx.fill();
           // A sapphire runner band dressed down the middle
           // of the cloth, edged with fine gold pinstripes —
-          // the hall's table dressing, matching the chairs.
+          // the hall's table dressing.
           ctx.save();
           ctx.beginPath(); ctx.ellipse(cx, cy, r, r * 0.8, 0, 0, Math.PI * 2); ctx.clip();
           var bandGrad = ctx.createLinearGradient(cx - r * 0.17, 0, cx + r * 0.17, 0);
@@ -3726,7 +3626,7 @@
             // Folded sapphire napkin ON the plate: a bright
             // royal-blue triangle with a gold fold line —
             // unmistakably blue against the white plate at
-            // any table size, matching the chairs.
+            // any table size.
             ctx.fillStyle = "#2a5cb4";
             ctx.beginPath();
             ctx.moveTo(setX - r * 0.13, setY + r * 0.07);
@@ -4182,7 +4082,7 @@
             restDescEl.classList.add("desc-top");
             // The masthead seat, verified against the floor
             // as it actually stands: on a short stage the
-            // back row's chair tops can reach into the seat,
+            // back row's guest tops can reach into the seat,
             // so if the seated bubble would touch any
             // silhouette it rides up just far enough for its
             // bottom edge to clear the highest one it spans
