@@ -344,11 +344,11 @@
         .toolbar:not(.inround) #gameBtn { animation: none; }
       }
       /* The round HUD (served / time) rides at the
-         TOP of the screen, over the kitchen header — scenery,
-         not play space — so it never covers a table. Served
-         sits in the top-left corner, time in the
-         top-right, leaving the centred KITCHEN sign clear
-         between them. */
+         TOP of the screen, over the ceiling band — scenery,
+         not play space — so it never covers a table, and
+         never the kitchen pass down at the room's back
+         edge. Served sits in the top-left corner, time in
+         the top-right. */
       .gamehud {
         position: fixed;
         top: calc(10px + env(safe-area-inset-top));
@@ -665,7 +665,7 @@
     </style>
   </head>
   <body>
-    <canvas id="stage" aria-label="A grand palace dining hall at sunset: tall arched windows over a calm sea, a crystal chandelier, a kitchen pass across the top and numbered tables of TBOT guests. You are the waiter — tap the table wearing the number the kitchen calls. When a party leaves, the numbers change."></canvas>
+    <canvas id="stage" aria-label="A grand palace dining hall at sunset: tall arched windows over a calm sea, a crystal chandelier, a kitchen pass at the back of the room behind the tables, and numbered tables of TBOT guests. You are the waiter — tap the table wearing the number the kitchen calls. When a party leaves, the numbers change."></canvas>
 
     <!-- Background music: the last 17 seconds of "Velvet Rot" by
          Kimo (the series track), looped behind the game. Sound
@@ -2057,6 +2057,10 @@
           stepPh: 0
         };
 
+        // The kitchen pass's height: the band stands at the
+        // back edge of the floor (see hallDims), its counter
+        // base on the floor line and its back wall rising
+        // this far in front of the glass's lower reach.
         function kitchenH() { return clamp(H * 0.17, 96, 150); }
 
         function newGuest(nowMs) {
@@ -2135,7 +2139,10 @@
             tables[i].r = tableR;
           }
           waiter.homeX = W / 2;
-          waiter.homeY = kitchenH() - 14;
+          // Home is the kitchen pass, which stands at the
+          // back edge of the floor: the waiter waits just in
+          // front of its counter, behind the back row.
+          waiter.homeY = top - 14;
           if (waiter.state === "pass") { waiter.x = waiter.homeX; waiter.y = waiter.homeY; }
         }
 
@@ -2226,10 +2233,13 @@
         // One set of measures for the palace hall, shared by
         // the sea (which must fill exactly the glass), by the
         // cached room painting, and by the table layout: the
-        // coffered-ceiling band under the kitchen pass, the
-        // tall arched windows below it, the FLOOR below them,
-        // and the wall piers at the sides carrying the gilt
-        // mirrors.
+        // coffered-ceiling band across the top, the tall
+        // arched windows below it, the kitchen pass standing
+        // at the back edge of the FLOOR below them — its
+        // counter base on the floor line itself, so the pass
+        // and the waiter at it belong to the dining room,
+        // right behind the back row of tables — and the wall
+        // piers at the sides carrying the gilt mirrors.
         //
         // THE FLOOR LINE (floorTop) is the back edge of the
         // floor — the line the window wall rises from. The
@@ -2251,7 +2261,7 @@
           var gy = groundY();
           var salonH = Math.max(gy - kh, 60);
           var ceilH = clamp(salonH * 0.085, 26, 50);
-          var winY0 = kh + ceilH;
+          var winY0 = ceilH;
           var winX0 = clamp(W * 0.07, 34, 92);
           var winX1 = W - winX0;
           var arches = W >= 620 ? 5 : 3;
@@ -2259,14 +2269,24 @@
           var paneW = ((winX1 - winX0) - pierW * (arches - 1)) / arches;
           var winH = clamp(paneW * 1.02, 118, 300);
           if (tables.length > TABLE_COUNT) winH -= Math.min(38, winH * 0.16);
-          var floorTop = winY0 + winH;
+          // The floor line is where it always was: it is
+          // measured down the room's full stack — ceiling
+          // band, glass, and the pass's height — with the
+          // same measures (and the same short-screen clamp)
+          // as before the pass moved down to stand on it,
+          // so the line itself, and every table on the
+          // floor, does not move. The pass now occupies the
+          // kh of that stack between the glass and the floor.
+          var floorTop = kh + ceilH + winH;
           // On a very short screen, still leave a real floor.
           var maxFloorTop = gy - 140;
-          if (maxFloorTop > winY0 + 60 && floorTop > maxFloorTop) floorTop = maxFloorTop;
+          if (maxFloorTop > kh + ceilH + 60 && floorTop > maxFloorTop) floorTop = maxFloorTop;
           return {
             kh: kh, gy: gy,
             ceilH: ceilH,
             winY0: winY0,
+            winH: winH,
+            passTop: floorTop - kh,
             floorTop: floorTop,
             winX0: winX0,
             winX1: winX1,
@@ -2288,7 +2308,10 @@
         // glass while the room itself hides the rest.
         function windowBand() {
           var d = hallDims();
-          return { y0: d.winY0, y1: d.floorTop };
+          // The glass runs from under the cornice down to
+          // the top of the kitchen pass at the room's back
+          // edge — the sea fills exactly that, no further.
+          return { y0: d.winY0, y1: d.passTop };
         }
         var gulls = [], leaps = [], nextGullAt = 0, nextLeapAt = 0;
         var seaSeeded = false;
@@ -2552,6 +2575,12 @@
           var gy = d.gy, kh = d.kh;
           var floorTop = d.floorTop;
           var winY0 = d.winY0, winX0 = d.winX0, winX1 = d.winX1;
+          var winH = d.winH;
+          // The kitchen pass stands at the back edge of the
+          // floor: kb is its counter base (the floor line
+          // itself), kt the top of its back wall, one
+          // pass-height above the base.
+          var kb = floorTop, kt = floorTop - kh;
 
           // Wall: warm ivory palace stone around the glass,
           // lit warmer near the top where the chandelier and
@@ -2573,22 +2602,22 @@
           ctx.lineWidth = 1.4;
           for (var psi3 = 0; psi3 < 2; psi3++) {
             var pmx = psi3 === 0 ? 5 : W - winX0 + 5;
-            ctx.strokeRect(pmx, winY0 + 10, winX0 - 10, floorTop - winY0 - 20);
+            ctx.strokeRect(pmx, winY0 + 10, winX0 - 10, winH - 20);
           }
 
           // ---------- The coffered ceiling band ----------
-          // Under the pass runs the hall's entablature: a
+          // Across the top runs the hall's entablature: a
           // deep warm band of recessed coffers, each one
           // trimmed in gold, over a dentil course and a gold
           // cornice line — the ceiling the great chandelier
           // hangs from.
-          var ceilGrad = ctx.createLinearGradient(0, kh, 0, winY0);
+          var ceilGrad = ctx.createLinearGradient(0, 0, 0, winY0);
           ceilGrad.addColorStop(0, "#54401f");
           ceilGrad.addColorStop(1, "#38280f");
           ctx.fillStyle = ceilGrad;
-          ctx.fillRect(0, kh, W, winY0 - kh);
-          var cofH = Math.max(winY0 - kh - 13, 8);
-          var cofY = kh + 4;
+          ctx.fillRect(0, 0, W, winY0);
+          var cofH = Math.max(winY0 - 13, 8);
+          var cofY = 4;
           ctx.lineWidth = 1.5;
           for (var cofx = 9; cofx + 40 < W; cofx += 56) {
             ctx.fillStyle = "#2c1e0d";
@@ -2713,8 +2742,8 @@
           for (var msi = 0; msi < 2; msi++) {
             var mcx = msi === 0 ? winX0 / 2 : W - winX0 / 2;
             if (winX0 >= 38) {
-              var mirW = winX0 - 15, mirH = (floorTop - winY0) * 0.38;
-              var mirY = winY0 + (floorTop - winY0) * 0.07;
+              var mirW = winX0 - 15, mirH = winH * 0.38;
+              var mirY = winY0 + winH * 0.07;
               ctx.fillStyle = "#a87f24";
               ctx.beginPath();
               if (ctx.roundRect) ctx.roundRect(mcx - mirW / 2, mirY, mirW, mirH, mirW * 0.32);
@@ -2751,7 +2780,7 @@
             }
             // The sconce: a warm glow, a gold arm and cup,
             // a white candle and its flame.
-            var scy = winY0 + (floorTop - winY0) * 0.60;
+            var scy = winY0 + winH * 0.60;
             var scGlow = ctx.createRadialGradient(mcx, scy - 8, 2, mcx, scy - 8, 30);
             scGlow.addColorStop(0, "rgba(255,186,90,0.5)");
             scGlow.addColorStop(1, "rgba(255,186,90,0)");
@@ -2948,69 +2977,6 @@
           ctx.fillStyle = "rgba(255,235,190,0.2)";
           ctx.fillRect(0, floorTop - 1, W, 0.8);
 
-          // ---------- The potted palm ----------
-          // A palm in a gold pot at the hall's left edge,
-          // standing on the marble in front of the glass —
-          // its fronds reach up over the first arch.
-          var palmX = Math.max(22, winX0 * 0.52);
-          var palmBase = gy - 8;
-          var palmTopY = winY0 + (floorTop - winY0) * 0.30;
-          // The pot: a gold planter, wide at the rim.
-          var potGrad = ctx.createLinearGradient(palmX - 12, 0, palmX + 12, 0);
-          potGrad.addColorStop(0, "#8a6a2f");
-          potGrad.addColorStop(0.5, "#e3c268");
-          potGrad.addColorStop(1, "#8a6a2f");
-          ctx.fillStyle = potGrad;
-          ctx.beginPath();
-          ctx.moveTo(palmX - 12, palmBase);
-          ctx.lineTo(palmX + 12, palmBase);
-          ctx.lineTo(palmX + 9, palmBase - 17);
-          ctx.lineTo(palmX - 9, palmBase - 17);
-          ctx.closePath(); ctx.fill();
-          ctx.fillStyle = "#6d5326";
-          ctx.fillRect(palmX - 11, palmBase - 20, 22, 4);
-          // The trunk, leaning a touch as palms do.
-          ctx.strokeStyle = "#6b4a26";
-          ctx.lineWidth = 4.5;
-          ctx.lineCap = "round";
-          ctx.beginPath();
-          ctx.moveTo(palmX, palmBase - 18);
-          ctx.quadraticCurveTo(palmX + 3, (palmBase + palmTopY) / 2, palmX - 2, palmTopY + 12);
-          ctx.stroke();
-          ctx.strokeStyle = "rgba(46,29,10,0.5)";
-          ctx.lineWidth = 1;
-          for (var trk = 0; trk < 5; trk++) {
-            var trkY = palmBase - 26 - trk * (palmBase - palmTopY - 30) / 5;
-            ctx.beginPath(); ctx.moveTo(palmX - 2.4, trkY); ctx.lineTo(palmX + 2.6, trkY - 3); ctx.stroke();
-          }
-          // The fronds: long arcing leaves fanning out
-          // from the crown, in two greens.
-          var crownX = palmX - 2, crownY = palmTopY + 12;
-          for (var frd = 0; frd < 7; frd++) {
-            var fAng = -Math.PI * (0.08 + frd * 0.14);
-            var fLen = clamp(W * 0.055, 34, 74) * (0.75 + roomHash(frd * 3.7) * 0.45);
-            var fEndX = crownX + Math.cos(fAng) * fLen;
-            var fEndY = crownY + Math.sin(fAng) * fLen * 0.5 + fLen * 0.22;
-            var fMidX = crownX + Math.cos(fAng) * fLen * 0.55;
-            var fMidY = crownY + Math.sin(fAng) * fLen * 0.55 - fLen * 0.18;
-            ctx.strokeStyle = frd % 2 ? "#2e7d46" : "#3f9e57";
-            ctx.lineWidth = 2.6;
-            ctx.beginPath();
-            ctx.moveTo(crownX, crownY);
-            ctx.quadraticCurveTo(fMidX, fMidY, fEndX, fEndY);
-            ctx.stroke();
-            // Leaflets along the frond.
-            ctx.lineWidth = 1.1;
-            ctx.strokeStyle = frd % 2 ? "rgba(46,125,70,0.8)" : "rgba(63,158,87,0.8)";
-            for (var lfl = 1; lfl <= 3; lfl++) {
-              var lfT = lfl / 4;
-              var lfX = crownX + (fMidX - crownX) * lfT * 1.4 + (fEndX - crownX) * lfT * lfT * 0.4;
-              var lfY = crownY + (fMidY - crownY) * lfT * 1.4 + (fEndY - crownY) * lfT * lfT * 0.4;
-              ctx.beginPath(); ctx.moveTo(lfX, lfY); ctx.lineTo(lfX + 4.5, lfY + 3.4); ctx.stroke();
-              ctx.beginPath(); ctx.moveTo(lfX, lfY); ctx.lineTo(lfX - 4.5, lfY + 3.4); ctx.stroke();
-            }
-          }
-
           // ---------- The great chandelier ----------
           // A massive multi-tiered crystal chandelier
           // hanging from the coffered band at the hall's
@@ -3029,10 +2995,10 @@
           // The stem and its canopy, up into the band.
           ctx.strokeStyle = "#a87f24";
           ctx.lineWidth = 3;
-          ctx.beginPath(); ctx.moveTo(chX, kh + 1); ctx.lineTo(chX, winY0 + 8); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(chX, 1); ctx.lineTo(chX, winY0 + 8); ctx.stroke();
           ctx.fillStyle = "#c9a227";
           ctx.beginPath();
-          ctx.moveTo(chX - 7, kh + 9); ctx.lineTo(chX + 7, kh + 9); ctx.lineTo(chX + 2.5, kh + 1); ctx.lineTo(chX - 2.5, kh + 1);
+          ctx.moveTo(chX - 7, 9); ctx.lineTo(chX + 7, 9); ctx.lineTo(chX + 2.5, 1); ctx.lineTo(chX - 2.5, 1);
           ctx.closePath(); ctx.fill();
           var tierR = [chW * 0.20, chW * 0.32, chW * 0.44];
           var tierY = [winY0 + 4, winY0 + 22, winY0 + 42];
@@ -3097,33 +3063,45 @@
             ctx.stroke();
           }
 
-          // The kitchen pass: a steel counter across the top,
-          // three warm pendant lamps, and the KITCHEN sign.
+          // The kitchen pass: a steel counter standing at
+          // the back edge of the floor, its back wall rising
+          // in front of the glass's lower reach — three warm
+          // pendant lamps under its header beam, and the
+          // KITCHEN sign. The pass belongs to the room: the
+          // waiter works at it right behind the back row.
           ctx.fillStyle = "#2e2013";
-          ctx.fillRect(0, 0, W, kh - 24);
-          var steel = ctx.createLinearGradient(0, kh - 26, 0, kh);
+          ctx.fillRect(0, kt, W, kh - 24);
+          // The header beam: a dark soffit finishing the
+          // top edge of the pass's back wall, so the band
+          // reads as a structure standing in the room — the
+          // pendant lamps hang from it.
+          ctx.fillStyle = "#1c1108";
+          ctx.fillRect(0, kt, W, 5);
+          ctx.fillStyle = "rgba(212,175,55,0.45)";
+          ctx.fillRect(0, kt + 5, W, 1.2);
+          var steel = ctx.createLinearGradient(0, kb - 26, 0, kb);
           steel.addColorStop(0, "#eef2f4");
           steel.addColorStop(0.35, "#c3ced4");
           steel.addColorStop(0.75, "#9fadb5");
           steel.addColorStop(1, "#7f8f98");
           ctx.fillStyle = steel;
-          ctx.fillRect(0, kh - 26, W, 26);
+          ctx.fillRect(0, kb - 26, W, 26);
           // Brushed metal: fine horizontal streaks along the
           // counter, and a hard highlight on its top edge.
           ctx.fillStyle = "rgba(255,255,255,0.5)";
-          ctx.fillRect(0, kh - 26, W, 1.4);
+          ctx.fillRect(0, kb - 26, W, 1.4);
           for (var bsi = 0; bsi < 5; bsi++) {
             ctx.fillStyle = bsi % 2 ? "rgba(40,55,62,0.10)" : "rgba(255,255,255,0.16)";
-            ctx.fillRect(0, kh - 21 + bsi * 4.4, W, 1);
+            ctx.fillRect(0, kb - 21 + bsi * 4.4, W, 1);
           }
           ctx.fillStyle = "rgba(20, 30, 34, 0.55)";
-          ctx.fillRect(0, kh - 3, W, 3);
-          // The counter's shadow falling on the wall below.
-          var passShade = ctx.createLinearGradient(0, kh, 0, kh + 14);
+          ctx.fillRect(0, kb - 3, W, 3);
+          // The counter's shadow falling on the floor below.
+          var passShade = ctx.createLinearGradient(0, kb, 0, kb + 14);
           passShade.addColorStop(0, "rgba(4,10,6,0.35)");
           passShade.addColorStop(1, "rgba(4,10,6,0)");
           ctx.fillStyle = passShade;
-          ctx.fillRect(0, kh, W, 14);
+          ctx.fillRect(0, kb, W, 14);
           // White tile backsplash behind the pass, and the
           // warm strip of the heat lamps glowing under the
           // counter's front edge.
@@ -3131,64 +3109,64 @@
           // catching a little of the pass light.
           ctx.save();
           ctx.fillStyle = "rgba(214,232,224,0.07)";
-          ctx.fillRect(0, kh - 62, W, 34);
+          ctx.fillRect(0, kb - 62, W, 34);
           ctx.globalAlpha = 0.2;
           ctx.strokeStyle = "#dfe9ec";
           ctx.lineWidth = 1;
           var tileRow = 0;
-          for (var tyy = kh - 62; tyy < kh - 26; tyy += 17, tileRow++) {
+          for (var tyy = kb - 62; tyy < kb - 26; tyy += 17, tileRow++) {
             ctx.beginPath(); ctx.moveTo(0, tyy); ctx.lineTo(W, tyy); ctx.stroke();
             for (var txx = (tileRow % 2) * 28; txx < W; txx += 56) {
-              ctx.beginPath(); ctx.moveTo(txx, tyy); ctx.lineTo(txx, Math.min(tyy + 17, kh - 28)); ctx.stroke();
+              ctx.beginPath(); ctx.moveTo(txx, tyy); ctx.lineTo(txx, Math.min(tyy + 17, kb - 28)); ctx.stroke();
             }
           }
           ctx.restore();
-          var heat = ctx.createLinearGradient(0, kh - 3, 0, kh + 16);
+          var heat = ctx.createLinearGradient(0, kb - 3, 0, kb + 16);
           heat.addColorStop(0, "rgba(255,150,60,0.35)");
           heat.addColorStop(1, "rgba(255,150,60,0)");
           ctx.fillStyle = heat;
-          ctx.fillRect(0, kh - 3, W, 19);
+          ctx.fillRect(0, kb - 3, W, 19);
           // Plates stacked on the pass, waiting to run.
           ctx.fillStyle = "#f4f7f8";
           for (var pi = 0; pi < 3; pi++) {
             var px2 = W * 0.16 + pi * 15;
-            ctx.beginPath(); ctx.ellipse(px2, kh - 28, 11, 3.4, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(W * 0.84 - pi * 15, kh - 28, 11, 3.4, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(px2, kb - 28, 11, 3.4, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(W * 0.84 - pi * 15, kb - 28, 11, 3.4, 0, 0, Math.PI * 2); ctx.fill();
           }
-          // Pendant lamps.
+          // Pendant lamps, hanging from the header beam.
           for (var li = 0; li < 3; li++) {
             var lx = W * (0.25 + li * 0.25);
-            var glow = ctx.createRadialGradient(lx, 40, 2, lx, 40, 54);
+            var glow = ctx.createRadialGradient(lx, kt + 40, 2, lx, kt + 40, 54);
             glow.addColorStop(0, "rgba(255, 196, 86, 0.5)");
             glow.addColorStop(1, "rgba(255, 196, 86, 0)");
             ctx.fillStyle = glow;
-            ctx.fillRect(lx - 54, 0, 108, 108);
+            ctx.fillRect(lx - 54, kt, 108, 108);
             ctx.strokeStyle = "#0a0a0a";
             ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.moveTo(lx, 0); ctx.lineTo(lx, 22); ctx.stroke();
-            var shadeGrad = ctx.createLinearGradient(0, 22, 0, 38);
+            ctx.beginPath(); ctx.moveTo(lx, kt); ctx.lineTo(lx, kt + 22); ctx.stroke();
+            var shadeGrad = ctx.createLinearGradient(0, kt + 22, 0, kt + 38);
             shadeGrad.addColorStop(0, "#8a6a2f");
             shadeGrad.addColorStop(0.55, "#d9b45f");
             shadeGrad.addColorStop(1, "#a37f33");
             ctx.fillStyle = shadeGrad;
             ctx.beginPath();
-            ctx.moveTo(lx - 13, 38); ctx.lineTo(lx + 13, 38); ctx.lineTo(lx + 5, 22); ctx.lineTo(lx - 5, 22);
+            ctx.moveTo(lx - 13, kt + 38); ctx.lineTo(lx + 13, kt + 38); ctx.lineTo(lx + 5, kt + 22); ctx.lineTo(lx - 5, kt + 22);
             ctx.closePath(); ctx.fill();
             // Crystal drops under the shade, catching the light.
             ctx.fillStyle = "rgba(240,248,255,0.9)";
             for (var cd = -2; cd <= 2; cd++) {
-              ctx.beginPath(); ctx.arc(lx + cd * 5, 41.5, 1.5, 0, Math.PI * 2); ctx.fill();
+              ctx.beginPath(); ctx.arc(lx + cd * 5, kt + 41.5, 1.5, 0, Math.PI * 2); ctx.fill();
             }
             ctx.fillStyle = "#ffc456";
-            ctx.beginPath(); ctx.arc(lx, 39, 3.6, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(lx, kt + 39, 3.6, 0, Math.PI * 2); ctx.fill();
           }
           // The sign.
           ctx.font = "800 12px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
           var signW = ctx.measureText("KITCHEN").width + 22;
           ctx.fillStyle = "#2a1a0c";
           ctx.beginPath();
-          if (ctx.roundRect) ctx.roundRect(W / 2 - signW / 2, 8, signW, 21, 6);
-          else ctx.rect(W / 2 - signW / 2, 8, signW, 21);
+          if (ctx.roundRect) ctx.roundRect(W / 2 - signW / 2, kt + 8, signW, 21, 6);
+          else ctx.rect(W / 2 - signW / 2, kt + 8, signW, 21);
           ctx.fill();
           ctx.strokeStyle = "rgba(201,162,77,0.75)";
           ctx.lineWidth = 1.2;
@@ -3196,8 +3174,75 @@
           ctx.fillStyle = "#ffbe1a";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText("KITCHEN", W / 2, 19);
+          ctx.fillText("KITCHEN", W / 2, kt + 19);
           ctx.textBaseline = "alphabetic";
+
+          // ---------- The potted palm ----------
+          // A palm in a gold pot at the hall's left edge,
+          // standing on the marble in front of the glass —
+          // its fronds reach up over the first arch. It is
+          // painted after the pass on purpose: the palm
+          // stands on the floor IN FRONT of the pass at the
+          // room's back edge, so its trunk crosses the
+          // pass's back wall instead of vanishing behind it.
+          var palmX = Math.max(22, winX0 * 0.52);
+          var palmBase = gy - 8;
+          var palmTopY = winY0 + winH * 0.30;
+          // The pot: a gold planter, wide at the rim.
+          var potGrad = ctx.createLinearGradient(palmX - 12, 0, palmX + 12, 0);
+          potGrad.addColorStop(0, "#8a6a2f");
+          potGrad.addColorStop(0.5, "#e3c268");
+          potGrad.addColorStop(1, "#8a6a2f");
+          ctx.fillStyle = potGrad;
+          ctx.beginPath();
+          ctx.moveTo(palmX - 12, palmBase);
+          ctx.lineTo(palmX + 12, palmBase);
+          ctx.lineTo(palmX + 9, palmBase - 17);
+          ctx.lineTo(palmX - 9, palmBase - 17);
+          ctx.closePath(); ctx.fill();
+          ctx.fillStyle = "#6d5326";
+          ctx.fillRect(palmX - 11, palmBase - 20, 22, 4);
+          // The trunk, leaning a touch as palms do.
+          ctx.strokeStyle = "#6b4a26";
+          ctx.lineWidth = 4.5;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(palmX, palmBase - 18);
+          ctx.quadraticCurveTo(palmX + 3, (palmBase + palmTopY) / 2, palmX - 2, palmTopY + 12);
+          ctx.stroke();
+          ctx.strokeStyle = "rgba(46,29,10,0.5)";
+          ctx.lineWidth = 1;
+          for (var trk = 0; trk < 5; trk++) {
+            var trkY = palmBase - 26 - trk * (palmBase - palmTopY - 30) / 5;
+            ctx.beginPath(); ctx.moveTo(palmX - 2.4, trkY); ctx.lineTo(palmX + 2.6, trkY - 3); ctx.stroke();
+          }
+          // The fronds: long arcing leaves fanning out
+          // from the crown, in two greens.
+          var crownX = palmX - 2, crownY = palmTopY + 12;
+          for (var frd = 0; frd < 7; frd++) {
+            var fAng = -Math.PI * (0.08 + frd * 0.14);
+            var fLen = clamp(W * 0.055, 34, 74) * (0.75 + roomHash(frd * 3.7) * 0.45);
+            var fEndX = crownX + Math.cos(fAng) * fLen;
+            var fEndY = crownY + Math.sin(fAng) * fLen * 0.5 + fLen * 0.22;
+            var fMidX = crownX + Math.cos(fAng) * fLen * 0.55;
+            var fMidY = crownY + Math.sin(fAng) * fLen * 0.55 - fLen * 0.18;
+            ctx.strokeStyle = frd % 2 ? "#2e7d46" : "#3f9e57";
+            ctx.lineWidth = 2.6;
+            ctx.beginPath();
+            ctx.moveTo(crownX, crownY);
+            ctx.quadraticCurveTo(fMidX, fMidY, fEndX, fEndY);
+            ctx.stroke();
+            // Leaflets along the frond.
+            ctx.lineWidth = 1.1;
+            ctx.strokeStyle = frd % 2 ? "rgba(46,125,70,0.8)" : "rgba(63,158,87,0.8)";
+            for (var lfl = 1; lfl <= 3; lfl++) {
+              var lfT = lfl / 4;
+              var lfX = crownX + (fMidX - crownX) * lfT * 1.4 + (fEndX - crownX) * lfT * lfT * 0.4;
+              var lfY = crownY + (fMidY - crownY) * lfT * 1.4 + (fEndY - crownY) * lfT * lfT * 0.4;
+              ctx.beginPath(); ctx.moveTo(lfX, lfY); ctx.lineTo(lfX + 4.5, lfY + 3.4); ctx.stroke();
+              ctx.beginPath(); ctx.moveTo(lfX, lfY); ctx.lineTo(lfX - 4.5, lfY + 3.4); ctx.stroke();
+            }
+          }
         }
         function drawTable(t, nowMs) {
           var shakeX = t.shakeT > 0 ? Math.sin(nowMs / 22) * 4 * t.shakeT : 0;
@@ -3564,17 +3609,19 @@
           // The number tent: a folded tent card standing
           // on the table, the way a real restaurant numbers
           // its tables — sized inside the table's own
-          // footprint, and stepped up a notch from the
-          // earlier card (John, 2026-11-08: that card's
-          // numbers read a bit small; the oversized digits
-          // before it were too large, so this lands between
-          // — roughly a third larger, still a real tent).
-          // It sits clear of the guests, the place settings
-          // and the show label under the table. When the
-          // numbers re-deal it pops (numPop), so the change
-          // is seen, not just made.
+          // footprint, and stepped up again from the
+          // 2026-11-08 card (John, 2026-11-14: on the hall's
+          // tables the numbers still read small): a wider,
+          // taller card, its digits at about half the
+          // table's radius in weight-900 dark ink inside a
+          // solid dark border — readable at a glance on a
+          // phone, and still well short of the oversized
+          // card he rejected. It sits clear of the guests,
+          // the place settings and the show label under the
+          // table. When the numbers re-deal it pops
+          // (numPop), so the change is seen, not just made.
           var pop = 1 + (t.numPop > 0 ? Math.sin(t.numPop * Math.PI) * 0.22 : 0);
-          var tw = r * 0.94 * pop, th = r * 0.66 * pop;
+          var tw = r * 1.06 * pop, th = r * 0.74 * pop;
           var tx = cx - tw / 2, ty = cy - th * 0.42;
           ctx.save();
           ctx.shadowColor = "rgba(20, 10, 4, 0.28)";
@@ -3602,20 +3649,20 @@
           facet.addColorStop(1, "rgba(146,118,74,0.13)");
           ctx.fillStyle = facet;
           ctx.fillRect(tx + tw * 0.62, ty + 2, tw * 0.38 - 2, th - 4);
-          ctx.strokeStyle = "rgba(43,26,18,0.6)";
-          ctx.lineWidth = Math.max(1.3, r * 0.028);
+          ctx.strokeStyle = "#2b1a12";
+          ctx.lineWidth = Math.max(2, r * 0.04);
           ctx.beginPath();
           if (ctx.roundRect) ctx.roundRect(tx, ty, tw, th, 3);
           else ctx.rect(tx, ty, tw, th);
           ctx.stroke();
           ctx.fillStyle = "#2b1a12";
-          var numSize = Math.round(th * 0.62);
+          var numSize = Math.round(th * 0.70);
           ctx.font = "900 " + numSize + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
           // Fit guard: if a two-digit number ever measures
           // wider than the card in the player's font, step the
           // type down until it sits inside — a number is never
           // clipped by its own tent.
-          while (numSize > 10 && ctx.measureText(String(t.number)).width > tw - 10) {
+          while (numSize > 10 && ctx.measureText(String(t.number)).width > tw - 8) {
             numSize -= 1;
             ctx.font = "900 " + numSize + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
           }
@@ -3870,10 +3917,10 @@
           // "Numbers changed!" belongs to THIS event alone —
           // a party leaving and the numbers re-dealt across
           // the hall.
-          addFloat(W / 2, kitchenH() + 30, "Numbers changed!", "#ffd166");
+          addFloat(W / 2, hallDims().floorTop + 30, "Numbers changed!", "#ffd166");
           if (!stillThere && gameOn) {
             newTicket();
-            addFloat(W / 2, kitchenH() + 56, "Table " + oldTicket + " left — new ticket!", "#ffffff");
+            addFloat(W / 2, hallDims().floorTop + 56, "Table " + oldTicket + " left — new ticket!", "#ffffff");
           }
         }
         function seatNewParty(t, nowMs) {
@@ -4337,7 +4384,7 @@
           // pass itself.
           if (!gameOn && overOverlay.hidden && waiter.state === "pass") {
             waiter.x = W / 2;
-            waiter.y = kitchenH() + 58;
+            waiter.y = hallDims().floorTop + 58;
           }
 
           // The hall stands on land and never moves: the
