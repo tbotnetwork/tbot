@@ -2130,7 +2130,7 @@
 
         // ---------- The dining room ----------
         var GAME_SECONDS = 60;   // the shift: sixty seconds on the clock
-        var TABLE_COUNT = 12;    // the floor opens with twelve tables
+        var TABLE_COUNT = 4;     // the floor opens with four tables
         var MAX_TABLES = 16;     // Pack 'em can seat the floor up to sixteen
         var PACK_STEP = 2;       // each Pack 'em press seats two more tables
         var NUMBER_POOL = 12;    // table numbers are dealt from 1..12 (the pool grows with the floor — see dealNumbers)
@@ -2153,6 +2153,37 @@
         var lastPrize = null;   // prize deal of the round just ended
         var ticketNum = null;   // the number the kitchen is calling
         var nextLeaveAt = 0;    // when the next party gets up and leaves
+
+        // The four-table tempo: while the floor stands at
+        // the opening four tables, the room runs BRISK —
+        // the party-leave / number re-deal cycle (and with
+        // it the kitchen's ticket calls, which print off
+        // that cycle and off serves) is scheduled at about
+        // one-and-a-half times the usual rate, so every
+        // wait between parties leaving is cut to two-thirds.
+        // The shift itself stays sixty seconds, and at any
+        // other table count the pacing is exactly as it
+        // always was. The count cannot change mid-round
+        // (Pack 'em is a lobby act), so reading the floor
+        // as it stands at each scheduling is the round's
+        // tempo throughout.
+        function paceFactor() {
+          return tables.length === 4 ? 2 / 3 : 1;
+        }
+
+        // The shift's last call: in the final five seconds
+        // no new plate runs leave the pass, and a waiter
+        // already out on the floor is recalled — he stands
+        // at his post behind the steel, under the KITCHEN
+        // sign, until the winner card appears. (Serves in
+        // those seconds still count exactly as always —
+        // the tap is judged and the next ticket prints;
+        // only the walk is held.) Without this, a plate run
+        // dispatched near the whistle left the centre
+        // counter standing empty for the shift's last
+        // seconds, the waiter out on the floor as the clock
+        // died.
+        var FINAL_CALL_MS = 5000;
 
         var waiter = {
           x: 0, y: 0, homeX: 0, homeY: 0,
@@ -2198,8 +2229,8 @@
         // radius fit below), so the sea and sky show only
         // ABOVE the tables' skyline, never behind or around
         // a table's body. Four across on a wide screen. On a
-        // phone a small floor runs two across, but any floor
-        // fuller than eight — the opening twelve included —
+        // phone a small floor — the opening four included —
+        // runs two across, but any floor fuller than eight
         // widens to four across so the tables keep their
         // size; packing the floor wider still (Pack 'em)
         // shrinks the tables a step so the extra tables
@@ -2265,6 +2296,11 @@
             var c = tables[i].slot % cols, r = Math.floor(tables[i].slot / cols);
             tables[i].slotX = cellW * (c + 0.5);
             tables[i].slotY = top + cellH * r + slotOffY;
+            // The cell's half-pitch: the rug under each
+            // setting (see drawTable) is capped at this, so
+            // neighbouring rugs never overlap however packed
+            // the floor gets.
+            tables[i].halfPitch = Math.min(cellW, cellH) / 2;
             if (!tables[i].placed) {
               tables[i].x = tables[i].slotX;
               tables[i].y = tables[i].slotY;
@@ -2387,8 +2423,8 @@
         // can never sit in the windows, and no sea can ever
         // show behind a table's body or between a table and
         // the floor it stands on. A floor fuller than eight
-        // tables — the opening twelve included — runs a step
-        // deeper: the window wall gives up a little of its
+        // tables runs a step deeper: the window wall gives
+        // up a little of its
         // height so all sixteen tables still stand on the
         // floor at a full house.
         function hallDims() {
@@ -2776,10 +2812,159 @@
           // (No KITCHEN sign is painted here: the sign is
           // drawn live over the waiter — see drawKitchenSign.)
         }
+        // The rug's weave: a small tile of carpet pile,
+        // woven ONCE and deterministically (a fixed-seed
+        // pass, never Math.random), so every rug wears the
+        // same fabric every frame and the pile never
+        // shimmers or crawls. Short horizontal dashes in
+        // deep-shadow reds and faint warm highlights, at
+        // very low contrast — laid over the rug's red field
+        // (see drawTable) it reads as woven pile catching
+        // the room light, not as a pattern printed on top.
+        var rugWeaveTile = null;
+        function rugWeave() {
+          if (rugWeaveTile) return rugWeaveTile;
+          var tile = document.createElement("canvas");
+          tile.width = 96; tile.height = 96;
+          var tctx = tile.getContext("2d");
+          var seed = 1234567;
+          function trand() {
+            seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+            return seed / 0x7fffffff;
+          }
+          for (var wy = 0; wy < 96; wy += 3) {
+            for (var wx = 0; wx < 96; wx += 3) {
+              var v = trand();
+              if (v < 0.42) {
+                tctx.fillStyle = "rgba(30, 3, 7, " + (0.05 + trand() * 0.07).toFixed(3) + ")";
+              } else if (v < 0.84) {
+                tctx.fillStyle = "rgba(255, 148, 138, " + (0.04 + trand() * 0.06).toFixed(3) + ")";
+              } else {
+                tctx.fillStyle = "rgba(96, 12, 18, " + (0.05 + trand() * 0.05).toFixed(3) + ")";
+              }
+              // Pile dashes, offset on alternate rows the
+              // way a woven weft sits.
+              tctx.fillRect(wx + (wy % 6 === 0 ? 0 : 1), wy, 2.4, 1.3);
+            }
+          }
+          rugWeaveTile = ctx.createPattern(tile, "repeat");
+          return rugWeaveTile;
+        }
+
         function drawTable(t, nowMs) {
           var shakeX = t.shakeT > 0 ? Math.sin(nowMs / 22) * 4 * t.shakeT : 0;
           var cx = t.x + shakeX, cy = t.y;
           var r = t.r;
+          // The rug: ONE round rug under each table setting,
+          // painted FIRST — flat on the black high-gloss
+          // floor, beneath the table's shadow, the table and
+          // its seated diners. It is built like a real carpet,
+          // not a coloured disc: a woven pile texture over
+          // the deep-red field (see rugWeave), a soft sheen
+          // where the pile catches the room light from the
+          // upper left and a falloff shade toward the lower
+          // right, a defined woven border band inside the
+          // gold rings, a bound dark edge, and a firm contact
+          // shadow at the rim so the rug sits INTO the gloss
+          // instead of floating on it. Rich deep red with a
+          // thin gold border ring and a subtle inner ring.
+          // Centred on the table at 1.9× the table
+          // radius — wide enough to hold the table and the
+          // enlarged (1.25×) diners seated behind it — but
+          // capped at the cell's half-pitch, so on the packed
+          // 14- and 16-table floors neighbouring rugs stay
+          // separate and never overlap. Every layer is kept
+          // low-contrast, so at small sizes (the packed
+          // floor, a phone) the rug still reads as clean red
+          // carpet, never muddy, and it never reaches the
+          // tent or the diners. It lies on the floor,
+          // so it takes the table's resting centre, not its
+          // shake.
+          var rugR = Math.min(r * 1.9, t.halfPitch || r * 1.9);
+          if (rugR > 2) {
+            var rx = t.x, ry = t.y;
+            // The contact shadow: a firmer soft pool just
+            // past the rim, grounding the rug in the floor.
+            var rugHalo = ctx.createRadialGradient(rx, ry, rugR * 0.9, rx, ry, rugR * 1.09);
+            rugHalo.addColorStop(0, "rgba(0, 0, 0, 0)");
+            rugHalo.addColorStop(0.5, "rgba(0, 0, 0, 0.45)");
+            rugHalo.addColorStop(1, "rgba(0, 0, 0, 0)");
+            ctx.fillStyle = rugHalo;
+            ctx.beginPath(); ctx.arc(rx, ry, rugR * 1.09, 0, Math.PI * 2); ctx.fill();
+            // The deep-red body, lit toward the upper left
+            // and deepening to its red-shaded rim.
+            var rugGrad = ctx.createRadialGradient(rx - rugR * 0.28, ry - rugR * 0.28, rugR * 0.1, rx, ry, rugR);
+            rugGrad.addColorStop(0, "#b02a33");
+            rugGrad.addColorStop(0.55, "#8f1d26");
+            rugGrad.addColorStop(0.85, "#6e141d");
+            rugGrad.addColorStop(1, "#550f16");
+            ctx.fillStyle = rugGrad;
+            ctx.beginPath(); ctx.arc(rx, ry, rugR, 0, Math.PI * 2); ctx.fill();
+            // The woven pile: the weave tile laid over the
+            // whole field, clipped to the rug, at a strength
+            // that reads as fabric texture up close and
+            // settles to plain red from across the room.
+            var weave = rugWeave();
+            if (weave) {
+              ctx.save();
+              ctx.beginPath(); ctx.arc(rx, ry, rugR, 0, Math.PI * 2); ctx.clip();
+              ctx.translate(rx - rugR, ry - rugR);
+              ctx.globalAlpha = 0.6;
+              ctx.fillStyle = weave;
+              ctx.fillRect(0, 0, rugR * 2, rugR * 2);
+              ctx.restore();
+            }
+            // The sheen: pile catching the room light from
+            // the upper left, warm and soft, fading out
+            // before the rim.
+            var rugSheen = ctx.createRadialGradient(rx - rugR * 0.38, ry - rugR * 0.42, rugR * 0.05, rx - rugR * 0.18, ry - rugR * 0.2, rugR * 1.05);
+            rugSheen.addColorStop(0, "rgba(255, 216, 178, 0.14)");
+            rugSheen.addColorStop(0.55, "rgba(255, 216, 178, 0.05)");
+            rugSheen.addColorStop(1, "rgba(255, 216, 178, 0)");
+            ctx.fillStyle = rugSheen;
+            ctx.beginPath(); ctx.arc(rx, ry, rugR, 0, Math.PI * 2); ctx.fill();
+            // The falloff: the far side of the pile falls
+            // away from the light, deepening toward the
+            // lower-right rim.
+            var rugFall = ctx.createRadialGradient(rx + rugR * 0.45, ry + rugR * 0.5, rugR * 0.2, rx, ry, rugR * 1.05);
+            rugFall.addColorStop(0, "rgba(24, 2, 6, 0)");
+            rugFall.addColorStop(0.72, "rgba(24, 2, 6, 0.05)");
+            rugFall.addColorStop(1, "rgba(24, 2, 6, 0.2)");
+            ctx.fillStyle = rugFall;
+            ctx.beginPath(); ctx.arc(rx, ry, rugR, 0, Math.PI * 2); ctx.fill();
+            // The woven border band: a defined annulus of
+            // darker, denser weave between the two gold
+            // rings, with short stitch ticks worked around
+            // it where the rug is big enough for them to
+            // read as stitching rather than noise.
+            ctx.beginPath();
+            ctx.arc(rx, ry, rugR * 0.93, 0, Math.PI * 2);
+            ctx.arc(rx, ry, rugR * 0.845, 0, Math.PI * 2, true);
+            ctx.fillStyle = "rgba(46, 5, 10, 0.38)";
+            ctx.fill();
+            if (rugR > 24) {
+              ctx.lineWidth = Math.max(1.2, rugR * 0.045);
+              for (var bk = 0; bk < 44; bk++) {
+                var ba = bk / 44 * Math.PI * 2;
+                ctx.strokeStyle = bk % 2 ? "rgba(255, 178, 150, 0.10)" : "rgba(16, 1, 4, 0.14)";
+                ctx.beginPath(); ctx.arc(rx, ry, rugR * 0.887, ba, ba + 0.075); ctx.stroke();
+              }
+            }
+            // The bound edge: a soft dark line at the very
+            // rim, the carpet's finished edge against the
+            // gloss.
+            ctx.strokeStyle = "rgba(22, 2, 5, 0.35)";
+            ctx.lineWidth = Math.max(1.5, rugR * 0.035);
+            ctx.beginPath(); ctx.arc(rx, ry, rugR - Math.max(1.5, rugR * 0.035) / 2, 0, Math.PI * 2); ctx.stroke();
+            // The thin gold border ring, just inside the rim.
+            ctx.strokeStyle = "rgba(212, 175, 55, 0.95)";
+            ctx.lineWidth = Math.max(1.5, r * 0.03);
+            ctx.beginPath(); ctx.arc(rx, ry, rugR * 0.955, 0, Math.PI * 2); ctx.stroke();
+            // A subtle inner ring.
+            ctx.strokeStyle = "rgba(212, 175, 55, 0.3)";
+            ctx.lineWidth = Math.max(1, r * 0.02);
+            ctx.beginPath(); ctx.arc(rx, ry, rugR * 0.8, 0, Math.PI * 2); ctx.stroke();
+          }
           // Shadow: a soft pool under the table, darker at
           // its heart — the table rests on the boards.
           ctx.fillStyle = "rgba(20, 10, 4, 0.16)";
@@ -3590,9 +3775,15 @@
             buzzSound();
           }
           servedLabel.textContent = String(servedCount);
-          waiter.target = t;
-          waiter.state = "toTable";
-          waiter.carrying = true;
+          // The last call (see FINAL_CALL_MS): inside the
+          // shift's final five seconds the plate is judged
+          // and counted as always, but no new run leaves
+          // the pass — the waiter holds his post.
+          if (timeLeftMs > FINAL_CALL_MS) {
+            waiter.target = t;
+            waiter.state = "toTable";
+            waiter.carrying = true;
+          }
         }
 
         function stepWaiter(dtMs) {
@@ -3675,7 +3866,7 @@
           timeChip.classList.remove("low");
           if (!tables.length) {
             // Reset cleared the floor: PLAY seats the
-            // opening twelve again before the shift is dealt.
+            // opening four again before the shift is dealt.
             for (var si = 0; si < TABLE_COUNT; si++) tables.push(makeTable(nowMs));
             layoutTables();
           }
@@ -3686,7 +3877,7 @@
           waiter.x = waiter.homeX;
           waiter.y = waiter.homeY;
           newTicket();
-          nextLeaveAt = nowMs + rand(7000, 10000);
+          nextLeaveAt = nowMs + rand(7000, 10000) * paceFactor();
           timeLeftMs = GAME_SECONDS * 1000;
           // The family's sequence rule: the description
           // disappears, and THEN the clock starts. If the
@@ -3854,7 +4045,7 @@
         // on an empty floor (Reset cleared it) the first press
         // seats just two tables, and each further press adds
         // two more — 2 → 4 → 6 → … → 16. (PLAY on an empty
-        // floor still deals the opening twelve — see
+        // floor still deals the opening four — see
         // startGame; this by-twos build is Pack 'em only.)
         // The packed floor is the floor: it
         // carries into the next shift as it stands, until
@@ -4015,7 +4206,7 @@
                 // in the shift's last three seconds.
                 if (nowMs >= nextLeaveAt && timeLeftMs > 3000) {
                   partyLeaves(nowMs);
-                  nextLeaveAt = nowMs + rand(6000, 9500);
+                  nextLeaveAt = nowMs + rand(6000, 9500) * paceFactor();
                 }
               }
             }
@@ -4033,6 +4224,18 @@
             if (t.happyT > 0) t.happyT = Math.max(0, t.happyT - dtMs / 700);
             if (t.plateT > 0) t.plateT = Math.max(0, t.plateT - dtMs / 1200);
             if (t.numPop > 0) t.numPop = Math.max(0, t.numPop - dtMs / 500);
+          }
+
+          // The last call (see FINAL_CALL_MS): once the
+          // shift enters its final five seconds, a waiter
+          // still out on a plate run is recalled to the
+          // pass — target dropped, tray down — and
+          // stepWaiter walks him home, where he stays under
+          // the sign until the winner card appears.
+          if (gameOn && timeLeftMs <= FINAL_CALL_MS && waiter.state === "toTable") {
+            waiter.state = "returning";
+            waiter.target = null;
+            waiter.carrying = false;
           }
 
           stepWaiter(dtMs);
@@ -4096,6 +4299,30 @@
         if (storedBest && typeof storedBest.served === "number" && storedBest.served >= 1) setBeat(storedBest.served);
         loadBeatNumber(0);
         showRestDesc();
+        // EVERY lobby entry shows the bubble — not only the
+        // scripted first paint above. A hard refresh can
+        // leave the opening showing spent before the room
+        // is even presented (the fade runs from the script's
+        // first paint while the photograph, sprite and track
+        // are still arriving uncached), and a restored page
+        // (back/forward cache, a webview reviving the tab)
+        // comes back with the bubble long gone and nothing
+        // re-showing it — the room simply stood there with
+        // no instructions. So the showing is re-armed at
+        // each presentation of the page: "load" covers the
+        // fresh, soft and hard loads once everything has
+        // actually arrived, and "pageshow" covers those
+        // plus every restored-state entry. Both guard on
+        // the lobby exactly as it stands — never over a
+        // live round, never over the winner card — and the
+        // showing itself (text, seat, fade) is showRestDesc's
+        // own, unchanged; a re-show while one is already up
+        // merely restarts its fade window from presentation.
+        function showBubbleOnLobbyEntry() {
+          if (!gameOn && overOverlay.hidden) showRestDesc();
+        }
+        window.addEventListener("load", showBubbleOnLobbyEntry);
+        window.addEventListener("pageshow", showBubbleOnLobbyEntry);
         requestAnimationFrame(frame);
 
         // A read-only window onto the game, for the family's
