@@ -4526,9 +4526,14 @@
         // The family's Pack 'em, restaurant-style: each press
         // seats PACK_STEP more tables on the floor — new
         // parties at new tables, the numbers re-dealt across
-        // the whole floor — up to a full house of MAX_TABLES;
-        // pressed on an empty floor it deals the opening
-        // twelve instead. The packed floor is the floor: it
+        // the whole floor — up to a full house of MAX_TABLES.
+        // The ladder runs by twos from the very first press:
+        // on an empty floor (Reset cleared it) the first press
+        // seats just two tables, and each further press adds
+        // two more — 2 → 4 → 6 → … → 16. (PLAY on an empty
+        // floor still deals the opening twelve — see
+        // startGame; this by-twos build is Pack 'em only.)
+        // The packed floor is the floor: it
         // carries into the next shift as it stands, until
         // Reset clears the tables off the floor entirely.
         // Idle room only — the button leaves the document for
@@ -4565,13 +4570,12 @@
           // even if the player had toggled it off — entering
           // Pack ’em always lands on a sounding room.
           tryStartMusic();
-          // From an empty floor (Reset cleared it) the press
-          // deals the opening floor — TABLE_COUNT tables, the
-          // same deal PLAY opens with; on a standing floor it
-          // seats PACK_STEP more, up to the full house.
-          var add = tables.length === 0
-            ? Math.min(TABLE_COUNT, MAX_TABLES)
-            : Math.min(PACK_STEP, MAX_TABLES - tables.length);
+          // Every press seats PACK_STEP more tables, from any
+          // floor size: from an empty floor the first press
+          // seats just two, and the ladder climbs by twos to
+          // the full house; at the cap nothing is added and
+          // the button reads "Full house" (paintIdleButtons).
+          var add = Math.min(PACK_STEP, MAX_TABLES - tables.length);
           if (add <= 0) { paintIdleButtons(); return; }
           var nowMs = performance.now();
           for (var i = 0; i < add; i++) {
