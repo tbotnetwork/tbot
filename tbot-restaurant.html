@@ -3727,29 +3727,33 @@
           // The number tent: a folded tent card standing
           // on the table, the way a real restaurant numbers
           // its tables — sized inside the table's own
-          // footprint, and stepped up again from the
-          // 2026-11-08 card (John, 2026-11-14: on the hall's
-          // tables the numbers still read small): a wider,
-          // taller card, its digits at about half the
+          // footprint, and stepped up again (John,
+          // 2026-11-14: "Make the numbers larger"): the
+          // card and its digits grow together by about a
+          // third, the digits now at about 0.70 of the
           // table's radius in weight-900 dark ink inside a
-          // solid dark border — readable at a glance on a
-          // phone, and still well short of the oversized
-          // card he rejected. It sits clear of the guests,
-          // the place settings and the show label under the
-          // table. When the numbers re-deal it pops
-          // (numPop), so the change is seen, not just made.
+          // solid dark border — the largest the tent can
+          // carry. The card still sits inside the cloth
+          // (its foot stays clear of the show label under
+          // the table, its sides short of the candles at
+          // the table's shoulders), well inside the layout
+          // envelope the floor fit is derived from, so no
+          // layout measure moves. It sits clear of the
+          // guests and the place settings. When the
+          // numbers re-deal it pops (numPop), so the change
+          // is seen, not just made.
           var pop = 1 + (t.numPop > 0 ? Math.sin(t.numPop * Math.PI) * 0.22 : 0);
           // On a compressed floor (short screens — see
           // layoutTables) the table's radius steps down, but
           // the tent must NOT step down with it: the card is
           // sized off a floored radius, so its digits hold
-          // the enlarged readable size (about 0.52 of the
+          // the enlarged readable size (about 0.70 of the
           // floored radius, weight 900 — see the fit guard
           // below) even when the table itself is small. At
           // any normal radius the floor never engages and
           // the tent is exactly the shipped size.
           var tentR = Math.max(r, 26);
-          var tw = tentR * 1.06 * pop, th = tentR * 0.74 * pop;
+          var tw = tentR * 1.20 * pop, th = tentR * 0.95 * pop;
           var tx = cx - tw / 2, ty = cy - th * 0.42;
           ctx.save();
           ctx.shadowColor = "rgba(20, 10, 4, 0.28)";
@@ -3784,7 +3788,7 @@
           else ctx.rect(tx, ty, tw, th);
           ctx.stroke();
           ctx.fillStyle = "#2b1a12";
-          var numSize = Math.round(th * 0.70);
+          var numSize = Math.round(th * 0.74);
           ctx.font = "900 " + numSize + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
           // Fit guard: if a two-digit number ever measures
           // wider than the card in the player's font, step the
@@ -3833,6 +3837,9 @@
         // brass-trimmed card, so a booth's or a bar seat's
         // number reads exactly as clearly as a table's, and
         // it is painted last over its station, never covered.
+        // Its digits grew in the same proportion as the
+        // table tent's (John, 2026-11-14: "Make the numbers
+        // larger") — see the booth and bar call sites.
         function drawPlaque(cx, cyC, w, h, number) {
           var tx = cx - w / 2, ty = cyC - h / 2;
           ctx.save();
@@ -3856,7 +3863,7 @@
           rrPath(tx, ty, w, h, 3);
           ctx.stroke();
           ctx.fillStyle = "#2b1a12";
-          var numSize = Math.round(h * 0.68);
+          var numSize = Math.round(h * 0.71);
           ctx.font = "900 " + numSize + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
           while (numSize > 10 && ctx.measureText(String(number)).width > w - 8) {
             numSize -= 1;
@@ -4046,12 +4053,19 @@
             ctx.stroke();
             ctx.restore();
           }
-          // The number plaque, standing on the table.
+          // The number plaque, standing on the table —
+          // grown by the same proportion as the table
+          // tent (digits now about 0.57 of the floored
+          // radius): wider and taller, seated a touch
+          // lower on the table so its top keeps its
+          // margin from the table's back edge and its
+          // brass base still peeks out below it, clear
+          // of the front bench.
           var bPop = 1 + (t.numPop > 0 ? Math.sin(t.numPop * Math.PI) * 0.22 : 0);
           var bTentR = Math.max(r, 26);
           ctx.fillStyle = "#8a6a2f";
-          ctx.beginPath(); ctx.ellipse(cx, cy + r * 0.35, r * 0.16, r * 0.05, 0, 0, Math.PI * 2); ctx.fill();
-          drawPlaque(cx, cy + r * 0.02, bTentR * 1.0 * bPop, bTentR * 0.62 * bPop, t.number);
+          ctx.beginPath(); ctx.ellipse(cx, cy + r * 0.48, r * 0.16, r * 0.05, 0, 0, Math.PI * 2); ctx.fill();
+          drawPlaque(cx, cy + r * 0.04, bTentR * 1.22 * bPop, bTentR * 0.80 * bPop, t.number);
           // The front bench: its seat cushion, then its
           // backrest facing the table.
           ctx.fillStyle = "#7e1822";
@@ -4187,7 +4201,13 @@
           ctx.beginPath(); ctx.ellipse(standX, cy + r * 0.295, r * 0.13, r * 0.038, 0, 0, Math.PI * 2); ctx.fill();
           var pop = 1 + (t.numPop > 0 ? Math.sin(t.numPop * Math.PI) * 0.22 : 0);
           var tentR = Math.max(r, 26);
-          drawPlaque(standX, cy - r * 0.02, tentR * 0.92 * pop, tentR * 0.58 * pop, t.number);
+          // The stand's plaque, grown by the same
+          // proportion as the table tent (digits now
+          // about 0.54 of the floored radius) and seated
+          // a touch higher on the counter so the brass
+          // base still peeks out below it; standX already
+          // keeps the whole plaque inside the counter run.
+          drawPlaque(standX, cy - r * 0.08, tentR * 1.16 * pop, tentR * 0.76 * pop, t.number);
 
           if (t.show) drawLabel(t.show.name, cx, cy + r * 0.92, r * 1.9);
         }
