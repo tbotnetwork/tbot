@@ -7,12 +7,12 @@
     <link rel="icon" href="data:," />
     <title>TBOT Restaurant</title>
     <meta name="application-name" content="TBOT Restaurant" />
-    <meta name="theme-color" content="#062a1e" />
-    <meta name="description" content="TBOT Restaurant — you're the TBOT waiter aboard a yacht salon. The kitchen calls a table number; run the plate to the table wearing it. When the yacht rolls on a swell, the tables switch places and the numbers change." />
+    <meta name="theme-color" content="#2a1c10" />
+    <meta name="description" content="TBOT Restaurant — you're the TBOT waiter in a grand palace dining hall at sunset. The kitchen calls a table number; run the plate to the table wearing it. When a party leaves, the numbers are re-dealt across the hall." />
     <style>
       :root {
         color-scheme: light dark;
-        --page-bg: #062a1e;
+        --page-bg: #241708;
         --ink: #2b1a12;
         --ink-soft: rgba(43, 26, 18, 0.66);
         --bar-bg: rgba(255, 251, 244, 0.88);
@@ -25,7 +25,7 @@
       }
       @media (prefers-color-scheme: dark) {
         :root {
-          --page-bg: #03170f;
+          --page-bg: #170e05;
           --ink: #f7ecdd;
           --ink-soft: rgba(247, 236, 221, 0.62);
           --bar-bg: rgba(16, 30, 22, 0.88);
@@ -665,7 +665,7 @@
     </style>
   </head>
   <body>
-    <canvas id="stage" aria-label="A TBOT dining salon aboard a yacht: panoramic windows over a living sea, a kitchen pass across the top and numbered tables of TBOT guests. You are the waiter — tap the table wearing the number the kitchen calls. When the yacht rolls on a swell, the tables switch places."></canvas>
+    <canvas id="stage" aria-label="A grand palace dining hall at sunset: tall arched windows over a calm sea, a crystal chandelier, a kitchen pass across the top and numbered tables of TBOT guests. You are the waiter — tap the table wearing the number the kitchen calls. When a party leaves, the numbers change."></canvas>
 
     <!-- Background music: the last 17 seconds of "Velvet Rot" by
          Kimo (the series track), looped behind the game. Sound
@@ -692,7 +692,7 @@
       </div>
     </div>
 
-    <p class="game-desc" id="restDesc"><span class="desc-first">Run the plate to the right table</span><span class="desc-teach">The kitchen calls a table number — tap the table wearing it. Right table serves the plate; a wrong table sends you looking again. When a party leaves — or the yacht rolls on a swell and the tables switch places — the numbers change: check before you serve.</span></p>
+    <p class="game-desc" id="restDesc"><span class="desc-first">Run the plate to the right table</span><span class="desc-teach">The kitchen calls a table number — tap the table wearing it. Right table serves the plate; a wrong table sends you looking again. When a party leaves, the numbers change: check before you serve.</span></p>
 
     <div class="gamehud" id="gameHud" hidden>
       <span class="hud-chip">SERVED <strong id="servedLabel">0</strong></span>
@@ -2095,11 +2095,10 @@
           var cellW = W / cols;
           var cellH = Math.max((bottom - top) / rows, packed ? 52 : 60);
           for (var i = 0; i < tables.length; i++) {
-            // Each table owns a SLOT on the floor; its x/y
-            // ease toward the slot (see the frame loop), so
-            // when a swell trades two tables' slots the
-            // tables glide across the deck to their new
-            // places instead of jumping.
+            // Each table owns a SLOT on the floor and keeps
+            // it for the whole round; its x/y ease toward
+            // the slot (see the frame loop) only after a
+            // resize or a Pack 'em moves the grid itself.
             if (tables[i].slot < 0) tables[i].slot = i;
             var c = tables[i].slot % cols, r = Math.floor(tables[i].slot / cols);
             tables[i].slotX = cellW * (c + 0.5);
@@ -2196,29 +2195,45 @@
           ctx.drawImage(roomCache, 0, 0, W, H);
         }
 
-        // ---------- The sea outside the windows ----------
-        // The salon is aboard a yacht: beyond the glass is a
-        // living sea, drawn fresh every frame UNDER the
-        // cached room — sky and sun, drifting clouds, a
-        // sailboat on the horizon, gulls crossing, and every
-        // so often dolphins (or a shoal of silver fish)
-        // leaping clear of the water. The room painting has
-        // its panes cleared out (see paintRoom), so all of
-        // this shows through the windows while the room
-        // itself hides the rest. The sea stays LEVEL while
-        // the room rocks around it — that is what sells
-        // the boat.
-        function windowBand() {
+        // ---------- Hall geometry ----------
+        // One set of measures for the palace hall, shared by
+        // the sea (which must fill exactly the glass) and by
+        // the cached room painting: the coffered-ceiling band
+        // under the kitchen pass, the tall arched windows
+        // below it running down to the marble floor, and the
+        // wall piers at the sides carrying the gilt mirrors.
+        function hallDims() {
           var kh = kitchenH();
           var gy = groundY();
-          // Floor-to-ceiling glass (the Sedna standard): the
-          // window wall runs from just under the kitchen pass
-          // all the way down to the deck line, so the sea is
-          // behind the WHOLE dining floor — both rows of
-          // tables, at every seat. Only the slim deck strip
-          // below this line is solid floor.
-          var deckTop = kh + (gy - kh) * 0.86;
-          return { y0: kh + 2, y1: deckTop };
+          var salonH = Math.max(gy - kh, 60);
+          var ceilH = clamp(salonH * 0.085, 26, 50);
+          var winX0 = clamp(W * 0.07, 34, 92);
+          return {
+            kh: kh, gy: gy,
+            ceilH: ceilH,
+            winY0: kh + ceilH,
+            floorTop: kh + salonH * 0.80,
+            winX0: winX0,
+            winX1: W - winX0,
+            arches: W >= 620 ? 5 : 3,
+            pierW: clamp(W * 0.02, 11, 20)
+          };
+        }
+
+        // ---------- The sea outside the windows ----------
+        // The hall stands on land above the shore: beyond
+        // its tall arched windows is a calm sea at sunset,
+        // drawn fresh every frame UNDER the cached room —
+        // an orange-and-blue sky, the low sun, drifting
+        // clouds, a sailboat on the horizon, gulls crossing,
+        // and every so often dolphins (or a shoal of silver
+        // fish) leaping clear of the water. The room
+        // painting has its panes cleared out (see
+        // paintRoom), so all of this shows through the
+        // glass while the room itself hides the rest.
+        function windowBand() {
+          var d = hallDims();
+          return { y0: d.winY0, y1: d.floorTop };
         }
         var gulls = [], leaps = [], nextGullAt = 0, nextLeapAt = 0;
         var seaSeeded = false;
@@ -2255,37 +2270,40 @@
 
         function drawSea(nowMs) {
           var band = windowBand();
-          // The deep surround first: any sliver the rocking
-          // room uncovers at a corner reads as shadowed
-          // ceiling, never as a hole in the world.
-          ctx.fillStyle = "#04160f";
+          // The deep surround first: anything outside the
+          // glass reads as the hall's shadowed wall, never
+          // as a hole in the world.
+          ctx.fillStyle = "#1d130a";
           ctx.fillRect(0, 0, W, H);
           ctx.save();
           ctx.beginPath();
           ctx.rect(0, band.y0 - 26, W, (band.y1 - band.y0) + 52);
           ctx.clip();
           var horizon = band.y0 + (band.y1 - band.y0) * 0.44;
-          // Sky.
+          // Sky at sunset: deep blue above melting through
+          // peach into orange at the horizon.
           var sky = ctx.createLinearGradient(0, band.y0 - 26, 0, horizon);
-          sky.addColorStop(0, "#79bde9");
-          sky.addColorStop(0.55, "#b5e2f5");
-          sky.addColorStop(1, "#fdeecb");
+          sky.addColorStop(0, "#3a6ea8");
+          sky.addColorStop(0.45, "#8fb4dc");
+          sky.addColorStop(0.78, "#f6c177");
+          sky.addColorStop(1, "#ff9e57");
           ctx.fillStyle = sky;
           ctx.fillRect(0, band.y0 - 26, W, horizon - band.y0 + 26);
-          // Sun glow, high over the water.
-          var sunX = W * 0.76, sunY = band.y0 + 22;
-          var sun = ctx.createRadialGradient(sunX, sunY, 2, sunX, sunY, 100);
-          sun.addColorStop(0, "rgba(255,246,205,0.98)");
-          sun.addColorStop(0.3, "rgba(255,238,175,0.6)");
-          sun.addColorStop(1, "rgba(255,238,175,0)");
+          // The low sun, hanging just over the water with a
+          // wide warm glow.
+          var sunX = W * 0.30, sunY = horizon - (band.y1 - band.y0) * 0.07;
+          var sun = ctx.createRadialGradient(sunX, sunY, 2, sunX, sunY, 140);
+          sun.addColorStop(0, "rgba(255,226,170,0.98)");
+          sun.addColorStop(0.3, "rgba(255,186,105,0.55)");
+          sun.addColorStop(1, "rgba(255,160,80,0)");
           ctx.fillStyle = sun;
-          ctx.fillRect(sunX - 100, sunY - 100, 200, 200);
-          ctx.fillStyle = "#fffbe8";
-          ctx.beginPath(); ctx.arc(sunX, sunY, 17, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = "#ffe98a";
-          ctx.beginPath(); ctx.arc(sunX, sunY, 12.5, 0, Math.PI * 2); ctx.fill();
-          // Clouds: soft white banks drifting slowly.
-          ctx.fillStyle = "rgba(255,255,255,0.95)";
+          ctx.fillRect(sunX - 140, sunY - 140, 280, 280);
+          ctx.fillStyle = "#fff3d6";
+          ctx.beginPath(); ctx.arc(sunX, sunY, 20, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#ffd98a";
+          ctx.beginPath(); ctx.arc(sunX, sunY, 15, 0, Math.PI * 2); ctx.fill();
+          // Clouds: soft warm banks drifting slowly.
+          ctx.fillStyle = "rgba(255,238,218,0.95)";
           for (var ci3 = 0; ci3 < 4; ci3++) {
             var clx = ((roomHash(ci3 * 3.3 + 0.7) * (W + 320) + nowMs * 0.006 * (1 + ci3 * 0.4)) % (W + 320)) - 160;
             var cly = band.y0 + 6 + ci3 * 17 + roomHash(ci3 * 7.9) * 22;
@@ -2297,8 +2315,8 @@
           // A sailboat working along the horizon.
           var boatX = W * 0.5 + Math.sin(nowMs / 34000) * W * 0.32;
           var boatY = horizon - 1 + Math.sin(nowMs / 900) * 0.8;
-          ctx.fillStyle = "#ffffff";
-          ctx.strokeStyle = "rgba(30,60,90,0.35)";
+          ctx.fillStyle = "#fff7ea";
+          ctx.strokeStyle = "rgba(90,50,30,0.35)";
           ctx.lineWidth = 1;
           ctx.beginPath();
           ctx.moveTo(boatX, boatY - 30);
@@ -2319,26 +2337,28 @@
           ctx.closePath(); ctx.fill();
           ctx.fillStyle = "#e5322d";
           ctx.fillRect(boatX - 12, boatY - 2, 29, 2);
-          // The sea itself.
+          // The sea itself: deep blue water taking the
+          // sunset's warmth along the horizon.
           var sea = ctx.createLinearGradient(0, horizon, 0, band.y1 + 26);
-          sea.addColorStop(0, "#37a892");
-          sea.addColorStop(0.5, "#1e7f8c");
-          sea.addColorStop(1, "#0e5f74");
+          sea.addColorStop(0, "#4f83a6");
+          sea.addColorStop(0.45, "#276184");
+          sea.addColorStop(1, "#123f5f");
           ctx.fillStyle = sea;
           ctx.fillRect(0, horizon, W, band.y1 + 26 - horizon);
-          ctx.fillStyle = "rgba(255,255,255,0.35)";
+          ctx.fillStyle = "rgba(255,220,170,0.5)";
           ctx.fillRect(0, horizon, W, 1.2);
-          // Sun glitter: short bright dashes that twinkle
-          // and crawl on the water.
+          // Sun glitter: short golden dashes that twinkle
+          // and crawl on the calm water.
           for (var spi = 0; spi < 96; spi++) {
             var spx = roomHash(spi * 7.7 + 1.3) * W;
             var spy = horizon + 4 + roomHash(spi * 3.1 + 0.4) * Math.max(band.y1 - horizon - 8, 6);
             var tw2 = 0.5 + 0.5 * Math.sin(nowMs / 340 + spi * 1.7);
-            ctx.fillStyle = "rgba(255,252,225," + (0.28 + 0.42 * tw2).toFixed(3) + ")";
+            ctx.fillStyle = "rgba(255,216,150," + (0.28 + 0.42 * tw2).toFixed(3) + ")";
             ctx.fillRect(spx, spy, 6 + roomHash(spi * 9.3) * 16, 2.2);
           }
-          // Slow wave lines rolling under the windows.
-          ctx.strokeStyle = "rgba(255,255,255,0.28)";
+          // Slow wave lines drifting under the windows —
+          // a calm sea, barely moving.
+          ctx.strokeStyle = "rgba(255,238,210,0.22)";
           ctx.lineWidth = 2;
           for (var wv = 0; wv < 5; wv++) {
             var wy = horizon + 9 + wv * Math.max((band.y1 - horizon) / 5.4, 8);
@@ -2464,367 +2484,556 @@
           ctx.restore();
         }
 
-        // ---------- The yacht's roll, and the swell ----------
-        // The whole salon rides a gentle, constant roll.
-        // Every so often a bigger swell rolls through — and
-        // at its peak the TABLES SWITCH: pairs of tables
-        // trade places (gliding across the deck as their
-        // slots swap) and the numbers are re-dealt across
-        // the whole floor, exactly as when a party leaves.
-        // If the kitchen's ticket named a number the swell
-        // carried off the floor, a new ticket prints at
-        // once, so a round can never hunt a missing number.
-        var rockAngle = 0, rockBob = 0;
-        var swellStart = -1, swellSwitched = false, swellCount = 0;
-        var lastSwellSwitchAt = 0; // stamp of the last swell table-switch
-        var nextSwellAt = performance.now() + 7000;
-
-        function updateRock(nowMs) {
-          var base = rodMotionOK
-            ? 0.0062 * Math.sin(nowMs / 2400) + 0.0026 * Math.sin(nowMs / 977 + 1.3)
-            : 0;
-          var swell = 0;
-          if (swellStart >= 0) {
-            var p = (nowMs - swellStart) / 2600;
-            if (p >= 1) {
-              swellStart = -1;
-              nextSwellAt = nowMs + rand(8000, 13000);
-            } else {
-              swell = rodMotionOK ? 0.034 * Math.sin(p * Math.PI) * Math.sin((nowMs - swellStart) / 300) : 0;
-              if (!swellSwitched && p >= 0.18) {
-                swellSwitched = true;
-                swellSwitch();
-              }
-            }
-          } else if (nowMs >= nextSwellAt && tables.length >= 2) {
-            swellStart = nowMs;
-            swellSwitched = false;
-          }
-          rockAngle = base + swell;
-          rockBob = rodMotionOK ? Math.sin(nowMs / 1800) * 1.6 : 0;
-        }
-
-        function swellSwitch() {
-          if (tables.length < 2) return;
-          swellCount++;
-          lastSwellSwitchAt = performance.now();
-          var order = [];
-          for (var oi = 0; oi < tables.length; oi++) order.push(oi);
-          for (var oj = order.length - 1; oj > 0; oj--) {
-            var ok2 = Math.floor(Math.random() * (oj + 1));
-            var ot = order[oj]; order[oj] = order[ok2]; order[ok2] = ot;
-          }
-          var pairs = Math.min(2, Math.floor(tables.length / 2));
-          for (var pp = 0; pp < pairs; pp++) {
-            var ta = tables[order[pp * 2]], tb = tables[order[pp * 2 + 1]];
-            var ss = ta.slot; ta.slot = tb.slot; tb.slot = ss;
-          }
-          layoutTables();
-          dealNumbers();
-          for (var ni = 0; ni < tables.length; ni++) tables[ni].numPop = 1;
-          if (gameOn) {
-            // The roll announces itself — and it owns the
-            // banner slot: a party-leave "Numbers changed!"
-            // landing in the same beat is cleared first, so
-            // a swell is never announced as a plain renumber.
-            for (var fi2 = floats.length - 1; fi2 >= 0; fi2--) {
-              if (floats[fi2].text === "Numbers changed!") floats.splice(fi2, 1);
-            }
-            addFloat(W / 2, kitchenH() + 34, "The yacht rolled — tables switched!", "#ffd166");
-          }
-          if (gameOn && ticketNum != null) {
-            var stillThere = false;
-            for (var sj = 0; sj < tables.length; sj++) {
-              if (tables[sj].number === ticketNum) { stillThere = true; break; }
-            }
-            if (!stillThere) {
-              var oldTicket = ticketNum;
-              newTicket();
-              addFloat(W / 2, kitchenH() + 60, "Table " + oldTicket + " is gone — new ticket!", "#ffffff");
-            }
-          }
-        }
+        // ---------- Stillness ----------
+        // The hall stands on land: there is no roll, no
+        // swell, and no table ever trades places — every
+        // table keeps its slot for the whole round. The
+        // only way the numbers change mid-round is a party
+        // leaving (see partyLeaves / finishLeave), which
+        // re-deals them exactly as it always has.
 
         function paintRoom() {
-          var gy = groundY();
-          var kh = kitchenH();
-          // floorTop MUST be defined before the windows below:
-          // winY1 is floorTop. It used to be declared only in the
-          // floor section further down, so at window time its
-          // value was still undefined — every window rectangle
-          // (the destination-out pane clearing, the tint, the
-          // mullions, the frame) got a NaN height and silently
-          // drew nothing, leaving the opaque wall painted over
-          // the sea that drawSea had already drawn underneath.
-          // Floor-to-ceiling glass (the Sedna standard): the
-          // deck strip — the only solid floor left — starts
-          // at 86% of the salon's height, so the glass wall
-          // runs from the ceiling line under the pass all the
-          // way down to this deck line, behind and between
-          // every table on the floor.
-          var floorTop = kh + (gy - kh) * 0.86;
-          // Wall: deep emerald lacquer around the glass — the
-          // Sedna palette — lit warmer near the top where the
-          // pendants hang.
+          var d = hallDims();
+          var gy = d.gy, kh = d.kh;
+          var floorTop = d.floorTop;
+          var winY0 = d.winY0, winX0 = d.winX0, winX1 = d.winX1;
+
+          // Wall: warm ivory palace stone around the glass,
+          // lit warmer near the top where the chandelier and
+          // the sconces throw their light.
           var wall = ctx.createLinearGradient(0, 0, 0, gy);
-          wall.addColorStop(0, "#0d3b2a");
-          wall.addColorStop(0.55, "#082a1e");
-          wall.addColorStop(1, "#051f16");
+          wall.addColorStop(0, "#f0e5cd");
+          wall.addColorStop(0.55, "#e6d7b4");
+          wall.addColorStop(1, "#d9c69c");
           ctx.fillStyle = wall;
           ctx.fillRect(0, 0, W, gy);
-          // Below the deck line (the toolbar's ground) the
-          // room cache stays solid deep emerald, so the sea
-          // never leaks into the corners beside the toolbar.
-          ctx.fillStyle = "#03170f";
+          // Below the floor line (the toolbar's ground) the
+          // cache stays solid deep walnut, so the sea never
+          // leaks into the corners beside the toolbar.
+          ctx.fillStyle = "#241708";
           ctx.fillRect(0, gy, W, H - gy + 2);
-          // ---------- The panoramic windows ----------
-          // The salon's glass wall: a yacht dining room is
-          // mostly window. The panes are CLEARED out of this
-          // cached painting, so the living sea — sky, waves,
-          // gulls, dolphins — drawn under the room every
-          // frame shows through the glass (see drawSea).
-          // Teak mullions with brass edging divide the glass;
-          // a faint tint and two glare streaks sit on the
-          // panes, the way real glass catches the light.
-          var winY0 = kh + 2, winY1 = floorTop;
+          // Panel moulding on the wall piers at the sides:
+          // a fine gold line framing each pier's panel.
+          ctx.strokeStyle = "rgba(169,124,46,0.55)";
+          ctx.lineWidth = 1.4;
+          for (var psi3 = 0; psi3 < 2; psi3++) {
+            var pmx = psi3 === 0 ? 5 : W - winX0 + 5;
+            ctx.strokeRect(pmx, winY0 + 10, winX0 - 10, floorTop - winY0 - 20);
+          }
+
+          // ---------- The coffered ceiling band ----------
+          // Under the pass runs the hall's entablature: a
+          // deep warm band of recessed coffers, each one
+          // trimmed in gold, over a dentil course and a gold
+          // cornice line — the ceiling the great chandelier
+          // hangs from.
+          var ceilGrad = ctx.createLinearGradient(0, kh, 0, winY0);
+          ceilGrad.addColorStop(0, "#54401f");
+          ceilGrad.addColorStop(1, "#38280f");
+          ctx.fillStyle = ceilGrad;
+          ctx.fillRect(0, kh, W, winY0 - kh);
+          var cofH = Math.max(winY0 - kh - 13, 8);
+          var cofY = kh + 4;
+          ctx.lineWidth = 1.5;
+          for (var cofx = 9; cofx + 40 < W; cofx += 56) {
+            ctx.fillStyle = "#2c1e0d";
+            ctx.fillRect(cofx, cofY, 42, cofH);
+            ctx.strokeStyle = "rgba(212,175,55,0.85)";
+            ctx.strokeRect(cofx, cofY, 42, cofH);
+            ctx.fillStyle = "#1f1508";
+            ctx.fillRect(cofx + 5, cofY + 4, 32, Math.max(cofH - 8, 3));
+            ctx.fillStyle = "rgba(255,230,170,0.22)";
+            ctx.fillRect(cofx + 5, cofY + 4, 32, 1.4);
+            ctx.strokeStyle = "rgba(212,175,55,0.4)";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(cofx + 5, cofY + 4, 32, Math.max(cofH - 8, 3));
+            ctx.lineWidth = 1.5;
+          }
+          // Dentils along the band's lower edge, then the
+          // gold cornice line itself.
+          ctx.fillStyle = "rgba(212,175,55,0.5)";
+          for (var dtx = 6; dtx < W - 4; dtx += 11) ctx.fillRect(dtx, winY0 - 7, 5, 4);
+          ctx.fillStyle = "#d4af37";
+          ctx.fillRect(0, winY0 - 2.4, W, 2.4);
+          ctx.fillStyle = "rgba(60,40,10,0.6)";
+          ctx.fillRect(0, winY0, W, 1.4);
+
+          // ---------- The arched windows ----------
+          // Tall arched windows, floor-to-ceiling in spirit:
+          // each pane rises from the marble sill to a round
+          // arch under the cornice. The panes are CLEARED
+          // out of this cached painting, so the living sea
+          // at sunset — sky, sun, gulls, dolphins — drawn
+          // under the room every frame shows through the
+          // glass (see drawSea). Stone piers with gold trim
+          // stand between the arches.
+          var nA = d.arches, pierW = d.pierW;
+          var spanW = winX1 - winX0;
+          var paneW = (spanW - pierW * (nA - 1)) / nA;
+          var archR = paneW / 2;
+          var springY = winY0 + archR;
+          function paneX(i) { return winX0 + i * (paneW + pierW); }
+          function archSubPath(px) {
+            ctx.moveTo(px, floorTop);
+            ctx.lineTo(px, springY);
+            ctx.arc(px + archR, springY, archR, Math.PI, 0);
+            ctx.lineTo(px + paneW, floorTop);
+            ctx.closePath();
+          }
+          function allArchesPath() {
+            ctx.beginPath();
+            for (var ai = 0; ai < nA; ai++) archSubPath(paneX(ai));
+          }
           ctx.save();
           ctx.globalCompositeOperation = "destination-out";
-          ctx.fillRect(10, winY0, W - 20, winY1 - winY0);
+          allArchesPath();
+          ctx.fill();
           ctx.restore();
-          // Glass tint and glare, laid back over the holes.
-          ctx.fillStyle = "rgba(110,215,175,0.06)";
-          ctx.fillRect(10, winY0, W - 20, winY1 - winY0);
+          // A warm sunset tint on the glass, and two glare
+          // streaks where the low sun catches the panes.
+          allArchesPath();
+          ctx.fillStyle = "rgba(255,180,110,0.05)";
+          ctx.fill();
+          ctx.save();
+          allArchesPath();
+          ctx.clip();
           ctx.fillStyle = "rgba(255,255,255,0.05)";
           ctx.beginPath();
-          ctx.moveTo(W * 0.16, winY1);
+          ctx.moveTo(W * 0.16, floorTop);
           ctx.lineTo(W * 0.34, winY0);
           ctx.lineTo(W * 0.44, winY0);
-          ctx.lineTo(W * 0.26, winY1);
+          ctx.lineTo(W * 0.26, floorTop);
           ctx.closePath(); ctx.fill();
           ctx.beginPath();
-          ctx.moveTo(W * 0.62, winY1);
+          ctx.moveTo(W * 0.62, floorTop);
           ctx.lineTo(W * 0.78, winY0);
           ctx.lineTo(W * 0.84, winY0);
-          ctx.lineTo(W * 0.68, winY1);
+          ctx.lineTo(W * 0.68, floorTop);
           ctx.closePath(); ctx.fill();
-          // Mullions: slim emerald-lacquer uprights with a
-          // brass edge, widely spaced so the glass reads as
-          // one panoramic wall, running the FULL height of
-          // the glass — from just under the pass all the way
-          // down to the deck line — with two slim horizontal
-          // rails crossing them, so the tall panes read as
-          // one floor-to-ceiling window wall behind every
-          // table, top row and bottom row alike.
-          var mullStep = W >= 620 ? 150 : 110;
-          ctx.fillStyle = "#06301f";
-          for (var mx = 10 + mullStep; mx < W - 24; mx += mullStep) {
-            ctx.fillRect(mx - 4.5, winY0, 9, winY1 - winY0);
-            ctx.fillStyle = "#d4af37";
-            ctx.fillRect(mx - 4.5, winY0, 2, winY1 - winY0);
-            ctx.fillStyle = "#06301f";
+          ctx.restore();
+          // Gold trim around every arch: a broad dark-gold
+          // stroke, then a bright fine line inside it.
+          for (var ti2 = 0; ti2 < nA; ti2++) {
+            ctx.beginPath();
+            archSubPath(paneX(ti2));
+            ctx.strokeStyle = "#a87f24";
+            ctx.lineWidth = 3.4;
+            ctx.stroke();
+            ctx.strokeStyle = "rgba(240,212,136,0.75)";
+            ctx.lineWidth = 1.1;
+            ctx.stroke();
           }
-          var railFracs = [0.34, 0.68];
-          for (var rfi = 0; rfi < railFracs.length; rfi++) {
-            var railY = winY0 + (winY1 - winY0) * railFracs[rfi];
-            ctx.fillStyle = "#06301f";
-            ctx.fillRect(10, railY - 3.5, W - 20, 7);
-            ctx.fillStyle = "#d4af37";
-            ctx.fillRect(10, railY - 3.5, W - 20, 1.8);
+          // The piers between the arches: a gold pinstripe
+          // down each one, a small capital at the spring
+          // line where the arches begin, and a base block
+          // at the sill.
+          for (var pri = 1; pri < nA; pri++) {
+            var pcx = paneX(pri) - pierW / 2;
+            ctx.fillStyle = "rgba(169,124,46,0.6)";
+            ctx.fillRect(pcx - 0.8, springY + 4, 1.6, floorTop - springY - 8);
+            ctx.fillStyle = "#c9a227";
+            ctx.fillRect(pcx - pierW / 2 - 3, springY - 3.5, pierW + 6, 6);
+            ctx.fillStyle = "rgba(120,84,20,0.8)";
+            ctx.fillRect(pcx - pierW / 2 - 3, floorTop - 8, pierW + 6, 5);
           }
-          // The outer frame: deep emerald lacquer outside, a
-          // brass pinstripe inside.
-          ctx.strokeStyle = "#052e1f";
-          ctx.lineWidth = 7;
-          ctx.strokeRect(10, winY0, W - 20, winY1 - winY0);
-          ctx.strokeStyle = "#d4af37";
-          ctx.lineWidth = 2.2;
-          ctx.strokeRect(14, winY0 + 4, W - 28, winY1 - winY0 - 8);
+          // The marble sill the windows stand on, with its
+          // gold trim line.
+          var sillGrad = ctx.createLinearGradient(0, floorTop - 4, 0, floorTop + 2);
+          sillGrad.addColorStop(0, "#f7efdb");
+          sillGrad.addColorStop(1, "#d8c8a2");
+          ctx.fillStyle = sillGrad;
+          ctx.fillRect(winX0 - 8, floorTop - 4, spanW + 16, 6);
+          ctx.fillStyle = "#d4af37";
+          ctx.fillRect(winX0 - 8, floorTop + 1, spanW + 16, 1.6);
 
-          // ---------- The wood floor ----------
-          // Real planks: narrow boards laid in staggered
-          // rows, the rows growing a shade taller as they
-          // come toward the viewer — the floor's perspective.
-          // Every board keeps its own length and its own tone
-          // from a desaturated walnut-and-oak palette, with a
-          // lengthwise sheen, fine wavy grain, speckle, the
-          // occasional knot, bevel light on its top edge and
-          // a dark seam below. Joints stagger the way a laid
-          // floor's do — no two rows line up.
+          // ---------- Gilt mirrors and sconces ----------
+          // On each side pier: a tall gilded mirror catching
+          // the sunset, and below it a wall sconce with a
+          // lit candle — the hall's gold against its stone.
+          for (var msi = 0; msi < 2; msi++) {
+            var mcx = msi === 0 ? winX0 / 2 : W - winX0 / 2;
+            if (winX0 >= 38) {
+              var mirW = winX0 - 15, mirH = (floorTop - winY0) * 0.38;
+              var mirY = winY0 + (floorTop - winY0) * 0.07;
+              ctx.fillStyle = "#a87f24";
+              ctx.beginPath();
+              if (ctx.roundRect) ctx.roundRect(mcx - mirW / 2, mirY, mirW, mirH, mirW * 0.32);
+              else ctx.rect(mcx - mirW / 2, mirY, mirW, mirH);
+              ctx.fill();
+              var mirGrad = ctx.createLinearGradient(mcx - mirW / 2, mirY, mcx + mirW / 2, mirY + mirH);
+              mirGrad.addColorStop(0, "#bcd2e4");
+              mirGrad.addColorStop(0.55, "#e9dfc8");
+              mirGrad.addColorStop(1, "#f4cf9e");
+              ctx.fillStyle = mirGrad;
+              ctx.beginPath();
+              if (ctx.roundRect) ctx.roundRect(mcx - mirW / 2 + 3.5, mirY + 3.5, mirW - 7, mirH - 7, mirW * 0.26);
+              else ctx.rect(mcx - mirW / 2 + 3.5, mirY + 3.5, mirW - 7, mirH - 7);
+              ctx.fill();
+              ctx.save();
+              ctx.beginPath();
+              if (ctx.roundRect) ctx.roundRect(mcx - mirW / 2 + 3.5, mirY + 3.5, mirW - 7, mirH - 7, mirW * 0.26);
+              else ctx.rect(mcx - mirW / 2 + 3.5, mirY + 3.5, mirW - 7, mirH - 7);
+              ctx.clip();
+              ctx.fillStyle = "rgba(255,255,255,0.35)";
+              ctx.beginPath();
+              ctx.moveTo(mcx - mirW * 0.3, mirY + mirH);
+              ctx.lineTo(mcx + mirW * 0.05, mirY);
+              ctx.lineTo(mcx + mirW * 0.3, mirY);
+              ctx.lineTo(mcx - mirW * 0.05, mirY + mirH);
+              ctx.closePath(); ctx.fill();
+              ctx.restore();
+              ctx.strokeStyle = "#f0d488";
+              ctx.lineWidth = 1.2;
+              ctx.beginPath();
+              if (ctx.roundRect) ctx.roundRect(mcx - mirW / 2 + 3.5, mirY + 3.5, mirW - 7, mirH - 7, mirW * 0.26);
+              else ctx.rect(mcx - mirW / 2 + 3.5, mirY + 3.5, mirW - 7, mirH - 7);
+              ctx.stroke();
+            }
+            // The sconce: a warm glow, a gold arm and cup,
+            // a white candle and its flame.
+            var scy = winY0 + (floorTop - winY0) * 0.60;
+            var scGlow = ctx.createRadialGradient(mcx, scy - 8, 2, mcx, scy - 8, 30);
+            scGlow.addColorStop(0, "rgba(255,186,90,0.5)");
+            scGlow.addColorStop(1, "rgba(255,186,90,0)");
+            ctx.fillStyle = scGlow;
+            ctx.fillRect(mcx - 30, scy - 38, 60, 60);
+            ctx.fillStyle = "#a87f24";
+            ctx.fillRect(mcx - 1.4, scy - 2, 2.8, 13);
+            ctx.beginPath(); ctx.ellipse(mcx, scy + 11, 6.5, 2.4, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "#fdf6e3";
+            ctx.fillRect(mcx - 2, scy - 11, 4, 9);
+            ctx.fillStyle = "#ffb84d";
+            ctx.beginPath(); ctx.ellipse(mcx, scy - 14.5, 2.1, 3.6, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "#ffedb0";
+            ctx.beginPath(); ctx.ellipse(mcx, scy - 13.8, 1, 1.9, 0, 0, Math.PI * 2); ctx.fill();
+          }
+
+          // ---------- The marble floor ----------
+          // Polished marble tiles in staggered rows, the
+          // rows growing a shade taller as they come toward
+          // the viewer — the floor's perspective. Each tile
+          // keeps its own warm-white tone and its own grey
+          // and gold veining, with a polished sheen raking
+          // across the whole floor.
           var floorBase = ctx.createLinearGradient(0, floorTop, 0, gy);
-          floorBase.addColorStop(0, "#6e4a2a");
-          floorBase.addColorStop(1, "#463014");
+          floorBase.addColorStop(0, "#efe6d2");
+          floorBase.addColorStop(1, "#dccdaa");
           ctx.fillStyle = floorBase;
           ctx.fillRect(0, floorTop, W, gy - floorTop);
-          var plankTones = ["#9c6d40", "#8b5c34", "#a97a49", "#7d522c", "#96683c", "#b0824f", "#855a31"];
-          var rowIdx = 0;
+          var marbleTones = ["#f4ecda", "#ece0c6", "#f7f0e0", "#e7dabd", "#f1e8d5"];
           ctx.save();
           ctx.beginPath(); ctx.rect(0, floorTop, W, gy - floorTop); ctx.clip();
-          for (var py = floorTop; py < gy; rowIdx++) {
-            var plankH = clamp(19 + (py - floorTop) * 0.03, 19, 30);
-            var rowOff = roomHash(rowIdx * 7.3) * 170;
-            var colIdx = 0;
-            for (var px = -rowOff; px < W; colIdx++) {
-              var seed = rowIdx * 31.7 + colIdx * 13.9;
-              var plankLen = 148 + roomHash(seed + 2.7) * 118;
-              // Board tone.
-              ctx.fillStyle = plankTones[Math.floor(roomHash(seed) * plankTones.length)];
-              ctx.fillRect(px, py, plankLen, plankH);
-              // Lengthwise sheen: light raking the top of the
-              // board, its belly in shade.
-              var sheen = ctx.createLinearGradient(px, py, px, py + plankH);
-              sheen.addColorStop(0, "rgba(255,228,175,0.14)");
-              sheen.addColorStop(0.4, "rgba(255,228,175,0.02)");
-              sheen.addColorStop(1, "rgba(24,12,3,0.20)");
-              ctx.fillStyle = sheen;
-              ctx.fillRect(px, py, plankLen, plankH);
-              // Distance shading: far boards sit darker.
-              var depth = clamp((py - floorTop) / Math.max(gy - floorTop, 1), 0, 1);
-              ctx.fillStyle = "rgba(16,8,2," + (0.16 * (1 - depth)).toFixed(3) + ")";
-              ctx.fillRect(px, py, plankLen, plankH);
-              // Grain: four fine wavy streaks per board.
-              for (var gl = 0; gl < 4; gl++) {
-                var gyLine = py + 3.5 + gl * (plankH - 6) / 3 + (roomHash(seed + gl * 3.1) - 0.5) * 3;
-                var dark = roomHash(seed + gl) > 0.4;
-                ctx.strokeStyle = dark ? "rgba(46,25,9,0.17)" : "rgba(255,216,155,0.10)";
-                ctx.lineWidth = 0.9;
+          var tileW = clamp(W * 0.22, 92, 190);
+          var mRow = 0;
+          for (var mty = floorTop; mty < gy; mRow++) {
+            var tileH = clamp(22 + (mty - floorTop) * 0.10, 22, 46);
+            var mOff = (mRow % 2) * tileW * 0.5;
+            var mCol = 0;
+            for (var mtx = -mOff; mtx < W; mCol++) {
+              var mSeed = mRow * 31.7 + mCol * 13.9;
+              ctx.fillStyle = marbleTones[Math.floor(roomHash(mSeed) * marbleTones.length)];
+              ctx.fillRect(mtx, mty, tileW, tileH);
+              // Veining: two wavy grey strokes and one
+              // faint gold thread per tile.
+              for (var vn = 0; vn < 2; vn++) {
+                var vy0 = mty + tileH * (0.25 + vn * 0.4) + (roomHash(mSeed + vn * 3.3) - 0.5) * 5;
+                ctx.strokeStyle = "rgba(118,104,82,0.20)";
+                ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.moveTo(px + 3, gyLine);
+                ctx.moveTo(mtx + 2, vy0);
                 ctx.bezierCurveTo(
-                  px + plankLen * 0.3, gyLine + (roomHash(seed + gl * 7) - 0.5) * 3.6,
-                  px + plankLen * 0.65, gyLine + (roomHash(seed + gl * 11) - 0.5) * 3.6,
-                  px + plankLen - 4, gyLine + (roomHash(seed + gl * 13) - 0.5) * 2.2);
+                  mtx + tileW * 0.3, vy0 + (roomHash(mSeed + vn * 7) - 0.5) * 7,
+                  mtx + tileW * 0.65, vy0 + (roomHash(mSeed + vn * 11) - 0.5) * 7,
+                  mtx + tileW - 3, vy0 + (roomHash(mSeed + vn * 13) - 0.5) * 4);
                 ctx.stroke();
               }
-              // Speckle: the pores of the wood.
-              ctx.fillStyle = "rgba(40,20,6,0.13)";
-              for (var sp = 0; sp < 4; sp++) {
-                ctx.fillRect(px + roomHash(seed + sp * 17.3) * (plankLen - 8) + 3,
-                  py + roomHash(seed + sp * 23.9) * (plankH - 3) + 1, 2.2, 0.9);
-              }
-              // A knot on the odd board.
-              if (roomHash(seed + 99) > 0.8) {
-                var kx = px + 26 + roomHash(seed + 5) * (plankLen - 52);
-                var ky = py + plankH * (0.3 + roomHash(seed + 6) * 0.4);
-                ctx.strokeStyle = "rgba(42,22,7,0.42)";
-                ctx.lineWidth = 1.1;
-                ctx.beginPath(); ctx.ellipse(kx, ky, 4.8, 2.7, 0, 0, Math.PI * 2); ctx.stroke();
-                ctx.beginPath(); ctx.ellipse(kx, ky, 2, 1.15, 0, 0, Math.PI * 2); ctx.stroke();
-                ctx.fillStyle = "rgba(30,15,4,0.5)";
-                ctx.beginPath(); ctx.ellipse(kx, ky, 0.8, 0.55, 0, 0, Math.PI * 2); ctx.fill();
-              }
-              // Bevel light on the board's top edge, then its
-              // end seam.
-              ctx.fillStyle = "rgba(255,236,190,0.09)";
-              ctx.fillRect(px, py, plankLen, 1);
-              ctx.fillStyle = "rgba(28,14,4,0.6)";
-              ctx.fillRect(px + plankLen - 1.2, py, 1.6, plankH);
-              px += plankLen;
+              var gy0 = mty + tileH * (0.15 + roomHash(mSeed + 21) * 0.6);
+              ctx.strokeStyle = "rgba(176,141,87,0.16)";
+              ctx.lineWidth = 0.8;
+              ctx.beginPath();
+              ctx.moveTo(mtx + 4, gy0);
+              ctx.quadraticCurveTo(mtx + tileW * 0.5, gy0 + (roomHash(mSeed + 23) - 0.5) * 6, mtx + tileW - 5, gy0 + 2);
+              ctx.stroke();
+              // Grout lines.
+              ctx.strokeStyle = "rgba(96,80,58,0.4)";
+              ctx.lineWidth = 1;
+              ctx.strokeRect(mtx + 0.5, mty + 0.5, tileW - 1, tileH - 1);
+              mtx += tileW;
             }
-            // The row seam.
-            ctx.fillStyle = "rgba(28,14,4,0.62)";
-            ctx.fillRect(0, py + plankH - 1.2, W, 1.6);
-            py += plankH;
+            mty += tileH;
           }
-          // A woven runner rug down the middle aisle — deep
-          // emerald with a gold border, the boards showing all
-          // around it.
-          var rugW = clamp(W * 0.17, 92, 176);
+          // The polish: a broad soft sheen raking down the
+          // marble from the windows.
+          var polish = ctx.createLinearGradient(0, floorTop, W * 0.4, gy);
+          polish.addColorStop(0, "rgba(255,255,255,0.13)");
+          polish.addColorStop(0.5, "rgba(255,255,255,0.02)");
+          polish.addColorStop(1, "rgba(120,90,40,0.06)");
+          ctx.fillStyle = polish;
+          ctx.fillRect(0, floorTop, W, gy - floorTop);
+          ctx.restore();
+
+          // ---------- The great rug ----------
+          // An intricate rug over the marble: a deep
+          // burgundy field, double gold borders with a
+          // diamond row between them, a central medallion
+          // and corner motifs, woven fine.
+          var rugW = clamp(W * 0.66, 210, 660);
           var rugX = W / 2 - rugW / 2;
-          var rugY = floorTop + 12, rugH = gy - floorTop - 16;
-          ctx.fillStyle = "rgba(24,9,6,0.35)";
+          var rugY = floorTop + 9, rugH = gy - floorTop - 15;
+          ctx.fillStyle = "rgba(30,16,8,0.3)";
           ctx.fillRect(rugX + 3, rugY + 4, rugW, rugH);
           var rugGrad = ctx.createLinearGradient(0, rugY, 0, rugY + rugH);
-          rugGrad.addColorStop(0, "#0e4d33");
-          rugGrad.addColorStop(1, "#07381f");
+          rugGrad.addColorStop(0, "#82222f");
+          rugGrad.addColorStop(1, "#5e1621");
           ctx.fillStyle = rugGrad;
           ctx.fillRect(rugX, rugY, rugW, rugH);
-          // The weave: fine horizontal threads and a muted
-          // diamond pattern down the middle of the runner.
           ctx.save();
           ctx.beginPath(); ctx.rect(rugX, rugY, rugW, rugH); ctx.clip();
+          // The weave: fine horizontal threads.
           ctx.fillStyle = "rgba(0,0,0,0.05)";
-          for (var wvy = rugY + 3; wvy < rugY + rugH; wvy += 6) ctx.fillRect(rugX, wvy, rugW, 1.4);
-          ctx.strokeStyle = "rgba(216,178,96,0.20)";
+          for (var wvy2 = rugY + 3; wvy2 < rugY + rugH; wvy2 += 5) ctx.fillRect(rugX, wvy2, rugW, 1.2);
+          // A diamond row worked along the top and bottom
+          // of the field, between the two borders.
+          ctx.strokeStyle = "rgba(226,197,132,0.75)";
           ctx.lineWidth = 1.1;
-          var diaS = Math.min(rugW * 0.21, 26);
-          for (var dcy = rugY + diaS; dcy < rugY + rugH - 4; dcy += diaS * 2) {
+          for (var ddx = rugX + 16; ddx < rugX + rugW - 10; ddx += 17) {
+            for (var ddy2 = 0; ddy2 < 2; ddy2++) {
+              var dcy2 = ddy2 === 0 ? rugY + 13 : rugY + rugH - 13;
+              ctx.beginPath();
+              ctx.moveTo(ddx, dcy2 - 3.4);
+              ctx.lineTo(ddx + 3.4, dcy2);
+              ctx.lineTo(ddx, dcy2 + 3.4);
+              ctx.lineTo(ddx - 3.4, dcy2);
+              ctx.closePath(); ctx.stroke();
+            }
+          }
+          // The central medallion: nested gold diamonds
+          // around a gold heart, petals at its points.
+          var medS = Math.min(rugW * 0.15, rugH * 0.32);
+          if (medS > 9) {
+            var medY = rugY + rugH / 2;
+            ctx.strokeStyle = "#d4af37";
+            ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(W / 2, dcy - diaS * 0.62);
-            ctx.lineTo(W / 2 + diaS * 0.62, dcy);
-            ctx.lineTo(W / 2, dcy + diaS * 0.62);
-            ctx.lineTo(W / 2 - diaS * 0.62, dcy);
+            ctx.moveTo(W / 2, medY - medS);
+            ctx.lineTo(W / 2 + medS, medY);
+            ctx.lineTo(W / 2, medY + medS);
+            ctx.lineTo(W / 2 - medS, medY);
             ctx.closePath(); ctx.stroke();
-            ctx.fillStyle = "rgba(216,178,96,0.10)";
-            ctx.beginPath(); ctx.arc(W / 2, dcy, 1.8, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = "rgba(246,227,197,0.85)";
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(W / 2, medY - medS * 0.62);
+            ctx.lineTo(W / 2 + medS * 0.62, medY);
+            ctx.lineTo(W / 2, medY + medS * 0.62);
+            ctx.lineTo(W / 2 - medS * 0.62, medY);
+            ctx.closePath(); ctx.stroke();
+            ctx.fillStyle = "#d4af37";
+            ctx.beginPath(); ctx.arc(W / 2, medY, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = "rgba(212,175,55,0.8)";
+            ctx.lineWidth = 1.4;
+            for (var ptl = 0; ptl < 4; ptl++) {
+              var pAng = ptl * Math.PI / 2;
+              ctx.beginPath();
+              ctx.ellipse(W / 2 + Math.cos(pAng) * medS * 0.4, medY + Math.sin(pAng) * medS * 0.4, medS * 0.16, medS * 0.09, pAng, 0, Math.PI * 2);
+              ctx.stroke();
+            }
           }
           ctx.restore();
-          ctx.strokeStyle = "#b9903f";
-          ctx.lineWidth = 2.5;
-          ctx.strokeRect(rugX + 6, rugY + 6, rugW - 12, rugH - 12);
-          ctx.strokeStyle = "rgba(185,144,63,0.45)";
-          ctx.lineWidth = 1;
-          ctx.strokeRect(rugX + 11, rugY + 11, rugW - 22, rugH - 22);
-          // Fringe at the near end of the runner.
+          // The double border: gold outside, cream inside,
+          // and a fine inner field line.
+          ctx.strokeStyle = "#d4af37";
+          ctx.lineWidth = 3;
+          ctx.strokeRect(rugX + 2, rugY + 2, rugW - 4, rugH - 4);
+          ctx.strokeStyle = "rgba(246,227,197,0.85)";
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(rugX + 8, rugY + 8, rugW - 16, rugH - 16);
+          ctx.strokeStyle = "rgba(212,175,55,0.55)";
+          ctx.lineWidth = 1.2;
+          ctx.strokeRect(rugX + 19, rugY + 19, rugW - 38, rugH - 38);
+          // Fringe at the near end of the rug.
           ctx.strokeStyle = "rgba(226,204,160,0.55)";
           ctx.lineWidth = 1.4;
           ctx.beginPath();
-          for (var frx = rugX + 5; frx < rugX + rugW - 3; frx += 6) {
-            ctx.moveTo(frx, rugY + rugH + 1); ctx.lineTo(frx, rugY + rugH + 6);
+          for (var frx2 = rugX + 5; frx2 < rugX + rugW - 3; frx2 += 6) {
+            ctx.moveTo(frx2, rugY + rugH + 1); ctx.lineTo(frx2, rugY + rugH + 6);
           }
           ctx.stroke();
-          // Warm pools of pendant light lying on the boards.
-          for (var li2 = 0; li2 < 3; li2++) {
-            var lx2 = W * (0.25 + li2 * 0.25);
-            var pool = ctx.createRadialGradient(lx2, floorTop + 60, 4, lx2, floorTop + 60, 130);
-            pool.addColorStop(0, "rgba(255,196,86,0.10)");
-            pool.addColorStop(1, "rgba(255,196,86,0)");
-            ctx.fillStyle = pool;
-            ctx.fillRect(lx2 - 130, floorTop, 260, Math.min(190, Math.max(gy - floorTop, 10)));
+          // Warm pools of chandelier light lying on the
+          // marble and the rug.
+          for (var pli = 0; pli < 3; pli++) {
+            var plx = W * (0.3 + pli * 0.2);
+            var pool2 = ctx.createRadialGradient(plx, floorTop + 46, 4, plx, floorTop + 46, 120);
+            pool2.addColorStop(0, "rgba(255,196,86,0.10)");
+            pool2.addColorStop(1, "rgba(255,196,86,0)");
+            ctx.fillStyle = pool2;
+            ctx.fillRect(plx - 120, floorTop, 240, Math.min(170, Math.max(gy - floorTop, 10)));
           }
-          // The floor falls off into shadow at the very bottom.
-          var fShade = ctx.createLinearGradient(0, gy - 90, 0, gy);
-          fShade.addColorStop(0, "rgba(20,10,3,0)");
-          fShade.addColorStop(1, "rgba(20,10,3,0.28)");
-          ctx.fillStyle = fShade;
-          ctx.fillRect(0, gy - 90, W, 90);
-          ctx.restore();
-          // Baseboard where the wainscot meets the floor.
-          ctx.fillStyle = "#04231a";
-          ctx.fillRect(0, floorTop - 5, W, 5);
-          ctx.fillStyle = "rgba(255,235,190,0.14)";
-          ctx.fillRect(0, floorTop - 5, W, 1.2);
+          // The floor falls off into shadow at the very
+          // bottom.
+          var fShade2 = ctx.createLinearGradient(0, gy - 70, 0, gy);
+          fShade2.addColorStop(0, "rgba(24,12,4,0)");
+          fShade2.addColorStop(1, "rgba(24,12,4,0.25)");
+          ctx.fillStyle = fShade2;
+          ctx.fillRect(0, gy - 70, W, 70);
+          // Baseboard where the wall meets the marble.
+          ctx.fillStyle = "#8a6f42";
+          ctx.fillRect(0, floorTop - 1, W, 2);
+          ctx.fillStyle = "rgba(255,235,190,0.2)";
+          ctx.fillRect(0, floorTop - 1, W, 0.8);
 
-          // ---------- The salon's brass sill ----------
-          // A polished brass sill runs under the glass wall
-          // where it meets the deck, with a slim gold trim
-          // line — the brightwork of a proper yacht salon.
+          // ---------- The potted palm ----------
+          // A palm in a gold pot at the hall's left edge,
+          // standing on the marble in front of the glass —
+          // its fronds reach up over the first arch.
+          var palmX = Math.max(22, winX0 * 0.52);
+          var palmBase = gy - 8;
+          var palmTopY = winY0 + (floorTop - winY0) * 0.30;
+          // The pot: a gold planter, wide at the rim.
+          var potGrad = ctx.createLinearGradient(palmX - 12, 0, palmX + 12, 0);
+          potGrad.addColorStop(0, "#8a6a2f");
+          potGrad.addColorStop(0.5, "#e3c268");
+          potGrad.addColorStop(1, "#8a6a2f");
+          ctx.fillStyle = potGrad;
+          ctx.beginPath();
+          ctx.moveTo(palmX - 12, palmBase);
+          ctx.lineTo(palmX + 12, palmBase);
+          ctx.lineTo(palmX + 9, palmBase - 17);
+          ctx.lineTo(palmX - 9, palmBase - 17);
+          ctx.closePath(); ctx.fill();
           ctx.fillStyle = "#6d5326";
-          ctx.fillRect(0, floorTop - 4, W, 4);
-          ctx.fillStyle = "#d9b45f";
-          ctx.fillRect(0, floorTop - 4, W, 1.6);
-          ctx.fillStyle = "rgba(20,12,4,0.5)";
-          ctx.fillRect(0, floorTop - 1, W, 1.2);
-          // Small brass wall lamps at the salon's two ends,
-          // warm against the teak pillars.
-          for (var sli = 0; sli < 2; sli++) {
-            var slx = sli === 0 ? 14 : W - 14;
-            var sly = kh + 34;
-            var slGlow = ctx.createRadialGradient(slx, sly, 2, slx, sly, 26);
-            slGlow.addColorStop(0, "rgba(255,196,86,0.45)");
-            slGlow.addColorStop(1, "rgba(255,196,86,0)");
-            ctx.fillStyle = slGlow;
-            ctx.fillRect(slx - 26, sly - 26, 52, 52);
-            ctx.fillStyle = "#8a6a2f";
-            ctx.fillRect(slx - 2.2, sly - 8, 4.4, 15);
-            ctx.fillStyle = "#ffd98a";
-            ctx.beginPath(); ctx.arc(slx, sly - 9, 3, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = "#ffc456";
-            ctx.beginPath(); ctx.arc(slx, sly - 9, 1.9, 0, Math.PI * 2); ctx.fill();
+          ctx.fillRect(palmX - 11, palmBase - 20, 22, 4);
+          // The trunk, leaning a touch as palms do.
+          ctx.strokeStyle = "#6b4a26";
+          ctx.lineWidth = 4.5;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(palmX, palmBase - 18);
+          ctx.quadraticCurveTo(palmX + 3, (palmBase + palmTopY) / 2, palmX - 2, palmTopY + 12);
+          ctx.stroke();
+          ctx.strokeStyle = "rgba(46,29,10,0.5)";
+          ctx.lineWidth = 1;
+          for (var trk = 0; trk < 5; trk++) {
+            var trkY = palmBase - 26 - trk * (palmBase - palmTopY - 30) / 5;
+            ctx.beginPath(); ctx.moveTo(palmX - 2.4, trkY); ctx.lineTo(palmX + 2.6, trkY - 3); ctx.stroke();
+          }
+          // The fronds: long arcing leaves fanning out
+          // from the crown, in two greens.
+          var crownX = palmX - 2, crownY = palmTopY + 12;
+          for (var frd = 0; frd < 7; frd++) {
+            var fAng = -Math.PI * (0.08 + frd * 0.14);
+            var fLen = clamp(W * 0.055, 34, 74) * (0.75 + roomHash(frd * 3.7) * 0.45);
+            var fEndX = crownX + Math.cos(fAng) * fLen;
+            var fEndY = crownY + Math.sin(fAng) * fLen * 0.5 + fLen * 0.22;
+            var fMidX = crownX + Math.cos(fAng) * fLen * 0.55;
+            var fMidY = crownY + Math.sin(fAng) * fLen * 0.55 - fLen * 0.18;
+            ctx.strokeStyle = frd % 2 ? "#2e7d46" : "#3f9e57";
+            ctx.lineWidth = 2.6;
+            ctx.beginPath();
+            ctx.moveTo(crownX, crownY);
+            ctx.quadraticCurveTo(fMidX, fMidY, fEndX, fEndY);
+            ctx.stroke();
+            // Leaflets along the frond.
+            ctx.lineWidth = 1.1;
+            ctx.strokeStyle = frd % 2 ? "rgba(46,125,70,0.8)" : "rgba(63,158,87,0.8)";
+            for (var lfl = 1; lfl <= 3; lfl++) {
+              var lfT = lfl / 4;
+              var lfX = crownX + (fMidX - crownX) * lfT * 1.4 + (fEndX - crownX) * lfT * lfT * 0.4;
+              var lfY = crownY + (fMidY - crownY) * lfT * 1.4 + (fEndY - crownY) * lfT * lfT * 0.4;
+              ctx.beginPath(); ctx.moveTo(lfX, lfY); ctx.lineTo(lfX + 4.5, lfY + 3.4); ctx.stroke();
+              ctx.beginPath(); ctx.moveTo(lfX, lfY); ctx.lineTo(lfX - 4.5, lfY + 3.4); ctx.stroke();
+            }
+          }
+
+          // ---------- The great chandelier ----------
+          // A massive multi-tiered crystal chandelier
+          // hanging from the coffered band at the hall's
+          // centre: three gold tiers of candles and crystal
+          // drops, a column of crystals between them, and a
+          // great crystal finial at the bottom, all in a
+          // pool of warm light.
+          var chX = W / 2;
+          var chW = clamp(W * 0.30, 150, 320);
+          var chGlowY = winY0 + 30;
+          var chGlow = ctx.createRadialGradient(chX, chGlowY, 4, chX, chGlowY, chW * 0.85);
+          chGlow.addColorStop(0, "rgba(255,196,86,0.30)");
+          chGlow.addColorStop(1, "rgba(255,196,86,0)");
+          ctx.fillStyle = chGlow;
+          ctx.fillRect(chX - chW, chGlowY - chW * 0.7, chW * 2, chW * 1.4);
+          // The stem and its canopy, up into the band.
+          ctx.strokeStyle = "#a87f24";
+          ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.moveTo(chX, kh + 1); ctx.lineTo(chX, winY0 + 8); ctx.stroke();
+          ctx.fillStyle = "#c9a227";
+          ctx.beginPath();
+          ctx.moveTo(chX - 7, kh + 9); ctx.lineTo(chX + 7, kh + 9); ctx.lineTo(chX + 2.5, kh + 1); ctx.lineTo(chX - 2.5, kh + 1);
+          ctx.closePath(); ctx.fill();
+          var tierR = [chW * 0.20, chW * 0.32, chW * 0.44];
+          var tierY = [winY0 + 4, winY0 + 22, winY0 + 42];
+          // The crystal column between the tiers.
+          ctx.fillStyle = "rgba(240,248,255,0.9)";
+          for (var ccx = tierY[0]; ccx <= tierY[2]; ccx += 7) {
+            ctx.beginPath(); ctx.arc(chX, ccx, 1.9, 0, Math.PI * 2); ctx.fill();
+          }
+          for (var cti = 0; cti < 3; cti++) {
+            var tr2 = tierR[cti], ty2 = tierY[cti];
+            // The gold ring of the tier.
+            ctx.strokeStyle = "#c9a227";
+            ctx.lineWidth = 2.2;
+            ctx.beginPath(); ctx.ellipse(chX, ty2, tr2, tr2 * 0.18, 0, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = "rgba(240,213,136,0.55)";
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.ellipse(chX, ty2 + 2.4, tr2 * 0.94, tr2 * 0.16, 0, 0, Math.PI * 2); ctx.stroke();
+            var nDrop = 8 + cti * 3;
+            for (var cdk = 0; cdk < nDrop; cdk++) {
+              var dAng = Math.PI * (0.06 + 0.88 * (nDrop === 1 ? 0.5 : cdk / (nDrop - 1)));
+              var dX = chX + Math.cos(dAng) * tr2;
+              var dY = ty2 + Math.sin(dAng) * tr2 * 0.18;
+              // Candles stand on the ring at every other
+              // drop point: a white stick and a flame.
+              if (cdk % 2 === 0) {
+                ctx.fillStyle = "#fdf6e3";
+                ctx.fillRect(dX - 1.2, dY - 8.5, 2.4, 6.5);
+                ctx.fillStyle = "#ffb84d";
+                ctx.beginPath(); ctx.ellipse(dX, dY - 11, 1.7, 2.9, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = "#ffedb0";
+                ctx.beginPath(); ctx.ellipse(dX, dY - 10.4, 0.8, 1.5, 0, 0, Math.PI * 2); ctx.fill();
+              }
+              // A crystal drop hangs below the ring.
+              ctx.strokeStyle = "rgba(220,235,245,0.6)";
+              ctx.lineWidth = 0.8;
+              ctx.beginPath(); ctx.moveTo(dX, dY + 1); ctx.lineTo(dX, dY + 4.6); ctx.stroke();
+              ctx.fillStyle = "rgba(240,248,255,0.95)";
+              ctx.beginPath(); ctx.arc(dX, dY + 6.4, 1.9, 0, Math.PI * 2); ctx.fill();
+            }
+          }
+          // The great finial crystal under the lowest tier.
+          var finY = tierY[2] + 15;
+          var finGrad = ctx.createLinearGradient(chX - 4, finY - 7, chX + 4, finY + 7);
+          finGrad.addColorStop(0, "#ffffff");
+          finGrad.addColorStop(0.5, "#dceefb");
+          finGrad.addColorStop(1, "#a9c8e2");
+          ctx.fillStyle = finGrad;
+          ctx.beginPath(); ctx.ellipse(chX, finY, 3.6, 6.8, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = "rgba(255,255,255,0.85)";
+          ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(chX - 7, finY); ctx.lineTo(chX + 7, finY); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(chX, finY - 9); ctx.lineTo(chX, finY + 9); ctx.stroke();
+          // Sparkles thrown off the crystals.
+          ctx.strokeStyle = "rgba(255,255,255,0.75)";
+          for (var spk = 0; spk < 5; spk++) {
+            var spkX = chX + (roomHash(spk * 7.3 + 2) - 0.5) * chW * 0.8;
+            var spkY = winY0 + 8 + roomHash(spk * 3.9 + 5) * 44;
+            var spkR = 2.4 + roomHash(spk * 5.1) * 2;
+            ctx.beginPath();
+            ctx.moveTo(spkX - spkR, spkY); ctx.lineTo(spkX + spkR, spkY);
+            ctx.moveTo(spkX, spkY - spkR); ctx.lineTo(spkX, spkY + spkR);
+            ctx.stroke();
           }
 
           // The kitchen pass: a steel counter across the top,
           // three warm pendant lamps, and the KITCHEN sign.
-          ctx.fillStyle = "#07301f";
+          ctx.fillStyle = "#2e2013";
           ctx.fillRect(0, 0, W, kh - 24);
           var steel = ctx.createLinearGradient(0, kh - 26, 0, kh);
           steel.addColorStop(0, "#eef2f4");
@@ -2910,7 +3119,7 @@
           // The sign.
           ctx.font = "800 12px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
           var signW = ctx.measureText("KITCHEN").width + 22;
-          ctx.fillStyle = "#052e1f";
+          ctx.fillStyle = "#2a1a0c";
           ctx.beginPath();
           if (ctx.roundRect) ctx.roundRect(W / 2 - signW / 2, 8, signW, 21, 6);
           else ctx.rect(W / 2 - signW / 2, 8, signW, 21);
@@ -2924,7 +3133,6 @@
           ctx.fillText("KITCHEN", W / 2, 19);
           ctx.textBaseline = "alphabetic";
         }
-
         function drawTable(t, nowMs) {
           var shakeX = t.shakeT > 0 ? Math.sin(nowMs / 22) * 4 * t.shakeT : 0;
           var cx = t.x + shakeX, cy = t.y;
@@ -2949,20 +3157,21 @@
             }
             ctx.save();
             ctx.globalAlpha = gAlpha;
-            // Dining chairs behind each guest — emerald
-            // velvet-upholstered backs with a curved top rail,
-            // two open slats and side posts, so the guests sit
-            // IN something real.
+            // Dining chairs behind each guest — palace
+            // chairs in the reel's colours: sapphire-blue
+            // velvet backs inside gold frames, with a gold
+            // crest on the top rail, so the guests sit IN
+            // something real.
             for (var ci2 = 0; ci2 < t.guests.length; ci2++) {
               var cSide = ci2 === 0 ? -1 : 1;
               var chx = cx + cSide * r * 0.52;
               var chy = cy - r * 1.22 + gSink;
               // The chair back is WIDER and TALLER than the
-              // guest seated in it, so a clear frame of emerald
-              // velvet shows on both sides of the guest and
-              // above their shoulders — the velvet must read
-              // as emerald at game scale, never as a dark body
-              // with a green top.
+              // guest seated in it, so a clear frame of gold
+              // and sapphire velvet shows on both sides of
+              // the guest and above their shoulders — the
+              // blue must read as sapphire at game scale,
+              // never as a dark body with a coloured top.
               var chw = r * 1.08 * gScale, chh = r * 0.9 * gScale;
               // Chair shadow on the floor/wall behind.
               ctx.fillStyle = "rgba(16,8,3,0.18)";
@@ -2970,66 +3179,83 @@
               if (ctx.roundRect) ctx.roundRect(chx - chw / 2 + 2, chy - chh / 2 + 3, chw, chh, r * 0.14);
               else ctx.rect(chx - chw / 2 + 2, chy - chh / 2 + 3, chw, chh);
               ctx.fill();
-              // Emerald velvet: a saturated green that stays
-              // green in shadow, lit from the upper left.
-              var chairGrad = ctx.createLinearGradient(chx - chw / 2, chy - chh / 2, chx + chw * 0.3, chy + chh / 2);
-              chairGrad.addColorStop(0, "#2cb06e");
-              chairGrad.addColorStop(0.45, "#129153");
-              chairGrad.addColorStop(1, "#076638");
-              ctx.fillStyle = chairGrad;
+              // The gold frame: the whole back is gilt
+              // first, and the velvet is inset into it, so a
+              // bright gold border frames the blue on every
+              // side.
+              var frameGrad = ctx.createLinearGradient(chx - chw / 2, chy - chh / 2, chx + chw * 0.3, chy + chh / 2);
+              frameGrad.addColorStop(0, "#e7c65a");
+              frameGrad.addColorStop(0.5, "#c9a227");
+              frameGrad.addColorStop(1, "#96731d");
+              ctx.fillStyle = frameGrad;
               ctx.beginPath();
               if (ctx.roundRect) ctx.roundRect(chx - chw / 2, chy - chh / 2, chw, chh, r * 0.14);
               else ctx.rect(chx - chw / 2, chy - chh / 2, chw, chh);
               ctx.fill();
-              // The plush inner panel: a lighter velvet inset
-              // with a soft sheen across its top, and two
+              // Sapphire velvet: a saturated royal blue that
+              // stays blue in shadow, lit from the upper
+              // left, inset into the gold frame.
+              var fr2 = Math.max(3, r * 0.075);
+              var velGrad = ctx.createLinearGradient(chx - chw / 2, chy - chh / 2, chx + chw * 0.3, chy + chh / 2);
+              velGrad.addColorStop(0, "#2f66c4");
+              velGrad.addColorStop(0.45, "#1d4f9e");
+              velGrad.addColorStop(1, "#123a7d");
+              ctx.fillStyle = velGrad;
+              ctx.beginPath();
+              if (ctx.roundRect) ctx.roundRect(chx - chw / 2 + fr2, chy - chh / 2 + fr2, chw - fr2 * 2, chh - fr2 * 2, r * 0.1);
+              else ctx.rect(chx - chw / 2 + fr2, chy - chh / 2 + fr2, chw - fr2 * 2, chh - fr2 * 2);
+              ctx.fill();
+              // The plush inner panel: a lighter sapphire
+              // inset with a soft sheen across its top, and
               // tuft buttons — upholstery, not slats, so no
-              // dark gaps break the green up.
-              var panX = chx - chw * 0.36, panY = chy - chh * 0.36;
-              var panW = chw * 0.72, panH = chh * 0.72;
+              // dark gaps break the blue up.
+              var panX = chx - chw * 0.34, panY = chy - chh * 0.34;
+              var panW = chw * 0.68, panH = chh * 0.68;
               var panGrad = ctx.createLinearGradient(0, panY, 0, panY + panH);
-              panGrad.addColorStop(0, "#3cc47e");
-              panGrad.addColorStop(0.55, "#17a05e");
-              panGrad.addColorStop(1, "#0a7a41");
+              panGrad.addColorStop(0, "#4a80d8");
+              panGrad.addColorStop(0.55, "#2a5cb4");
+              panGrad.addColorStop(1, "#1a4390");
               ctx.fillStyle = panGrad;
               ctx.beginPath();
-              if (ctx.roundRect) ctx.roundRect(panX, panY, panW, panH, r * 0.1);
+              if (ctx.roundRect) ctx.roundRect(panX, panY, panW, panH, r * 0.09);
               else ctx.rect(panX, panY, panW, panH);
               ctx.fill();
               var sheen2 = ctx.createRadialGradient(chx - chw * 0.14, panY + panH * 0.2, 1, chx - chw * 0.14, panY + panH * 0.2, chw * 0.5);
-              sheen2.addColorStop(0, "rgba(190,255,215,0.34)");
-              sheen2.addColorStop(1, "rgba(190,255,215,0)");
+              sheen2.addColorStop(0, "rgba(200,222,255,0.34)");
+              sheen2.addColorStop(1, "rgba(200,222,255,0)");
               ctx.fillStyle = sheen2;
               ctx.beginPath();
-              if (ctx.roundRect) ctx.roundRect(panX, panY, panW, panH, r * 0.1);
+              if (ctx.roundRect) ctx.roundRect(panX, panY, panW, panH, r * 0.09);
               else ctx.rect(panX, panY, panW, panH);
               ctx.fill();
-              ctx.fillStyle = "rgba(4,64,32,0.65)";
-              ctx.beginPath(); ctx.arc(chx - chw * 0.17, chy - chh * 0.08, Math.max(1.3, r * 0.026), 0, Math.PI * 2); ctx.fill();
-              ctx.beginPath(); ctx.arc(chx + chw * 0.17, chy - chh * 0.08, Math.max(1.3, r * 0.026), 0, Math.PI * 2); ctx.fill();
-              ctx.beginPath(); ctx.arc(chx, chy + chh * 0.18, Math.max(1.3, r * 0.026), 0, Math.PI * 2); ctx.fill();
-              // Top-rail highlight.
-              ctx.fillStyle = "rgba(255,222,165,0.34)";
-              ctx.fillRect(chx - chw / 2 + 2, chy - chh / 2 + 1.5, chw - 4, 2.2);
-              // Brass nailhead studs along the top rail AND
-              // down both sides — the upholsterer's finish on
-              // a fine-dining chair, bright enough to catch
-              // the eye at game scale.
+              ctx.fillStyle = "rgba(8,30,70,0.7)";
+              ctx.beginPath(); ctx.arc(chx - chw * 0.16, chy - chh * 0.07, Math.max(1.3, r * 0.026), 0, Math.PI * 2); ctx.fill();
+              ctx.beginPath(); ctx.arc(chx + chw * 0.16, chy - chh * 0.07, Math.max(1.3, r * 0.026), 0, Math.PI * 2); ctx.fill();
+              ctx.beginPath(); ctx.arc(chx, chy + chh * 0.17, Math.max(1.3, r * 0.026), 0, Math.PI * 2); ctx.fill();
+              // The gold crest: a small gilt oval crowning
+              // the top rail at its centre.
+              var crestGrad = ctx.createLinearGradient(0, chy - chh / 2 - 1, 0, chy - chh / 2 + chh * 0.13);
+              crestGrad.addColorStop(0, "#f0d488");
+              crestGrad.addColorStop(1, "#a87f24");
+              ctx.fillStyle = crestGrad;
+              ctx.beginPath(); ctx.ellipse(chx, chy - chh / 2 + chh * 0.045, chw * 0.13, chh * 0.055, 0, 0, Math.PI * 2); ctx.fill();
+              ctx.strokeStyle = "rgba(120,84,20,0.7)";
+              ctx.lineWidth = 1;
+              ctx.stroke();
+              // Gold nailhead studs along the frame's inner
+              // edge, top and down both sides — the
+              // upholsterer's finish on a palace chair,
+              // bright enough to catch the eye at game scale.
               ctx.fillStyle = "#ffd76a";
               var studR = Math.max(1.5, r * 0.03);
               for (var stud = -3; stud <= 3; stud++) {
-                ctx.beginPath(); ctx.arc(chx + stud * chw * 0.135, chy - chh / 2 + 5.5, studR, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(chx + stud * chw * 0.125, chy - chh / 2 + fr2 + 3.5, studR, 0, Math.PI * 2); ctx.fill();
               }
               for (var sstud = 0; sstud < 3; sstud++) {
-                var ssy = chy - chh * 0.18 + sstud * chh * 0.24;
-                ctx.beginPath(); ctx.arc(chx - chw / 2 + 4, ssy, studR, 0, Math.PI * 2); ctx.fill();
-                ctx.beginPath(); ctx.arc(chx + chw / 2 - 4, ssy, studR, 0, Math.PI * 2); ctx.fill();
+                var ssy = chy - chh * 0.16 + sstud * chh * 0.24;
+                ctx.beginPath(); ctx.arc(chx - chw / 2 + fr2 + 2, ssy, studR, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(chx + chw / 2 - fr2 - 2, ssy, studR, 0, Math.PI * 2); ctx.fill();
               }
-              // Post shading, kept light so the frame stays
-              // emerald rather than reading black.
-              ctx.fillStyle = "rgba(0,40,20,0.18)";
-              ctx.fillRect(chx + chw / 2 - 4, chy - chh / 2 + 3, 2.4, chh - 6);
-              ctx.fillRect(chx - chw / 2 + 1.6, chy - chh / 2 + 3, 2.4, chh - 6);
             }
             for (var gi = 0; gi < t.guests.length; gi++) {
               var g = t.guests[gi];
@@ -3076,114 +3302,176 @@
           ctx.beginPath(); ctx.ellipse(cx, cy, r, r * 0.8, 0, 0, Math.PI * 2); ctx.stroke();
           ctx.fillStyle = "rgba(255,255,255,0.5)";
           ctx.beginPath(); ctx.ellipse(cx - r * 0.14, cy - r * 0.16, r * 0.55, r * 0.36, -0.15, 0, Math.PI * 2); ctx.fill();
-          // An emerald runner band dressed down the middle
+          // A sapphire runner band dressed down the middle
           // of the cloth, edged with fine gold pinstripes —
-          // the Sedna table dressing.
+          // the hall's table dressing, matching the chairs.
           ctx.save();
           ctx.beginPath(); ctx.ellipse(cx, cy, r, r * 0.8, 0, 0, Math.PI * 2); ctx.clip();
           var bandGrad = ctx.createLinearGradient(cx - r * 0.17, 0, cx + r * 0.17, 0);
-          bandGrad.addColorStop(0, "#0a4530");
-          bandGrad.addColorStop(0.5, "#11603f");
-          bandGrad.addColorStop(1, "#0a4530");
+          bandGrad.addColorStop(0, "#14335f");
+          bandGrad.addColorStop(0.5, "#1d4e96");
+          bandGrad.addColorStop(1, "#14335f");
           ctx.fillStyle = bandGrad;
           ctx.fillRect(cx - r * 0.17, cy - r * 0.82, r * 0.34, r * 1.64);
           ctx.fillStyle = "#d4af37";
           ctx.fillRect(cx - r * 0.185, cy - r * 0.82, r * 0.022, r * 1.64);
           ctx.fillRect(cx + r * 0.163, cy - r * 0.82, r * 0.022, r * 1.64);
           ctx.restore();
-          // Place settings: a rimmed plate at each seat, a
-          // folded napkin, cutlery lines, a water glass with
-          // a glint — and the centrepiece between them.
+          // Place settings, dressed formally at a scale
+          // that READS: a gold-rimmed plate at each seat, a
+          // folded napkin, solid gold flatware, a water
+          // glass with a glint — and the centrepiece
+          // between them.
           for (var psi2 = -1; psi2 <= 1; psi2 += 2) {
             // The settings sit a step wider and a step
             // toward the viewer than the tent card, so the
             // plate, flatware and napkin are never swallowed
-            // by the tent — small, but each one distinct.
+            // by the tent — each one big and distinct.
             var setX = cx + psi2 * r * 0.52;
             var setY = cy + r * 0.38;
             ctx.fillStyle = "rgba(90,100,108,0.18)";
-            ctx.beginPath(); ctx.ellipse(setX, setY + 1.6, r * 0.2, r * 0.125, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(setX, setY + 1.8, r * 0.25, r * 0.155, 0, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = "#f4f6f7";
-            ctx.beginPath(); ctx.ellipse(setX, setY, r * 0.19, r * 0.12, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(setX, setY, r * 0.235, r * 0.148, 0, 0, Math.PI * 2); ctx.fill();
             ctx.strokeStyle = "#d4af37";
-            ctx.lineWidth = Math.max(1.6, r * 0.03);
+            ctx.lineWidth = Math.max(2.2, r * 0.042);
             ctx.stroke();
             ctx.fillStyle = "#e9e2cf";
-            ctx.beginPath(); ctx.ellipse(setX, setY, r * 0.115, r * 0.068, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.strokeStyle = "rgba(201,162,39,0.8)";
-            ctx.lineWidth = 1;
-            ctx.beginPath(); ctx.ellipse(setX, setY, r * 0.15, r * 0.092, 0, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.ellipse(setX, setY, r * 0.145, r * 0.088, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = "rgba(201,162,39,0.85)";
+            ctx.lineWidth = 1.2;
+            ctx.beginPath(); ctx.ellipse(setX, setY, r * 0.185, r * 0.114, 0, 0, Math.PI * 2); ctx.stroke();
             // Gold flatware: a fork on the left of the plate,
             // a knife on the right — solid bright-gold shapes
             // with real heads, not hairlines, so the gold
             // reads at game scale against the ivory cloth.
-            var cutW = Math.max(2.6, r * 0.05);
-            var cutTop = setY - r * 0.095, cutBot = setY + r * 0.1;
+            var cutW = Math.max(3.4, r * 0.062);
+            var cutTop = setY - r * 0.12, cutBot = setY + r * 0.125;
             ctx.fillStyle = "#e8bc45";
             // Fork: handle plus a three-tine head.
-            ctx.fillRect(setX - r * 0.235 - cutW / 2, cutTop + r * 0.05, cutW, cutBot - cutTop - r * 0.05);
+            ctx.fillRect(setX - r * 0.29 - cutW / 2, cutTop + r * 0.05, cutW, cutBot - cutTop - r * 0.05);
             for (var tine = -1; tine <= 1; tine++) {
-              ctx.fillRect(setX - r * 0.235 + tine * cutW * 0.85 - cutW * 0.32, cutTop, cutW * 0.64, r * 0.055);
+              ctx.fillRect(setX - r * 0.29 + tine * cutW * 0.85 - cutW * 0.32, cutTop, cutW * 0.64, r * 0.055);
             }
-            ctx.fillRect(setX - r * 0.235 - cutW * 1.1, cutTop + r * 0.045, cutW * 2.2, r * 0.02);
+            ctx.fillRect(setX - r * 0.29 - cutW * 1.1, cutTop + r * 0.045, cutW * 2.2, r * 0.02);
             // Knife: handle plus a blade that widens upward.
-            ctx.fillRect(setX + r * 0.235 - cutW / 2, cutTop + r * 0.06, cutW, cutBot - cutTop - r * 0.06);
+            ctx.fillRect(setX + r * 0.29 - cutW / 2, cutTop + r * 0.06, cutW, cutBot - cutTop - r * 0.06);
             ctx.beginPath();
-            ctx.moveTo(setX + r * 0.235 - cutW * 0.9, cutTop + r * 0.065);
-            ctx.lineTo(setX + r * 0.235 - cutW * 0.9, cutTop + r * 0.005);
-            ctx.quadraticCurveTo(setX + r * 0.235 + cutW * 0.4, cutTop - r * 0.01, setX + r * 0.235 + cutW * 0.9, cutTop + r * 0.03);
-            ctx.lineTo(setX + r * 0.235 + cutW * 0.9, cutTop + r * 0.065);
+            ctx.moveTo(setX + r * 0.29 - cutW * 0.9, cutTop + r * 0.065);
+            ctx.lineTo(setX + r * 0.29 - cutW * 0.9, cutTop + r * 0.005);
+            ctx.quadraticCurveTo(setX + r * 0.29 + cutW * 0.4, cutTop - r * 0.01, setX + r * 0.29 + cutW * 0.9, cutTop + r * 0.03);
+            ctx.lineTo(setX + r * 0.29 + cutW * 0.9, cutTop + r * 0.065);
             ctx.closePath(); ctx.fill();
             // A glint down each handle.
             ctx.fillStyle = "rgba(255,246,200,0.85)";
-            ctx.fillRect(setX - r * 0.235 - cutW * 0.18, cutTop + r * 0.07, cutW * 0.36, cutBot - cutTop - r * 0.09);
-            ctx.fillRect(setX + r * 0.235 - cutW * 0.18, cutTop + r * 0.08, cutW * 0.36, cutBot - cutTop - r * 0.1);
-            // Folded emerald napkin ON the plate: a bright
-            // saturated emerald triangle with a gold fold
-            // line — unmistakably green against the white
-            // plate at any table size.
-            ctx.fillStyle = "#0da35c";
+            ctx.fillRect(setX - r * 0.29 - cutW * 0.18, cutTop + r * 0.07, cutW * 0.36, cutBot - cutTop - r * 0.09);
+            ctx.fillRect(setX + r * 0.29 - cutW * 0.18, cutTop + r * 0.08, cutW * 0.36, cutBot - cutTop - r * 0.1);
+            // Folded sapphire napkin ON the plate: a bright
+            // royal-blue triangle with a gold fold line —
+            // unmistakably blue against the white plate at
+            // any table size, matching the chairs.
+            ctx.fillStyle = "#2a5cb4";
             ctx.beginPath();
-            ctx.moveTo(setX - r * 0.105, setY + r * 0.055);
-            ctx.lineTo(setX + r * 0.105, setY + r * 0.055);
-            ctx.lineTo(setX, setY - r * 0.1);
+            ctx.moveTo(setX - r * 0.13, setY + r * 0.07);
+            ctx.lineTo(setX + r * 0.13, setY + r * 0.07);
+            ctx.lineTo(setX, setY - r * 0.125);
             ctx.closePath(); ctx.fill();
-            ctx.fillStyle = "#075c33";
+            ctx.fillStyle = "#173f83";
             ctx.beginPath();
-            ctx.moveTo(setX, setY - r * 0.1);
-            ctx.lineTo(setX + r * 0.105, setY + r * 0.055);
-            ctx.lineTo(setX, setY + r * 0.055);
+            ctx.moveTo(setX, setY - r * 0.125);
+            ctx.lineTo(setX + r * 0.13, setY + r * 0.07);
+            ctx.lineTo(setX, setY + r * 0.07);
             ctx.closePath(); ctx.fill();
             ctx.strokeStyle = "#d4af37";
-            ctx.lineWidth = Math.max(1.1, r * 0.02);
+            ctx.lineWidth = Math.max(1.2, r * 0.022);
             ctx.beginPath();
-            ctx.moveTo(setX - r * 0.105, setY + r * 0.055);
-            ctx.lineTo(setX + r * 0.105, setY + r * 0.055);
+            ctx.moveTo(setX - r * 0.13, setY + r * 0.07);
+            ctx.lineTo(setX + r * 0.13, setY + r * 0.07);
             ctx.stroke();
             // Water glass.
             ctx.fillStyle = "rgba(190,220,235,0.55)";
-            ctx.beginPath(); ctx.ellipse(setX + psi2 * r * 0.31, setY - r * 0.21, r * 0.06, r * 0.08, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(setX + psi2 * r * 0.38, setY - r * 0.25, r * 0.07, r * 0.095, 0, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = "rgba(255,255,255,0.8)";
-            ctx.beginPath(); ctx.ellipse(setX + psi2 * r * 0.31 - r * 0.02, setY - r * 0.24, r * 0.018, r * 0.032, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(setX + psi2 * r * 0.38 - r * 0.022, setY - r * 0.285, r * 0.02, r * 0.036, 0, 0, Math.PI * 2); ctx.fill();
           }
-          // Centrepiece: a little vase of greenery with a
-          // candle beside it, flame flickering with the room.
-          ctx.fillStyle = "#3e6b46";
-          ctx.beginPath(); ctx.ellipse(cx, cy - r * 0.3, r * 0.13, r * 0.07, 0, 0, Math.PI * 2); ctx.fill();
-          ctx.beginPath(); ctx.ellipse(cx - r * 0.08, cy - r * 0.36, r * 0.07, r * 0.05, -0.5, 0, Math.PI * 2); ctx.fill();
-          ctx.beginPath(); ctx.ellipse(cx + r * 0.08, cy - r * 0.36, r * 0.07, r * 0.05, 0.5, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = "#a37f33";
-          ctx.beginPath(); ctx.ellipse(cx, cy - r * 0.24, r * 0.05, r * 0.045, 0, 0, Math.PI * 2); ctx.fill();
+          // Centrepiece: a cluster of roses in a gold vase
+          // at the table's heart, with a TALL candle in a
+          // gold holder standing at each side — the formal
+          // palace dressing, sized to read at game scale.
+          // The flowers crown above the tent's top edge;
+          // the tent itself is painted after this, so the
+          // vase's foot sits behind the card the way a real
+          // centrepiece sits behind the number.
+          // Tall candles first, at the table's shoulders.
           var flick = 1 + Math.sin(nowMs / 130 + cx) * 0.18;
-          var cGlow = ctx.createRadialGradient(cx + r * 0.24, cy - r * 0.3, 1, cx + r * 0.24, cy - r * 0.3, r * 0.3);
-          cGlow.addColorStop(0, "rgba(255,170,60,0.4)");
-          cGlow.addColorStop(1, "rgba(255,170,60,0)");
-          ctx.fillStyle = cGlow;
-          ctx.fillRect(cx - r * 0.06, cy - r * 0.6, r * 0.6, r * 0.6);
-          ctx.fillStyle = "#fff3d0";
-          ctx.beginPath(); ctx.ellipse(cx + r * 0.24, cy - r * 0.26, r * 0.035, r * 0.03, 0, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = "#ff9d2e";
-          ctx.beginPath(); ctx.ellipse(cx + r * 0.24, cy - r * 0.31, r * 0.02 * flick, r * 0.038 * flick, 0, 0, Math.PI * 2); ctx.fill();
+          for (var cnd = -1; cnd <= 1; cnd += 2) {
+            var cdX = cx + cnd * r * 0.62;
+            var cdBase = cy - r * 0.04;
+            // The flame's glow on the cloth.
+            var cdGlow = ctx.createRadialGradient(cdX, cdBase - r * 0.5, 1, cdX, cdBase - r * 0.5, r * 0.3);
+            cdGlow.addColorStop(0, "rgba(255,170,60,0.38)");
+            cdGlow.addColorStop(1, "rgba(255,170,60,0)");
+            ctx.fillStyle = cdGlow;
+            ctx.fillRect(cdX - r * 0.3, cdBase - r * 0.8, r * 0.6, r * 0.6);
+            // The gold holder: a foot, a stem, a cup.
+            ctx.fillStyle = "#c9a227";
+            ctx.beginPath(); ctx.ellipse(cdX, cdBase, r * 0.075, r * 0.032, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillRect(cdX - Math.max(1.2, r * 0.016), cdBase - r * 0.11, Math.max(2.4, r * 0.032), r * 0.11);
+            ctx.beginPath(); ctx.ellipse(cdX, cdBase - r * 0.12, r * 0.05, r * 0.024, 0, 0, Math.PI * 2); ctx.fill();
+            // The tall white candle itself.
+            var cdGrad = ctx.createLinearGradient(cdX - r * 0.04, 0, cdX + r * 0.04, 0);
+            cdGrad.addColorStop(0, "#efe6d0");
+            cdGrad.addColorStop(0.5, "#fffaf0");
+            cdGrad.addColorStop(1, "#e2d5ba");
+            ctx.fillStyle = cdGrad;
+            ctx.fillRect(cdX - r * 0.038, cdBase - r * 0.44, r * 0.076, r * 0.33);
+            ctx.fillStyle = "#fffaf0";
+            ctx.beginPath(); ctx.ellipse(cdX, cdBase - r * 0.44, r * 0.038, r * 0.014, 0, 0, Math.PI * 2); ctx.fill();
+            // The flame, flickering.
+            ctx.fillStyle = "#ff9d2e";
+            ctx.beginPath(); ctx.ellipse(cdX, cdBase - r * 0.485, r * 0.02 * flick, r * 0.042 * flick, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "#ffe9a8";
+            ctx.beginPath(); ctx.ellipse(cdX, cdBase - r * 0.478, r * 0.009 * flick, r * 0.02 * flick, 0, 0, Math.PI * 2); ctx.fill();
+          }
+          // Greenery spilling from the vase's mouth.
+          ctx.fillStyle = "#3e6b46";
+          ctx.beginPath(); ctx.ellipse(cx, cy - r * 0.4, r * 0.15, r * 0.07, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(cx - r * 0.11, cy - r * 0.44, r * 0.08, r * 0.05, -0.5, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(cx + r * 0.11, cy - r * 0.44, r * 0.08, r * 0.05, 0.5, 0, Math.PI * 2); ctx.fill();
+          // The roses: pink, cream and red blooms with a
+          // darker spiral at each heart.
+          var roses = [
+            [-0.13, -0.47, 0.062, "#e88bb0", "#b34a74"],
+            [0, -0.53, 0.07, "#f6e3c5", "#c49a68"],
+            [0.13, -0.47, 0.062, "#d94f5c", "#9e2f3a"],
+            [-0.06, -0.42, 0.052, "#f2a7bb", "#bc6484"],
+            [0.07, -0.43, 0.052, "#e8b4c8", "#b57e97"]
+          ];
+          for (var rsi = 0; rsi < roses.length; rsi++) {
+            var rsx = cx + roses[rsi][0] * r, rsy = cy + roses[rsi][1] * r, rsr = roses[rsi][2] * r;
+            ctx.fillStyle = roses[rsi][3];
+            ctx.beginPath(); ctx.arc(rsx, rsy, rsr, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = roses[rsi][4];
+            ctx.lineWidth = Math.max(1, r * 0.016);
+            ctx.beginPath(); ctx.arc(rsx, rsy, rsr * 0.55, 0.4, Math.PI * 1.5); ctx.stroke();
+            ctx.beginPath(); ctx.arc(rsx, rsy, rsr * 0.26, Math.PI * 0.9, Math.PI * 2.2); ctx.stroke();
+          }
+          // The gold vase: a flared foot, a bellied body
+          // and a rim, in polished gold.
+          var vaseGrad = ctx.createLinearGradient(cx - r * 0.07, 0, cx + r * 0.07, 0);
+          vaseGrad.addColorStop(0, "#8a6a2f");
+          vaseGrad.addColorStop(0.5, "#e3c268");
+          vaseGrad.addColorStop(1, "#8a6a2f");
+          ctx.fillStyle = vaseGrad;
+          ctx.beginPath();
+          ctx.moveTo(cx - r * 0.035, cy - r * 0.4);
+          ctx.lineTo(cx + r * 0.035, cy - r * 0.4);
+          ctx.quadraticCurveTo(cx + r * 0.075, cy - r * 0.31, cx + r * 0.055, cy - r * 0.25);
+          ctx.lineTo(cx - r * 0.055, cy - r * 0.25);
+          ctx.quadraticCurveTo(cx - r * 0.075, cy - r * 0.31, cx - r * 0.035, cy - r * 0.4);
+          ctx.closePath(); ctx.fill();
+          ctx.fillStyle = "#f0d488";
+          ctx.beginPath(); ctx.ellipse(cx, cy - r * 0.4, r * 0.042, r * 0.014, 0, 0, Math.PI * 2); ctx.fill();
           // A served plate, while the serve beat plays.
           if (t.plateT > 0) {
             ctx.save();
@@ -3514,12 +3802,9 @@
             if (tables[j].number === ticketNum) { stillThere = true; break; }
           }
           // "Numbers changed!" belongs to THIS event alone —
-          // a party leaving and the numbers re-dealt. If a
-          // swell just rolled the room, the roll's own callout
-          // owns the moment and this renumber stays quiet.
-          if (performance.now() - lastSwellSwitchAt > 1400) {
-            addFloat(W / 2, kitchenH() + 30, "Numbers changed!", "#ffd166");
-          }
+          // a party leaving and the numbers re-dealt across
+          // the hall.
+          addFloat(W / 2, kitchenH() + 30, "Numbers changed!", "#ffd166");
           if (!stillThere && gameOn) {
             newTicket();
             addFloat(W / 2, kitchenH() + 56, "Table " + oldTicket + " left — new ticket!", "#ffffff");
@@ -3886,16 +4171,8 @@
           var rect = canvas.getBoundingClientRect();
           var px = ev.clientX - rect.left;
           var py = ev.clientY - rect.top;
-          // The room is drawn rolled by the yacht's angle;
-          // un-roll the tap about the same deck pivot, so it
-          // lands on the table the player actually sees.
-          if (rockAngle) {
-            var pivX = W / 2, pivY = groundY();
-            var rdx = px - pivX, rdy = py - pivY;
-            var rcos = Math.cos(-rockAngle), rsin = Math.sin(-rockAngle);
-            px = pivX + rdx * rcos - rdy * rsin;
-            py = pivY + rdx * rsin + rdy * rcos;
-          }
+          // The hall is perfectly still — no un-rolling: a
+          // tap lands exactly where it falls.
           var bestT = null, bestD = Infinity;
           for (var i = 0; i < tables.length; i++) {
             var t = tables[i];
@@ -3975,9 +4252,9 @@
 
           stepWaiter(dtMs);
 
-          // Tables ease toward their slots — a swell that
-          // traded two tables' places reads as the tables
-          // gliding across the deck to their new spots.
+          // Tables ease toward their slots after a resize
+          // or a Pack 'em — a short settle into place, never
+          // a trade: every table keeps its own slot.
           for (var gi3 = 0; gi3 < tables.length; gi3++) {
             var gt = tables[gi3];
             if (gt.placed) {
@@ -3986,8 +4263,6 @@
               gt.y += (gt.slotY - gt.y) * kf;
             }
           }
-
-          updateRock(nowMs);
 
           // Idle, with no card up, the waiter parks on the
           // floor in front of the pass — below the masthead, so
@@ -3999,21 +4274,15 @@
             waiter.y = kitchenH() + 58;
           }
 
-          // The sea stays level; the ROOM rocks around it:
-          // the salon, tables, guests and waiter are drawn
-          // rolled by the yacht's angle about a pivot at the
-          // deck, with a gentle vertical bob on top.
+          // The hall stands on land and never moves: the
+          // sea beyond the glass, the room, the tables,
+          // guests and waiter are all drawn square and
+          // still, exactly where they stand.
           drawSea(nowMs);
-          ctx.save();
-          ctx.translate(W / 2, groundY());
-          ctx.rotate(rockAngle);
-          ctx.translate(-W / 2, -groundY());
-          ctx.translate(0, rockBob);
           drawRoom(nowMs);
           for (var j = 0; j < tables.length; j++) drawTable(tables[j], nowMs);
           drawWaiter(nowMs);
           drawFloats(nowMs);
-          ctx.restore();
 
           requestAnimationFrame(frame);
         }
@@ -4063,9 +4332,7 @@
             scorebookEnabled: scorebookEnabled(),
             rankMs: rankResolvedMs,
             musicWanted: musicWanted,
-            musicPlaying: !bgMusic.paused,
-            rockDeg: Math.round(rockAngle * 180 / Math.PI * 100) / 100,
-            swellSwitches: swellCount
+            musicPlaying: !bgMusic.paused
           };
         };
       })();
