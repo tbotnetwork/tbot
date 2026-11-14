@@ -204,18 +204,31 @@
       }
       .tb-side.right { justify-content: flex-end; grid-column: 3; }
       /* The game's description line: shown with the dining
-         room on entry, it hangs above the toolbar for a few
-         seconds, fades out, and is removed from the document
-         entirely — a round started while it is up holds its
-         clock until it clears, and it never appears on a card. */
+         room on entry, it fades out after a few seconds and
+         is removed from the document entirely — a round
+         started while it is up holds its clock until it
+         clears, and it never appears on a card. It must
+         NEVER cover a table, a number tent, a diner or a
+         show label at any table count, so it never sits
+         over the floor at all: on wide screens it hangs
+         directly under the lobby masthead (brand top +
+         logo height + title/beat-pill height, mirrored
+         from .brand-block above), over the window band
+         and the top of the pass; on phone-width screens
+         the script seats it dynamically (see seatRestDesc):
+         resting on the toolbar's own rendered top edge in
+         the reserved strip below the front row when the
+         whole bubble fits there clear of every table, and
+         in this same masthead seat (the .desc-top class in
+         the max-width: 820px block) when it does not. */
       .game-desc {
         position: fixed;
         left: 50%;
-        bottom: calc(118px + env(safe-area-inset-bottom));
+        top: calc(clamp(52px, 7vh, 72px) + min(13.23vw, 105px) + 91px + env(safe-area-inset-top));
         transform: translateX(-50%);
         width: min(620px, calc(100vw - 24px));
         margin: 0;
-        padding: 8px 16px;
+        padding: 6px 14px;
         border-radius: 999px;
         background: var(--bar-bg);
         border: 1px solid var(--bar-border);
@@ -227,7 +240,7 @@
         color: var(--ink);
         white-space: normal;
         text-align: center;
-        line-height: 1.35;
+        line-height: 1.28;
         pointer-events: none;
         z-index: 6;
         transition: opacity 0.6s ease;
@@ -649,23 +662,66 @@
         }
         .toolbar:not(.inround) .tb-side.left { grid-area: left; }
         .toolbar:not(.inround) .tb-side.right { grid-area: right; }
-        /* Narrow room: the bar is a single row here, so the
-           description sits in the slim gap right above it —
-           compact type, a wide flat bar (never a tall oval),
-           clear of the bottom row of tables. */
+        /* Narrow room: the description drops into the
+           reserved strip below the front row (its exact
+           seat is set in the max-width: 820px block after
+           this one) — compact type, a wide flat bar (never
+           a tall oval), clear of the bottom row of tables. */
         .game-desc {
-          bottom: calc(102px + env(safe-area-inset-bottom));
+          top: auto;
           font-size: 13px;
-          padding: 7px 13px;
+          padding: 6px 12px;
           border-radius: 20px;
         }
         .desc-teach { font-size: 11.5px; }
         .desc-first { white-space: normal; }
       }
+      /* Short wide rooms: the masthead-to-floor gap is
+         tightest here, so the description steps its type
+         and padding down a notch to stay inside it, clear
+         of the back row's silhouettes. */
+      @media (min-width: 821px) and (max-height: 840px) {
+        .game-desc { font-size: 13.5px; padding: 6px 12px; }
+        .desc-teach { font-size: 11.5px; margin-top: 2px; }
+      }
+      /* Phone-width rooms (the same 820px line the floor
+         layout's chrome reserve uses): the description's
+         seat is set by the script (see seatRestDesc), NOT
+         by a fixed pixel guess — the lobby toolbar is
+         taller on a phone than any one number, and a fixed
+         bottom once left the bubble's last lines behind
+         the bar. The script rests the bubble on the bar's
+         own rendered top edge in the strip the floor
+         layout keeps clear below the front row, and only
+         when the whole bubble fits there clear of every
+         table's silhouette; otherwise it takes the wide
+         seat below (.desc-top). Compact padding and type
+         keep its height down so the low seat fits at as
+         many phone widths as possible. */
+      @media (max-width: 820px) {
+        .game-desc {
+          top: auto;
+          bottom: auto;
+          padding: 6px 12px;
+          font-size: 13px;
+          border-radius: 20px;
+        }
+        /* The fallback seat: the wide-screen seat, hanging
+           directly under the lobby masthead over the window
+           band, clear of the back row — used at phone sizes
+           where the strip below the front row cannot hold
+           the whole bubble above the toolbar's real top
+           edge. Visible-and-clear beats low-and-clipped. */
+        .game-desc.desc-top {
+          top: calc(clamp(52px, 7vh, 72px) + min(13.23vw, 105px) + 91px + env(safe-area-inset-top));
+          bottom: auto;
+        }
+        .desc-teach { font-size: 11px; margin-top: 2px; }
+      }
     </style>
   </head>
   <body>
-    <canvas id="stage" aria-label="A grand palace dining hall at sunset: tall arched windows over a calm sea, a crystal chandelier, a kitchen pass at the back of the room behind the tables, and numbered tables of TBOT guests. You are the waiter — tap the table wearing the number the kitchen calls. When a party leaves, the numbers change."></canvas>
+    <canvas id="stage" aria-label="A grand palace dining hall at sunset: tall arched windows over a calm sea, crystal chandeliers, a kitchen pass at the back of the room behind the tables, and numbered tables of TBOT guests. You are the waiter — tap the table wearing the number the kitchen calls. When a party leaves, the numbers change."></canvas>
 
     <!-- Background music: the last 17 seconds of "Velvet Rot" by
          Kimo (the series track), looped behind the game. Sound
@@ -3136,8 +3192,8 @@
 
           // The kitchen pass: a steel counter standing at
           // the back edge of the floor, its back wall rising
-          // in front of the glass's lower reach — three warm
-          // pendant lamps under its header beam, and the
+          // in front of the glass's lower reach — three
+          // crystal chandeliers under its header beam, and the
           // KITCHEN sign. The pass belongs to the room: the
           // waiter works at it right behind the back row.
           ctx.fillStyle = "#2e2013";
@@ -3145,7 +3201,7 @@
           // The header beam: a dark soffit finishing the
           // top edge of the pass's back wall, so the band
           // reads as a structure standing in the room — the
-          // pendant lamps hang from it.
+          // chandeliers hang from it.
           ctx.fillStyle = "#1c1108";
           ctx.fillRect(0, kt, W, 5);
           ctx.fillStyle = "rgba(212,175,55,0.45)";
@@ -3204,49 +3260,140 @@
             ctx.beginPath(); ctx.ellipse(px2, kb - 28, 11, 3.4, 0, 0, Math.PI * 2); ctx.fill();
             ctx.beginPath(); ctx.ellipse(W * 0.84 - pi * 15, kb - 28, 11, 3.4, 0, 0, Math.PI * 2); ctx.fill();
           }
-          // Pendant lamps, hanging from the header beam.
+          // Crystal chandeliers over the pass, hanging
+          // from the header beam in the three spots the
+          // pendant lamps occupied — the great chandelier's
+          // own language at pass scale: two gold tiers of
+          // candles and crystal drops, a crystal column
+          // between the tiers, and a crystal finial, each
+          // in the warm pool of light the pendants threw on
+          // the pass. They hang in the top of the pass band
+          // only — the lowest crystal stops well above the
+          // counter, the plates and the waiter at the pass.
+          // The KITCHEN sign is not painted here any more:
+          // it is drawn live, centred over the waiter
+          // himself (see drawKitchenSign).
+          var pchH = clamp(kh * 0.46, 34, 58);
+          var pchW = clamp(W * 0.085, 48, 84);
+          var passLx = [W * 0.25, W * 0.5, W * 0.75];
+          // The sign's spots — over the waiter behind the
+          // counter in a round (centred on W / 2), and over
+          // his lobby park position (centred on W / 2, or
+          // half a cell to its right on a five-column
+          // floor, where he parks in the aisle — that spot
+          // rides at the floor's top edge, far below this
+          // band, so only its height is checked here) — and
+          // on shorter screens the in-round spot rises into
+          // this band. If either spot would collide with
+          // the middle chandelier, the middle fixture is
+          // nudged sideways just enough for sign and
+          // crystal to read clean and separate (and the
+          // right fixture follows if the middle one then
+          // crowds it). No chandelier is ever shrunk or
+          // removed, and on screens where the sign already
+          // clears the crystal — the usual case — nothing
+          // here moves at all.
+          ctx.font = "800 12px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+          var kSignHalf = (ctx.measureText("KITCHEN").width + 22) / 2;
+          var kS2 = bodySize() * 1.12;
+          var kHeadOff = (kS2 / SPRITE_BODY_FRAC) * SPRITE_ASPECT * SPRITE_BODY_CY;
+          var chHalf = pchW * 0.46;
+          // The middle fixture's lowest point: the crystal
+          // drops under its lower tier.
+          var chBot = kt + pchH * 0.80 + chHalf * 0.18 + 7.3;
+          var kSignTops = [(kb - 14) - kHeadOff - 27, (kb + 58) - kHeadOff - 27];
+          for (var ksi = 0; ksi < kSignTops.length; ksi++) {
+            if (kSignTops[ksi] < chBot && kSignTops[ksi] + 21 > kt) {
+              passLx[1] = W / 2 + kSignHalf + chHalf + 5;
+              if (passLx[2] - passLx[1] < chHalf * 2 + 4) passLx[2] = passLx[1] + chHalf * 2 + 4;
+              if (passLx[2] + chHalf > W - 2) {
+                var kEx = passLx[2] + chHalf - (W - 2);
+                passLx[2] -= kEx; passLx[1] -= kEx;
+              }
+              break;
+            }
+          }
           for (var li = 0; li < 3; li++) {
-            var lx = W * (0.25 + li * 0.25);
-            var glow = ctx.createRadialGradient(lx, kt + 40, 2, lx, kt + 40, 54);
+            var lx = passLx[li];
+            // The warm glow the pendants gave the pass.
+            var glow = ctx.createRadialGradient(lx, kt + pchH * 0.55, 2, lx, kt + pchH * 0.55, 58);
             glow.addColorStop(0, "rgba(255, 196, 86, 0.5)");
             glow.addColorStop(1, "rgba(255, 196, 86, 0)");
             ctx.fillStyle = glow;
-            ctx.fillRect(lx - 54, kt, 108, 108);
-            ctx.strokeStyle = "#0a0a0a";
+            ctx.fillRect(lx - 58, kt - 6, 116, 122);
+            var ptierR = [pchW * 0.30, pchW * 0.46];
+            var ptierY = [kt + pchH * 0.58, kt + pchH * 0.80];
+            // The stem and its canopy, up into the beam.
+            ctx.strokeStyle = "#a87f24";
             ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.moveTo(lx, kt); ctx.lineTo(lx, kt + 22); ctx.stroke();
-            var shadeGrad = ctx.createLinearGradient(0, kt + 22, 0, kt + 38);
-            shadeGrad.addColorStop(0, "#8a6a2f");
-            shadeGrad.addColorStop(0.55, "#d9b45f");
-            shadeGrad.addColorStop(1, "#a37f33");
-            ctx.fillStyle = shadeGrad;
+            ctx.beginPath(); ctx.moveTo(lx, kt); ctx.lineTo(lx, ptierY[0]); ctx.stroke();
+            ctx.fillStyle = "#c9a227";
             ctx.beginPath();
-            ctx.moveTo(lx - 13, kt + 38); ctx.lineTo(lx + 13, kt + 38); ctx.lineTo(lx + 5, kt + 22); ctx.lineTo(lx - 5, kt + 22);
+            ctx.moveTo(lx - 5.5, kt + 6); ctx.lineTo(lx + 5.5, kt + 6); ctx.lineTo(lx + 2, kt); ctx.lineTo(lx - 2, kt);
             ctx.closePath(); ctx.fill();
-            // Crystal drops under the shade, catching the light.
+            // The crystal column between the tiers.
             ctx.fillStyle = "rgba(240,248,255,0.9)";
-            for (var cd = -2; cd <= 2; cd++) {
-              ctx.beginPath(); ctx.arc(lx + cd * 5, kt + 41.5, 1.5, 0, Math.PI * 2); ctx.fill();
+            for (var pcc = ptierY[0]; pcc <= ptierY[1]; pcc += 6) {
+              ctx.beginPath(); ctx.arc(lx, pcc, 1.6, 0, Math.PI * 2); ctx.fill();
             }
-            ctx.fillStyle = "#ffc456";
-            ctx.beginPath(); ctx.arc(lx, kt + 39, 3.6, 0, Math.PI * 2); ctx.fill();
+            for (var pti = 0; pti < 2; pti++) {
+              var ptr = ptierR[pti], pty = ptierY[pti];
+              // The gold ring of the tier.
+              ctx.strokeStyle = "#c9a227";
+              ctx.lineWidth = 2;
+              ctx.beginPath(); ctx.ellipse(lx, pty, ptr, ptr * 0.18, 0, 0, Math.PI * 2); ctx.stroke();
+              ctx.strokeStyle = "rgba(240,213,136,0.55)";
+              ctx.lineWidth = 1;
+              ctx.beginPath(); ctx.ellipse(lx, pty + 2, ptr * 0.94, ptr * 0.16, 0, 0, Math.PI * 2); ctx.stroke();
+              var pnDrop = pti === 0 ? 7 : 10;
+              for (var pdk = 0; pdk < pnDrop; pdk++) {
+                var pdAng = Math.PI * (0.06 + 0.88 * (pdk / (pnDrop - 1)));
+                var pdX = lx + Math.cos(pdAng) * ptr;
+                var pdY = pty + Math.sin(pdAng) * ptr * 0.18;
+                // Candles stand on the ring at every other
+                // drop point: a white stick and a flame.
+                if (pdk % 2 === 0) {
+                  ctx.fillStyle = "#fdf6e3";
+                  ctx.fillRect(pdX - 1.1, pdY - 7.5, 2.2, 5.5);
+                  ctx.fillStyle = "#ffb84d";
+                  ctx.beginPath(); ctx.ellipse(pdX, pdY - 9.6, 1.5, 2.6, 0, 0, Math.PI * 2); ctx.fill();
+                  ctx.fillStyle = "#ffedb0";
+                  ctx.beginPath(); ctx.ellipse(pdX, pdY - 9, 0.7, 1.3, 0, 0, Math.PI * 2); ctx.fill();
+                }
+                // A crystal drop hangs below the ring.
+                ctx.strokeStyle = "rgba(220,235,245,0.6)";
+                ctx.lineWidth = 0.8;
+                ctx.beginPath(); ctx.moveTo(pdX, pdY + 1); ctx.lineTo(pdX, pdY + 4); ctx.stroke();
+                ctx.fillStyle = "rgba(240,248,255,0.95)";
+                ctx.beginPath(); ctx.arc(pdX, pdY + 5.6, 1.7, 0, Math.PI * 2); ctx.fill();
+              }
+            }
+            // The finial crystal under the lowest tier.
+            var pfinY = kt + pchH * 0.90;
+            ctx.strokeStyle = "#a87f24";
+            ctx.lineWidth = 1.6;
+            ctx.beginPath(); ctx.moveTo(lx, ptierY[1]); ctx.lineTo(lx, pfinY - 4); ctx.stroke();
+            var pfinGrad = ctx.createLinearGradient(lx - 3, pfinY - 5, lx + 3, pfinY + 5);
+            pfinGrad.addColorStop(0, "#ffffff");
+            pfinGrad.addColorStop(0.5, "#dceefb");
+            pfinGrad.addColorStop(1, "#a9c8e2");
+            ctx.fillStyle = pfinGrad;
+            ctx.beginPath(); ctx.ellipse(lx, pfinY, 3, 5.5, 0, 0, Math.PI * 2); ctx.fill();
+            // Sparkles thrown off the crystals.
+            ctx.strokeStyle = "rgba(255,255,255,0.7)";
+            ctx.lineWidth = 1;
+            for (var psk = 0; psk < 3; psk++) {
+              var pskX = lx + (roomHash(li * 13.7 + psk * 7.3 + 2) - 0.5) * pchW * 0.8;
+              var pskY = kt + pchH * (0.5 + roomHash(li * 5.3 + psk * 3.9 + 5) * 0.4);
+              var pskR = 2 + roomHash(psk * 5.1 + li) * 1.6;
+              ctx.beginPath();
+              ctx.moveTo(pskX - pskR, pskY); ctx.lineTo(pskX + pskR, pskY);
+              ctx.moveTo(pskX, pskY - pskR); ctx.lineTo(pskX, pskY + pskR);
+              ctx.stroke();
+            }
           }
-          // The sign.
-          ctx.font = "800 12px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
-          var signW = ctx.measureText("KITCHEN").width + 22;
-          ctx.fillStyle = "#2a1a0c";
-          ctx.beginPath();
-          if (ctx.roundRect) ctx.roundRect(W / 2 - signW / 2, kt + 8, signW, 21, 6);
-          else ctx.rect(W / 2 - signW / 2, kt + 8, signW, 21);
-          ctx.fill();
-          ctx.strokeStyle = "rgba(201,162,77,0.75)";
-          ctx.lineWidth = 1.2;
-          ctx.stroke();
-          ctx.fillStyle = "#ffbe1a";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText("KITCHEN", W / 2, kt + 19);
-          ctx.textBaseline = "alphabetic";
+          // (No KITCHEN sign is painted here: the sign is
+          // drawn live over the waiter — see drawKitchenSign.)
 
           // ---------- The potted palm ----------
           // A palm in a gold pot at the hall's left edge,
@@ -3868,6 +4015,49 @@
           }
         }
 
+        // ---------- The KITCHEN sign ----------
+        // The sign is the waiter's station marker, drawn
+        // live — after the room, the tables, the waiter and
+        // the floats, so nothing ever covers it — centred
+        // directly over the waiter TBOT wherever he stands
+        // at the pass: his in-round spot BEHIND the steel
+        // counter (waist-up behind the steel, exactly where
+        // he has always stood — he is not moved) and his
+        // lobby park position on the floor alike. Its lower
+        // edge rides a few pixels above the top of his
+        // sprite (same idle bob as his figure, so the gap
+        // never breathes), clear of his head and of the
+        // ticket card in his left hand. While he is out on
+        // the floor serving, the sign stays over his home
+        // spot at the pass, marking the station he returns
+        // to — it never wanders over a table or a tent.
+        function drawKitchenSign(nowMs) {
+          var atPass = waiter.state === "pass";
+          var ax = atPass ? waiter.x : waiter.homeX;
+          var ay = atPass ? waiter.y : waiter.homeY;
+          var bobY = Math.sin(nowMs / 700) * 1.2;
+          var s = bodySize() * 1.12;
+          var sh = (s / SPRITE_BODY_FRAC) * SPRITE_ASPECT;
+          var headTop = ay - bobY - sh * SPRITE_BODY_CY;
+          ctx.font = "800 12px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+          var signW = ctx.measureText("KITCHEN").width + 22;
+          var signH = 21, signGap = 6;
+          var sx = ax - signW / 2, sy = headTop - signGap - signH;
+          ctx.fillStyle = "#2a1a0c";
+          ctx.beginPath();
+          if (ctx.roundRect) ctx.roundRect(sx, sy, signW, signH, 6);
+          else ctx.rect(sx, sy, signW, signH);
+          ctx.fill();
+          ctx.strokeStyle = "rgba(201,162,77,0.75)";
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+          ctx.fillStyle = "#ffbe1a";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("KITCHEN", ax, sy + signH / 2 + 1);
+          ctx.textBaseline = "alphabetic";
+        }
+
         function addFloat(x, y, text, color) {
           floats.push({ x: x, y: y, text: text, color: color, t0: performance.now() });
           if (floats.length > 8) floats.shift();
@@ -3892,10 +4082,121 @@
         }
 
         // ---------- The description line ----------
+        // Seating the bubble on phone-width screens: the
+        // lobby toolbar's height is not a constant — on a
+        // phone its buttons wrap and the bar grows well past
+        // the 86px a fixed CSS bottom once assumed, and the
+        // bar (z-index above the bubble, backdrop-blurred)
+        // swallowed the bubble's closing lines. So the seat
+        // is measured, never guessed: the bubble rests on
+        // the bar's OWN rendered top edge (its bounding
+        // rect), in the strip the floor layout keeps clear
+        // below the front row — but only when the WHOLE
+        // bubble fits in that strip without touching any
+        // table's full silhouette (tent, diners, settings,
+        // shadow, label — the extents layoutTables fits:
+        // 1.68r + 2 above the centre, 0.92r + 19 below,
+        // 1.18r to each side). When it cannot fit there —
+        // a narrow phone whose wrapped text runs tall, a
+        // short stage — the bubble takes the wide-screen
+        // seat instead (the .desc-top class: hanging under
+        // the lobby masthead over the window band, clear of
+        // the back row), because visible-and-clear beats
+        // low-and-clipped. Wide screens (> 820px) keep the
+        // stylesheet's masthead seat untouched: any inline
+        // seat and the fallback class are cleared. The seat
+        // is re-checked on every visual-viewport change
+        // (see resize and the viewport listeners), shortly
+        // after the bubble is shown (the bar can still be
+        // settling as its buttons paint), and whenever the
+        // lobby state changes (showRestDesc,
+        // restoreLobbyButtons, Pack 'em, Reset).
+        function seatRestDesc() {
+          if (!restDescEl || !restDescEl.parentNode) return;
+          if (W > 820) {
+            restDescEl.classList.remove("desc-top");
+            restDescEl.style.top = "";
+            restDescEl.style.bottom = "";
+            return;
+          }
+          var barRect = toolbarEl.getBoundingClientRect();
+          var bh = restDescEl.offsetHeight;
+          var bw = restDescEl.offsetWidth;
+          if (!barRect.height || !bh || !bw) return;
+          var gap = 8; // breathing room above the bar's top edge
+          var lowTop = barRect.top - gap - bh;
+          var fits = lowTop >= 6; // the whole bubble stays on screen
+          if (fits) {
+            // The bubble is centred and never moves sideways,
+            // so its current left edge is its left edge in
+            // either seat; the tables' silhouettes are canvas
+            // coordinates, carried into client coordinates by
+            // the canvas's own rect.
+            var bRect = restDescEl.getBoundingClientRect();
+            var cRect = canvas.getBoundingClientRect();
+            for (var i = 0; i < tables.length; i++) {
+              var t = tables[i];
+              var sLeft = cRect.left + t.slotX - 1.18 * t.r - 3;
+              var sRight = cRect.left + t.slotX + 1.18 * t.r + 3;
+              var sTop = cRect.top + t.slotY - (1.68 * t.r + 2) - 3;
+              var sBot = cRect.top + t.slotY + (0.92 * t.r + 19) + 3;
+              if (bRect.left < sRight && bRect.left + bw > sLeft &&
+                  lowTop < sBot && lowTop + bh > sTop) { fits = false; break; }
+            }
+          }
+          if (fits) {
+            restDescEl.classList.remove("desc-top");
+            restDescEl.style.bottom = "auto";
+            restDescEl.style.top = Math.round(lowTop) + "px";
+          } else {
+            restDescEl.style.top = "";
+            restDescEl.style.bottom = "";
+            restDescEl.classList.add("desc-top");
+            // The masthead seat, verified against the floor
+            // as it actually stands: on a short stage the
+            // back row's chair tops can reach into the seat,
+            // so if the seated bubble would touch any
+            // silhouette it rides up just far enough for its
+            // bottom edge to clear the highest one it spans
+            // — still fully on screen, still clear of every
+            // table. (On any normal phone height the seat
+            // clears as designed and nothing rides up.)
+            var mRect = restDescEl.getBoundingClientRect();
+            var cRect2 = canvas.getBoundingClientRect();
+            var clearTop = Infinity;
+            for (var mi = 0; mi < tables.length; mi++) {
+              var mt = tables[mi];
+              var mLeft = cRect2.left + mt.slotX - 1.18 * mt.r - 3;
+              var mRight = cRect2.left + mt.slotX + 1.18 * mt.r + 3;
+              var mTop = cRect2.top + mt.slotY - (1.68 * mt.r + 2) - 3;
+              var mBot = cRect2.top + mt.slotY + (0.92 * mt.r + 19) + 3;
+              if (mRect.left < mRight && mRect.left + bw > mLeft &&
+                  mRect.top < mBot && mRect.top + bh > mTop && mTop < clearTop) {
+                clearTop = mTop;
+              }
+            }
+            if (clearTop !== Infinity) {
+              restDescEl.style.bottom = "auto";
+              restDescEl.style.top = Math.max(6, Math.round(clearTop - 6 - bh)) + "px";
+            }
+          }
+        }
+        // Seat now, once on the next frame, and once shortly
+        // after: the bar's rendered height (and the bubble's
+        // own wrapped height) can settle a beat after the
+        // bubble appears, and the seat must follow the bar
+        // as it actually stands, not as it first painted.
+        function scheduleSeatRestDesc() {
+          seatRestDesc();
+          if (window.requestAnimationFrame) requestAnimationFrame(seatRestDesc);
+          setTimeout(seatRestDesc, 150);
+          setTimeout(seatRestDesc, 450);
+        }
         var restDescTimer = null;
         function showRestDesc() {
           if (!restDescEl.parentNode) document.body.appendChild(restDescEl);
           restDescEl.classList.remove("fade");
+          scheduleSeatRestDesc();
           if (restDescTimer) { clearTimeout(restDescTimer); restDescTimer = null; }
           restDescTimer = setTimeout(function () {
             restDescTimer = null;
@@ -3925,6 +4226,7 @@
             toolbarEl.insertBefore(toolbarLeftEl, toolbarEl.firstChild);
           }
           paintIdleButtons();
+          scheduleSeatRestDesc(); // the lobby bar is back — re-seat the bubble on its real top edge
         }
         // The round screen is clean: no Reset, no Pack 'em, no
         // masthead — those leave the document for the whole
@@ -4289,6 +4591,7 @@
           ticketNum = null;
           layoutTables();
           paintIdleButtons();
+          scheduleSeatRestDesc(); // the floor emptied — re-check the bubble's seat
         });
 
         // ---------- Pack 'em: more tables on the floor ----------
@@ -4351,6 +4654,7 @@
           for (var j = 0; j < tables.length; j++) tables[j].numPop = 1;
           layoutTables();
           paintIdleButtons();
+          scheduleSeatRestDesc(); // the floor (and maybe the bar) changed under the bubble
         }
         packBtn.addEventListener("click", packEm);
 
@@ -4407,9 +4711,17 @@
           chromeReserve = W <= 820 ? 75 : 0;
           floorInset = toolbarEl.offsetHeight + 28 + chromeReserve;
           layoutTables();
+          seatRestDesc(); // the bar and the floor both moved — re-seat the bubble
         }
         window.addEventListener("resize", resize);
-        if (window.visualViewport) window.visualViewport.addEventListener("resize", resize);
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener("resize", resize);
+          // A visual-viewport scroll shifts where the bar's
+          // rendered top edge sits against the page — the
+          // bubble's seat follows it (seatRestDesc guards on
+          // the bubble being in the document at all).
+          window.visualViewport.addEventListener("scroll", seatRestDesc);
+        }
 
         // ---------- The frame loop ----------
         var lastFrameMs = performance.now();
@@ -4483,10 +4795,38 @@
           // floor in front of the pass — below the masthead, so
           // the logo and title never sit on top of him. In a
           // round (and behind the end card) he stands at the
-          // pass itself.
+          // pass itself. His park spot must never cover a
+          // table's number tent, so he stands in the AISLE
+          // between two columns of the grid, never in front
+          // of a table: with an even column count the screen
+          // centre already falls in an aisle, but a packed
+          // floor's five columns put a slot dead centre —
+          // the top-centre table, whose number tent the
+          // standing figure used to cover completely — so
+          // with an odd column count he steps half a cell
+          // sideways into the aisle beside that slot. And
+          // where the aisle itself is narrower than the
+          // figure plus a tent (a packed phone floor, whose
+          // cells are barely wider than he is, side rods
+          // included), no spot on the floor can clear every
+          // tent — so there he parks at the pass itself,
+          // behind the steel counter, exactly where he
+          // stands in a round, a full figure-height above
+          // the back row's tents. The KITCHEN sign follows
+          // him to whichever spot he parks in (see
+          // drawKitchenSign).
           if (!gameOn && overOverlay.hidden && waiter.state === "pass") {
-            waiter.x = W / 2;
-            waiter.y = hallDims().floorTop + 58;
+            var parkCols = gridCols(tables.length);
+            var parkHalfCell = (W / parkCols) / 2;
+            var parkFigHalf = (bodySize() * 1.12 / SPRITE_BODY_FRAC) / 2;
+            var parkTentHalf = tables.length ? Math.max(tables[0].r, 26) * 1.06 / 2 : 0;
+            if (tables.length && parkHalfCell - parkFigHalf - parkTentHalf < 6) {
+              waiter.x = waiter.homeX;
+              waiter.y = waiter.homeY;
+            } else {
+              waiter.x = parkCols % 2 === 1 ? W / 2 + parkHalfCell : W / 2;
+              waiter.y = hallDims().floorTop + 58;
+            }
           }
 
           // The hall stands on land and never moves: the
@@ -4498,6 +4838,7 @@
           for (var j = 0; j < tables.length; j++) drawTable(tables[j], nowMs);
           drawWaiter(nowMs);
           drawFloats(nowMs);
+          drawKitchenSign(nowMs);
 
           requestAnimationFrame(frame);
         }
