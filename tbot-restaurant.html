@@ -772,6 +772,14 @@
 
         var W = 0, H = 0, DPR = 1;
         var floorInset = 0; // the dining floor sits just above the toolbar
+        // The foot-of-page reserve for the phone's own floating
+        // bottom chrome: in the in-app browser that chrome lies
+        // OVER roughly the lower 75px of the page, so anything
+        // sized against the full page height down there is
+        // hidden behind it. On phone-width screens the ground
+        // line is raised by this much (see resize) so the whole
+        // floor — front row included — stands clear of it.
+        var chromeReserve = 0;
         function groundY() { return H - floorInset; }
         function rand(a, b) { return a + Math.random() * (b - a); }
         function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
@@ -2095,16 +2103,32 @@
         // across and four down on a phone; a packed floor
         // (Pack 'em) widens the grid and shrinks the tables
         // a step so the extra tables still fit the floor.
+        // The grid's shape, shared by the table layout and
+        // by hallDims (which must know how many rows the
+        // floor has to hold before it sets the floor line).
+        function gridCols(count) {
+          var packed = count > TABLE_COUNT;
+          return W >= 620 ? (count > 12 ? 5 : 4) : (packed ? 4 : 2);
+        }
+        function gridRows(count) {
+          return Math.max(1, Math.ceil(count / gridCols(count)));
+        }
         function layoutTables() {
           var count = tables.length;
-          var packed = count > TABLE_COUNT;
           var top = hallDims().floorTop;
           var bottom = groundY();
-          var wide = W >= 620;
-          var cols = wide ? (count > 12 ? 5 : 4) : (packed ? 4 : 2);
-          var rows = Math.max(1, Math.ceil(count / cols));
+          var cols = gridCols(count);
+          var rows = gridRows(count);
           var cellW = W / cols;
-          var cellH = Math.max((bottom - top) / rows, 30);
+          // The cell pitch is the floor's real height divided
+          // by the rows — NEVER rounded up to a minimum: a
+          // minimum pitch is what pushed the front row past
+          // the ground line on short screens, off the visible
+          // stage and behind the phone's bottom chrome. When
+          // the floor is short the pitch compresses and the
+          // radius below compresses with it, so the grid
+          // always ends exactly at the ground line.
+          var cellH = Math.max((bottom - top) / rows, 1);
           // The radius is fitted to the floor cell, not just
           // the grid pitch: a dressed table reaches about
           // 1.68r + 2 above its centre (chair backs and
@@ -2119,7 +2143,16 @@
           // places the centre so the chair backs clear the
           // floor's back edge by the same margin the label
           // clears the ground line.
-          var tableR = clamp(Math.min(cellW * 0.30, (cellH - 25) / 2.62), 12, 60);
+          // The radius floor steps DOWN with the cell (to 5,
+          // reached only on the shortest stages): holding a
+          // 12px floor here would leave the silhouette taller
+          // than its compressed cell and spill the front row
+          // below the ground line again. The number tents do
+          // NOT step down with it — they are sized off a
+          // floored radius in drawTable, so the digits keep
+          // their enlarged readable size on a compressed
+          // floor.
+          var tableR = clamp(Math.min(cellW * 0.30, (cellH - 21) / 2.62), 5, 60);
           var topExt = 1.68 * tableR + 2, botExt = 0.92 * tableR + 19;
           var slotOffY = topExt + (cellH - topExt - botExt) / 2;
           for (var i = 0; i < tables.length; i++) {
@@ -2281,6 +2314,44 @@
           // On a very short screen, still leave a real floor.
           var maxFloorTop = gy - 140;
           if (maxFloorTop > kh + ceilH + 60 && floorTop > maxFloorTop) floorTop = maxFloorTop;
+          // THE SHORT-SCREEN FLOOR GUARANTEE: the floor must
+          // hold EVERY row's full silhouette — at the layout's
+          // own fit, a row needs 2.62r + 21 of height, and the
+          // radius is never asked below 12 for fit alone, so
+          // each row is guaranteed 2.62 * 12 + 21 ≈ 53px of
+          // floor. If the room's stack (ceiling + glass +
+          // pass) would leave less than that, the stack gives
+          // way in order — the glass shortens first, then the
+          // pass band, then the ceiling band — and if even
+          // that is not enough the floor line simply takes
+          // the room it needs. The pass still stands at the
+          // floor's back edge (passTop below is still
+          // floorTop − kh) and every table still stands
+          // below the sill; only the proportions above the
+          // floor compress, never the floor itself.
+          var needFloor = gridRows(tables.length) * 53;
+          var maxTop2 = gy - needFloor;
+          if (floorTop > maxTop2) {
+            var over = floorTop - maxTop2;
+            var cut = Math.min(over, Math.max(0, winH - 52));
+            winH -= cut; floorTop -= cut; over -= cut;
+            if (over > 0) {
+              cut = Math.min(over, Math.max(0, kh - 64));
+              kh -= cut; floorTop -= cut; over -= cut;
+            }
+            if (over > 0) {
+              cut = Math.min(over, Math.max(0, ceilH - 16));
+              ceilH -= cut; floorTop -= cut; over -= cut;
+            }
+            // Last resort, on a stage shorter than the room
+            // and the floor combined: the floor line stops
+            // at the very top of the stage rather than above
+            // it, and the layout compresses the tables
+            // themselves into what floor there is — every
+            // table stays on the stage, front AND back row.
+            if (over > 0) floorTop = Math.max(maxTop2, 0);
+            winY0 = ceilH; // the glass starts under the (possibly compressed) ceiling band
+          }
           return {
             kh: kh, gy: gy,
             ceilH: ceilH,
@@ -3621,7 +3692,17 @@
           // table. When the numbers re-deal it pops
           // (numPop), so the change is seen, not just made.
           var pop = 1 + (t.numPop > 0 ? Math.sin(t.numPop * Math.PI) * 0.22 : 0);
-          var tw = r * 1.06 * pop, th = r * 0.74 * pop;
+          // On a compressed floor (short screens — see
+          // layoutTables) the table's radius steps down, but
+          // the tent must NOT step down with it: the card is
+          // sized off a floored radius, so its digits hold
+          // the enlarged readable size (about 0.52 of the
+          // floored radius, weight 900 — see the fit guard
+          // below) even when the table itself is small. At
+          // any normal radius the floor never engages and
+          // the tent is exactly the shipped size.
+          var tentR = Math.max(r, 26);
+          var tw = tentR * 1.06 * pop, th = tentR * 0.74 * pop;
           var tx = cx - tw / 2, ty = cy - th * 0.42;
           ctx.save();
           ctx.shadowColor = "rgba(20, 10, 4, 0.28)";
@@ -4297,17 +4378,38 @@
         });
 
         // ---------- Resize ----------
+        // The stage is sized from the ACTUALLY VISIBLE
+        // viewport (the visual viewport), never the full
+        // page height: in the phone's in-app browser the
+        // layout height runs underneath the floating bottom
+        // chrome, and a floor laid out against it puts its
+        // front row below what the player can see. The
+        // canvas is pinned to the visible size in pixels so
+        // its drawing coordinates are the visible stage.
         function resize() {
           DPR = Math.min(window.devicePixelRatio || 1, 2);
-          W = window.innerWidth;
-          H = window.innerHeight;
+          var vv = window.visualViewport;
+          W = vv ? Math.round(vv.width) : window.innerWidth;
+          H = vv ? Math.round(vv.height) : window.innerHeight;
           canvas.width = Math.round(W * DPR);
           canvas.height = Math.round(H * DPR);
+          canvas.style.width = W + "px";
+          canvas.style.height = H + "px";
           ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-          floorInset = toolbarEl.offsetHeight + 28;
+          // The ground line clears, in order: the toolbar
+          // itself, its 14px perch above the page foot, a
+          // 14px breathing margin — and on phone-width
+          // screens the ~75px band of page foot the in-app
+          // browser's floating bottom chrome covers, which
+          // the visual viewport does not always subtract.
+          // The whole floor, front row's labels included,
+          // stands above ALL of it.
+          chromeReserve = W <= 820 ? 75 : 0;
+          floorInset = toolbarEl.offsetHeight + 28 + chromeReserve;
           layoutTables();
         }
         window.addEventListener("resize", resize);
+        if (window.visualViewport) window.visualViewport.addEventListener("resize", resize);
 
         // ---------- The frame loop ----------
         var lastFrameMs = performance.now();
