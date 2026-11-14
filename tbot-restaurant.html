@@ -2088,7 +2088,7 @@
 
         // ---------- The dining room ----------
         var GAME_SECONDS = 60;   // the shift: sixty seconds on the clock
-        var TABLE_COUNT = 8;     // the floor opens with eight tables
+        var TABLE_COUNT = 12;    // the floor opens with twelve tables
         var MAX_TABLES = 16;     // Pack 'em can seat the floor up to sixteen
         var PACK_STEP = 2;       // each Pack 'em press seats two more tables
         var NUMBER_POOL = 12;    // table numbers are dealt from 1..12 (the pool grows with the floor — see dealNumbers)
@@ -2155,16 +2155,18 @@
         // label below — fits inside its floor cell (see the
         // radius fit below), so the sea and sky show only
         // ABOVE the tables' skyline, never behind or around
-        // a table's body. Four across on a wide screen, two
-        // across and four down on a phone; a packed floor
-        // (Pack 'em) widens the grid and shrinks the tables
-        // a step so the extra tables still fit the floor.
+        // a table's body. Four across on a wide screen. On a
+        // phone a small floor runs two across, but any floor
+        // fuller than eight — the opening twelve included —
+        // widens to four across so the tables keep their
+        // size; packing the floor wider still (Pack 'em)
+        // shrinks the tables a step so the extra tables
+        // still fit the floor.
         // The grid's shape, shared by the table layout and
         // by hallDims (which must know how many rows the
         // floor has to hold before it sets the floor line).
         function gridCols(count) {
-          var packed = count > TABLE_COUNT;
-          return W >= 620 ? (count > 12 ? 5 : 4) : (packed ? 4 : 2);
+          return W >= 620 ? (count > 12 ? 5 : 4) : (count > 8 ? 4 : 2);
         }
         function gridRows(count) {
           return Math.max(1, Math.ceil(count / gridCols(count)));
@@ -2341,10 +2343,11 @@
         // entirely below it (see layoutTables) — so a table
         // can never sit in the windows, and no sea can ever
         // show behind a table's body or between a table and
-        // the floor it stands on. A packed floor (Pack 'em)
-        // runs a step deeper — the window wall gives up a
-        // little of its height so all sixteen tables still
-        // stand on the floor.
+        // the floor it stands on. A floor fuller than eight
+        // tables — the opening twelve included — runs a step
+        // deeper: the window wall gives up a little of its
+        // height so all sixteen tables still stand on the
+        // floor at a full house.
         function hallDims() {
           var kh = kitchenH();
           var gy = groundY();
@@ -2357,7 +2360,7 @@
           var pierW = clamp(W * 0.02, 11, 20);
           var paneW = ((winX1 - winX0) - pierW * (arches - 1)) / arches;
           var winH = clamp(paneW * 1.02, 118, 300);
-          if (tables.length > TABLE_COUNT) winH -= Math.min(38, winH * 0.16);
+          if (tables.length > 8) winH -= Math.min(38, winH * 0.16);
           // The floor line is where it always was: it is
           // measured down the room's full stack — ceiling
           // band, glass, and the pass's height — with the
@@ -3261,21 +3264,24 @@
             ctx.beginPath(); ctx.ellipse(W * 0.84 - pi * 15, kb - 28, 11, 3.4, 0, 0, Math.PI * 2); ctx.fill();
           }
           // Crystal chandeliers over the pass, hanging
-          // from the header beam in the three spots the
-          // pendant lamps occupied — the great chandelier's
-          // own language at pass scale: two gold tiers of
-          // candles and crystal drops, a crystal column
-          // between the tiers, and a crystal finial, each
-          // in the warm pool of light the pendants threw on
-          // the pass. They hang in the top of the pass band
-          // only — the lowest crystal stops well above the
-          // counter, the plates and the waiter at the pass.
-          // The KITCHEN sign is not painted here any more:
-          // it is drawn live, centred over the waiter
+          // from the header beam, SPACED OUT evenly across
+          // the width of the pass — centred at the
+          // one-sixth, one-half and five-sixths points of
+          // the room's width, so the gaps between them are
+          // equal at every screen width — the great
+          // chandelier's own language at pass scale: two
+          // gold tiers of candles and crystal drops, a
+          // crystal column between the tiers, and a crystal
+          // finial, each in the warm pool of light the
+          // pendants threw on the pass. They hang in the top
+          // of the pass band only — the lowest crystal stops
+          // well above the counter, the plates and the waiter
+          // at the pass. The KITCHEN sign is not painted here
+          // any more: it is drawn live, centred over the waiter
           // himself (see drawKitchenSign).
           var pchH = clamp(kh * 0.46, 34, 58);
           var pchW = clamp(W * 0.085, 48, 84);
-          var passLx = [W * 0.25, W * 0.5, W * 0.75];
+          var passLx = [W / 6, W / 2, (W * 5) / 6];
           // The sign's spots — over the waiter behind the
           // counter in a round (centred on W / 2), and over
           // his lobby park position (centred on W / 2, or
@@ -4424,7 +4430,7 @@
           timeChip.classList.remove("low");
           if (!tables.length) {
             // Reset cleared the floor: PLAY seats the
-            // opening eight again before the shift is dealt.
+            // opening twelve again before the shift is dealt.
             for (var si = 0; si < TABLE_COUNT; si++) tables.push(makeTable(nowMs));
             layoutTables();
           }
@@ -4598,18 +4604,20 @@
         // The family's Pack 'em, restaurant-style: each press
         // seats PACK_STEP more tables on the floor — new
         // parties at new tables, the numbers re-dealt across
-        // the whole floor — up to a full house of MAX_TABLES.
-        // The packed floor is the floor: it carries into the
-        // next shift as it stands, until Reset clears the
-        // tables off the floor entirely. Idle room only — the
-        // button leaves the document for a round (see
-        // clearRoundChrome), and leaves it again whenever the
-        // house is full (see paintIdleButtons).
+        // the whole floor — up to a full house of MAX_TABLES;
+        // pressed on an empty floor it deals the opening
+        // twelve instead. The packed floor is the floor: it
+        // carries into the next shift as it stands, until
+        // Reset clears the tables off the floor entirely.
+        // Idle room only — the button leaves the document for
+        // a round (see clearRoundChrome), and at a full house
+        // it stays on the bar reading "Full house" (see
+        // paintIdleButtons).
         // The idle bar's buttons, kept honest: there are NO
-        // greyed-out buttons in this game — a button that
-        // cannot do anything is not on the screen at all.
-        // Reset shows only while there are tables to clear;
-        // Pack ’em only while the house still has room.
+        // greyed-out buttons in this game. Reset shows only
+        // while there are tables to clear; Pack ’em stays on
+        // the bar while the house has room and reads "Full
+        // house" once the floor stands at MAX_TABLES.
         function paintIdleButtons() {
           if (gameOn) return; // a round owns the bar (see clearRoundChrome)
           var changed = false;
@@ -4623,13 +4631,8 @@
             resetBtn.parentNode.removeChild(resetBtn);
             changed = true;
           }
-          if (tables.length < MAX_TABLES) {
-            if (!packBtn.parentNode) { toolbarRightEl.insertBefore(packBtn, musicBtn); changed = true; }
-            packBtn.textContent = "Pack ’em";
-          } else if (packBtn.parentNode) {
-            packBtn.parentNode.removeChild(packBtn);
-            changed = true;
-          }
+          if (!packBtn.parentNode) { toolbarRightEl.insertBefore(packBtn, musicBtn); changed = true; }
+          packBtn.textContent = tables.length < MAX_TABLES ? "Pack ’em" : "Full house";
           if (changed) resize(); // the bar's height follows its buttons
         }
         function packEm() {
@@ -4640,7 +4643,13 @@
           // even if the player had toggled it off — entering
           // Pack ’em always lands on a sounding room.
           tryStartMusic();
-          var add = Math.min(PACK_STEP, MAX_TABLES - tables.length);
+          // From an empty floor (Reset cleared it) the press
+          // deals the opening floor — TABLE_COUNT tables, the
+          // same deal PLAY opens with; on a standing floor it
+          // seats PACK_STEP more, up to the full house.
+          var add = tables.length === 0
+            ? Math.min(TABLE_COUNT, MAX_TABLES)
+            : Math.min(PACK_STEP, MAX_TABLES - tables.length);
           if (add <= 0) { paintIdleButtons(); return; }
           var nowMs = performance.now();
           for (var i = 0; i < add; i++) {
