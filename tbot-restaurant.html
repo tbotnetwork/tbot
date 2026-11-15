@@ -5151,30 +5151,23 @@
         // table, stepping out of the booth bench, stepping
         // off the bar stool — STANDS a beat at full height
         // on the floor in front of their station, and then
-        // WALKS off across the floor toward the nearest
-        // floor edge, legs stepping, a slight natural bob,
+        // WALKS off across the floor to the door at the
+        // entrance, legs stepping, a slight natural bob,
         // the pair together with a small offset between
-        // them. A walker is its own little cast member,
-        // independent of the station's state machine: the
-        // station re-deals on exactly the timing it always
-        // has (see finishLeave and seatNewParty above), the
-        // new party arrives seated as always, and the walk
-        // never blocks a tap, a ticket or the shift clock.
-        //
-        // The departure is STAGED to be unmissable: rise,
-        // a full-height stand in front of the station,
-        // then a deliberate crossing — two and a half to
-        // four seconds of presented time in all. The first
-        // builds ran the whole stand-and-exit in about a
-        // second, most of it an ease that barely moves at
-        // either end, the rise itself masked behind the
-        // station's furniture: in live play, with the
-        // player's eyes on the ticket and the numbers, a
-        // one-second exit behind a table simply never
-        // registered — the banner fired and the party read
-        // as replaced. A departure you can watch land —
-        // up, standing, gone across the floor — is the
-        // whole point of the piece.
+        // them. And the station's state machine WAITS on
+        // the walk: the leave completes — numbers re-dealt,
+        // banner flown, a new party dealt — only once the
+        // walkers have crossed the floor and gone (see
+        // partyStillWalking and the frame loop). An earlier
+        // build re-dealt on a fixed 900 ms timer while the
+        // party was still standing in front of its station
+        // on its way to the nearest edge a few steps away:
+        // live, that read as the party being renumbered in
+        // its seats — the banner fired, the plaque changed,
+        // and the same figures were still right there. A
+        // departure you can watch land — up, standing,
+        // gone across the floor, the station empty behind
+        // them — is the whole point of the piece.
         //
         // A walker's clock is its AGE, advanced by the
         // frame loop a step at a time (dtMs, capped like
@@ -5192,8 +5185,18 @@
         // under sparse presentation it stays on the floor,
         // mid-stride, until it has been seen through.
         var WALK_RISE_MS = 420;  // getting up out of the seat
-        var WALK_STAND_MS = 350; // the beat at full height before striding off
-        var walkers = []; // { sex, build, size, r, blinkAt, blinkDur, bobPh, seatX, seatY, standY, exitX, exitY, age, walkMs, totalMs }
+        var WALK_STAND_MS = 650; // the beat at full height before striding off
+        var walkers = []; // { sex, build, size, r, blinkAt, blinkDur, bobPh, t, seatX, seatY, standY, exitX, exitY, age, walkMs, totalMs }
+
+        // Is this station's party still on the floor,
+        // walking out? The leave's re-deal waits on the
+        // answer (see the frame loop's state machines):
+        // the numbers are re-dealt and a new party dealt
+        // only once the old party has physically gone.
+        function partyStillWalking(t) {
+          for (var i = 0; i < walkers.length; i++) if (walkers[i].t === t) return true;
+          return false;
+        }
 
         function spawnWalkers(t, nowMs) {
           var r = t.r;
@@ -5207,23 +5210,31 @@
             var seatY = t.kind === "bar" ? t.y + r * 0.12 : (t.kind === "booth" ? t.y - r * 0.38 : t.y - r * 0.20);
             // Standing on the floor in front of the station.
             var standY = t.y + r * 1.04;
-            // The nearest floor edge — left, right, or the
-            // floor's front edge, the front only when it is
-            // clearly the closest way off the floor.
-            var dL = seatX + r * 2.4, dR = W - seatX + r * 2.4, dB = (H + r * 2) - standY;
-            var exitX = seatX, exitY = standY;
-            if (dB < Math.min(dL, dR) * 0.8) { exitY = H + r * 2; }
-            else if (dL <= dR) { exitX = -r * 2.4; }
-            else { exitX = W + r * 2.4; }
+            // Out through the DOOR: every departing party
+            // crosses the floor to the entrance at the back
+            // edge's right end — past the maître d's desk,
+            // behind the waiting line, and out of the
+            // room's right edge at the door line. However
+            // far their station stands from the door, the
+            // crossing is a real walk across open floor —
+            // never the few steps to the nearest edge,
+            // which read as the party shuffling in place
+            // beside its own station while the numbers
+            // changed around it.
+            var exitX = W + r * 2.2;
+            var exitY = entrance.hostY || hallDims().floorTop;
             var dist = Math.sqrt((exitX - seatX) * (exitX - seatX) + (exitY - standY) * (exitY - standY));
-            // A deliberate crossing, not a dart for the
-            // door: the floor's width at a pace a watcher
-            // can follow, so the walk reads across several
-            // seconds of presented frames.
-            var walkMs = clamp(dist / 0.38, 1300, 2800);
+            // A steady, followable pace the whole way —
+            // the pose walks it off linearly, with no ease
+            // to swallow the motion at either end — and
+            // never under a second and a half, so even the
+            // booth beside the door takes a visible walk
+            // up the room's side to leave.
+            var walkMs = clamp(dist / 0.42, 1500, 4200);
             walkers.push({
               sex: g.sex, build: g.build, size: g.size, r: r,
               blinkAt: g.blinkAt, blinkDur: g.blinkDur, bobPh: g.bobPh,
+              t: t,
               seatX: seatX, seatY: seatY, standY: standY,
               exitX: exitX, exitY: exitY,
               age: -i * 110, walkMs: walkMs, totalMs: WALK_RISE_MS + WALK_STAND_MS + walkMs
@@ -5256,7 +5267,7 @@
             return { x: w.seatX, y: w.standY, stand: 1, swing: 0 };
           }
           var wp = clamp((el - WALK_RISE_MS - WALK_STAND_MS) / w.walkMs, 0, 1);
-          var we = wp < 0.5 ? 2 * wp * wp : 1 - Math.pow(-2 * wp + 2, 2) / 2; // easeInOut
+          var we = wp; // a steady stride — the same pace at the first step as at the door, no ease to hide the ends of the walk
           var ph = (el - WALK_RISE_MS - WALK_STAND_MS) / 95;
           // The feet stay ON the floor line for the whole
           // stride — the pose's y is the floor line at the
@@ -5330,10 +5341,18 @@
         // Like the walkers, arrivals age on the frame
         // clock, so an escort is always seen through.
         var ESCORT_GROUP_MAX = 3;  // parties per host trip
-        var ESCORT_WAIT_MS = 3000; // a queued party seats directly after waiting this long
+        var ESCORT_WAIT_MS = 20000; // failsafe only: a queued party seats directly after waiting this long (a trip seats its whole group in well under this — see stepHost's pace)
         var ESCORT_SIT_MS = 380;   // folding from standing into the seat
+        var HOST_PACE = 0.55;      // the host's walk, px per presented ms — a led procession's pace, not a dart (see stepHost)
+        var ESCORT_PACE = 0.6;     // the escorted guests' walk — a step brisker than the host's, so the party keeps up with him and never trails behind alone
+        // Where a waiting party stands around the host
+        // while he seats an earlier stop on the same trip:
+        // a loose cluster at his side, so a group travels
+        // as one company and no party ever crosses the
+        // floor — or waits at its station — without him.
+        var TRAIL_OFFS = [[-38, 14], [38, 14], [-70, 28], [70, 28], [-20, 36], [20, 36]];
         var escortQueue = [];      // { t, guests, waitAge }
-        var arrivals = [];         // { sex, build, size, r, blinkAt, blinkDur, bobPh, t, seatX, seatY, standX, standY, fromX, fromY, age, delay, walkMs, sitP }
+        var arrivals = [];         // { sex, build, size, r, blinkAt, blinkDur, bobPh, t, stopIdx, seatX, seatY, standX, standY, x, y, trailDX, trailDY, age, sitP, stepPh, moving }
         var activeEscort = null;   // { stops: [{ t, guests }], stopIdx, sitP }
 
         // The seat line each kind sits at, exactly where
@@ -5367,6 +5386,14 @@
           }
           if (idx < 0) return;
           activeEscort.stops.splice(idx, 1);
+          // The stops behind the cancelled one close up:
+          // their standing guests renumber their stop with
+          // them, so each still knows whether it is the
+          // party being seated or one travelling with the
+          // host (see stepEscorts).
+          for (var ai2 = 0; ai2 < arrivals.length; ai2++) {
+            if (arrivals[ai2].stopIdx > idx) arrivals[ai2].stopIdx--;
+          }
           if (!activeEscort.stops.length) {
             activeEscort = null;
             if (host.state === "escortGo" || host.state === "escortSeat") host.state = "returning";
@@ -5395,10 +5422,21 @@
         }
 
         // The group's standing guests, entering from the
-        // desk: each walks to the floor point in front of
-        // its own seat (the walk-aways' stand point), then
-        // waits there for the host's seat cue. They enter
-        // from the host's post, on his heels.
+        // desk WITH the host: they start at his post, on
+        // his heels, and they travel as his company — the
+        // stop he is walking to is their target too, and
+        // the parties for his later stops gather around
+        // him as he goes (see stepEscorts' trail targets)
+        // rather than crossing to their own stations ahead
+        // of him. An earlier build sent every party
+        // straight to its own station on its own fast
+        // tween the moment a trip started: live, parties
+        // simply appeared standing at their stations and
+        // sat down unaccompanied while the host crossed
+        // alone, or never visibly crossed at all. Now the
+        // whole company moves at the host's pace, and a
+        // party is only ever at its station when he is
+        // there with it.
         function spawnArrivals(stop, stopIdx) {
           var t = stop.t, r = t.r;
           var party = t.kind === "bar" ? stop.guests.slice(0, 1) : stop.guests;
@@ -5407,19 +5445,17 @@
             var side = t.kind === "bar" ? 0 : (i === 0 ? -1 : 1);
             var seatX = t.x + side * r * 0.52;
             var standY = t.y + r * 1.04;
-            var fromX = host.homeX + (stopIdx - 0.5) * 26 + (i - (party.length - 1) / 2) * 20;
-            var fromY = host.homeY;
-            var dx = seatX - fromX, dy = standY - fromY;
-            var dist = Math.sqrt(dx * dx + dy * dy);
+            var off = TRAIL_OFFS[arrivals.length % TRAIL_OFFS.length];
             arrivals.push({
               sex: g.sex, build: g.build, size: g.size, r: r,
               blinkAt: g.blinkAt, blinkDur: g.blinkDur, bobPh: g.bobPh,
-              t: t,
+              t: t, stopIdx: stopIdx,
               seatX: seatX, seatY: seatLineY(t, r),
               standX: seatX, standY: standY,
-              fromX: fromX, fromY: fromY,
-              age: 0, delay: stopIdx * 150 + i * 130,
-              walkMs: clamp(dist / 0.95, 400, 1400), sitP: 0
+              x: host.homeX + (i - (party.length - 1) / 2) * 22 + (stopIdx - 0.5) * 18,
+              y: host.homeY + 6,
+              trailDX: off[0], trailDY: off[1],
+              age: 0, sitP: 0, stepPh: 0, moving: false
             });
           }
         }
@@ -5475,33 +5511,21 @@
           }
         }
 
-        // An arriving guest's pose, the walk-aways' pose
-        // run in reverse: stride in from the desk with the
-        // feet on the floor line the whole way (no step
-        // lift — the grounding rule), stand a beat in front
-        // of the station, then fold down into the seat —
-        // the anchor travelling from the floor point up to
-        // the seat line as the standing cut-out squashes
-        // toward its seated height, where the seated
-        // photograph takes over.
+        // An arriving guest's pose: wherever stepEscorts
+        // has walked it to, feet on the floor line (no
+        // step lift — the grounding rule), swaying on its
+        // stride while it moves; once the host seats its
+        // party, the fold — the anchor travelling from the
+        // floor point up to the seat line as the standing
+        // cut-out squashes toward its seated height, where
+        // the seated photograph takes over.
         function arrivalPose(a) {
-          var el = a.age - a.delay;
-          if (el < a.walkMs) {
-            var wp = clamp(el / a.walkMs, 0, 1);
-            var we = wp < 0.5 ? 2 * wp * wp : 1 - Math.pow(-2 * wp + 2, 2) / 2; // easeInOut
-            var ph = Math.max(0, el) / 95;
-            return {
-              x: a.fromX + (a.standX - a.fromX) * we,
-              y: a.fromY + (a.standY - a.fromY) * we,
-              squash: 1, stand: 1, swing: Math.sin(ph)
-            };
-          }
           var sp = a.sitP || 0;
           var se = sp * sp * (3 - 2 * sp); // smoothstep
           return {
-            x: a.standX,
-            y: a.standY + (a.seatY - a.standY) * se,
-            squash: 1 - 0.38 * se, stand: 1 - se, swing: 0
+            x: a.x, y: a.y,
+            squash: 1 - 0.38 * se, stand: 1 - se,
+            swing: a.moving ? Math.sin(a.stepPh) : 0
           };
         }
 
@@ -5525,24 +5549,68 @@
         // a free host picks up the next group — never in
         // the final five seconds (see FINAL_CALL_MS).
         function stepEscorts(dtMs) {
-          for (var ari = arrivals.length - 1; ari >= 0; ari--) {
-            arrivals[ari].age += dtMs;
-            if (arrivals[ari].age > 9000) seatDirectly(arrivals[ari].t);
+          var snapshot = arrivals.slice();
+          for (var ari = 0; ari < snapshot.length; ari++) {
+            snapshot[ari].age += dtMs;
+            if (snapshot[ari].age > 30000) seatDirectly(snapshot[ari].t);
           }
           for (var eqi = escortQueue.length - 1; eqi >= 0; eqi--) {
             escortQueue[eqi].waitAge += dtMs;
             if (escortQueue[eqi].waitAge > ESCORT_WAIT_MS) seatDirectly(escortQueue[eqi].t);
           }
+          // The company walks: every standing guest steps
+          // toward its mark at the procession's pace. The
+          // party whose stop the host is walking to (or
+          // seating) makes for the floor point in front of
+          // its own seat, beside him; every later party on
+          // the trip gathers at its place around the host
+          // himself, travelling with him from stop to stop
+          // until their turn comes. Nobody crosses alone,
+          // and nobody waits at a station he has not
+          // reached.
+          for (var mvi = 0; mvi < arrivals.length; mvi++) {
+            var ma = arrivals[mvi];
+            if (ma.sitP > 0) { ma.moving = false; continue; } // the fold drives its position (below)
+            var tx, ty;
+            if (activeEscort && ma.stopIdx > activeEscort.stopIdx) {
+              tx = host.x + ma.trailDX; ty = host.y + ma.trailDY;
+            } else {
+              tx = ma.standX; ty = ma.standY;
+            }
+            var mdx = tx - ma.x, mdy = ty - ma.y;
+            var mdist = Math.sqrt(mdx * mdx + mdy * mdy);
+            var mstep = dtMs * ESCORT_PACE;
+            if (mdist > 0.01) {
+              var adv = Math.min(mdist, mstep);
+              ma.x += mdx / mdist * adv;
+              ma.y += mdy / mdist * adv;
+              ma.stepPh += dtMs / 95;
+              ma.moving = mdist > 3;
+            } else {
+              ma.moving = false;
+            }
+          }
+          // The seat fold: once the host stands at the
+          // stop and its whole party stands at its marks
+          // with him, the party folds down into its seats.
           if (activeEscort && host.state === "escortSeat") {
             var stop = activeEscort.stops[activeEscort.stopIdx];
             var ready = true;
             for (var rai = 0; rai < arrivals.length; rai++) {
-              if (arrivals[rai].t === stop.t && arrivals[rai].age - arrivals[rai].delay < arrivals[rai].walkMs) { ready = false; break; }
+              if (arrivals[rai].t === stop.t) {
+                var rdx = arrivals[rai].x - arrivals[rai].standX, rdy = arrivals[rai].y - arrivals[rai].standY;
+                if (rdx * rdx + rdy * rdy > 49) { ready = false; break; }
+              }
             }
             if (ready) {
               activeEscort.sitP = Math.min(1, activeEscort.sitP + dtMs / ESCORT_SIT_MS);
+              var se2 = activeEscort.sitP * activeEscort.sitP * (3 - 2 * activeEscort.sitP);
               for (var sai = 0; sai < arrivals.length; sai++) {
-                if (arrivals[sai].t === stop.t) arrivals[sai].sitP = activeEscort.sitP;
+                if (arrivals[sai].t === stop.t) {
+                  arrivals[sai].sitP = activeEscort.sitP;
+                  arrivals[sai].x = arrivals[sai].standX;
+                  arrivals[sai].y = arrivals[sai].standY + (arrivals[sai].seatY - arrivals[sai].standY) * se2;
+                }
               }
               if (activeEscort.sitP >= 1) finishEscortStop();
             }
@@ -5657,7 +5725,15 @@
           }
           var dx = tx - host.x, dy = ty - host.y;
           var dist = Math.sqrt(dx * dx + dy * dy);
-          var step = dtMs * 1.25;
+          // The pace IS the piece: at the old 1.25 px/ms
+          // the host crossed the room in well under a
+          // second — a dart no watcher could follow, over
+          // before it registered, so in live play he read
+          // as never having left his desk at all. At
+          // HOST_PACE the crossing takes real seconds, out
+          // and back, with the party at his side the whole
+          // way (see stepEscorts).
+          var step = dtMs * HOST_PACE;
           host.stepPh += dtMs / 95;
           if (dist <= Math.max(step, 2)) {
             host.x = tx; host.y = ty;
@@ -6165,7 +6241,15 @@
           // a new party arrives.
           for (var i = 0; i < tables.length; i++) {
             var t = tables[i];
-            if (t.state === "leaving" && nowMs - t.stateAt >= 900) finishLeave(t, nowMs);
+            // A leave completes only when the party has
+            // physically walked out — its walkers swept
+            // from the cast — so the renumber, the banner
+            // and the re-deal all land on a station that
+            // stands empty, never on one whose guests are
+            // still beside it. (The twelve-second cap is a
+            // failsafe only; a presented walk runs two to
+            // five seconds — see spawnWalkers.)
+            if (t.state === "leaving" && (!partyStillWalking(t) || nowMs - t.stateAt >= 12000)) finishLeave(t, nowMs);
             else if (t.state === "empty" && nowMs - t.stateAt >= 900) seatNewParty(t, nowMs);
             else if (t.state === "arriving" && nowMs - t.stateAt >= 380) { t.state = "seated"; t.stateAt = nowMs; }
             if (t.flash > 0) t.flash = Math.max(0, t.flash - dtMs / 600);
