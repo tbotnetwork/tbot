@@ -732,7 +732,7 @@
     </style>
   </head>
   <body>
-    <canvas id="stage" aria-label="A grand dining room at sunset, its photograph combined from the world's great three-star restaurants: a coffered wood ceiling with lantern pendants, portraits and a great wave canvas on the walls, a glass wall over a harbour at sunset, a kitchen pass at the back of the room behind the tables, and numbered tables, booths and bar seats of TBOT guests. You are the waiter — tap the station wearing the number the kitchen calls. When a party leaves, the numbers change."></canvas>
+    <canvas id="stage" aria-label="A grand dining room at sunset, its photograph combined from the world's great three-star restaurants: a coffered wood ceiling with lantern pendants, portraits and a great wave canvas on the walls, a glass wall over a harbour at sunset, a kitchen pass at the upper left of the room, a maître d's desk at the upper right with a couple checking in and a line waiting behind them, and numbered tables, booths and bar seats of TBOT guests. You are the waiter — tap the station wearing the number the kitchen calls. When a party leaves, the numbers change."></canvas>
 
     <!-- Background music: the last 17 seconds of "Velvet Rot" by
          Kimo (the series track), looped behind the game. Sound
@@ -2592,7 +2592,9 @@
         // three-tuft hair, full adult size, the standing
         // cut-out), not the mascot. He works the
         // front-of-house from his desk at the room's
-        // entrance (see the entrance block below): he
+        // entrance — the upper right of the room, at the
+        // back edge's right end (see the entrance block
+        // below): he
         // receives every party at the desk, walks out from
         // it to lead the party to its station, seats it,
         // and walks back to the desk — the opening deal,
@@ -2617,10 +2619,11 @@
 
         // ---------- The entrance: the maître d's desk, the couple, the line ----------
         // The maître d's desk — a host stand / podium —
-        // stands at the room's entrance: the front edge of
-        // the floor, by the door side of the room
-        // photograph (the glazed doors along the room's
-        // right side). The host stands at it as the maître
+        // stands at the room's entrance: the UPPER RIGHT of
+        // the room, at the right end of the floor's back
+        // edge, by the door side of the room photograph
+        // (the glazed doors along the room's right side).
+        // The host stands at it as the maître
         // d' — he is the host who receives parties at the
         // desk, and every escort starts from his desk (see
         // spawnArrivals) and returns to it. Around the desk
@@ -2633,9 +2636,10 @@
         // varied builds and sizes from the same family)
         // waits behind the couple, trailing toward the
         // entrance and out of it — the last of them already
-        // partway out the door. The couple and the line are
+        // partway out the door, past the room's right edge.
+        // The couple and the line are
         // living set dressing: grounded feet with contact
-        // shadows, drawn in the floor's front order, sized
+        // shadows, drawn in the floor's back order, sized
         // like everyone else — and they never move. When an
         // escorted party is being seated the maître d'
         // steps away from the desk to lead them and returns
@@ -2643,23 +2647,28 @@
         // put throughout.
         //
         // The scene is placed by layoutEntrance (called at
-        // the end of layoutTables) so it never covers a
-        // station, a station number, the pass or the HUD,
-        // and the playing floor stays clear: it takes the
-        // clear foreground strip in front of the floor when
-        // the stage leaves one deep enough (the band the
-        // phone's chrome reserve leaves above the toolbar),
-        // else the front-right stretch of floor when no
-        // front-row station's silhouette reaches into its
-        // span, else a single-file lane down the right —
-        // the entrance — edge, its figures sized to the
-        // lane and trailing down and out of the frame.
+        // the end of layoutTables) along the back edge, so
+        // it never covers a station, a station number, the
+        // pass or the HUD, and the playing floor stays
+        // clear: the whole scene stands ON the floor line
+        // at the back edge — feet on the line, bodies rising
+        // in front of the glass wall, exactly as the waiter
+        // stands at the pass at the edge's left end — so
+        // every station below the line stands clear of it
+        // at the 6-station opening and the 16-station full
+        // house alike, on desktop and phone widths. (The
+        // scene used to stand at the floor's FRONT edge,
+        // where the game's own lower control bar covered
+        // it on the player's screen; the front edge now
+        // stays completely clear — no set dressing, no
+        // figures, nothing the player needs to see sits
+        // along the bottom of the floor on any screen.)
         var entrance = {
-          mode: "floor", // "strip" | "floor" | "lane"
+          mode: "back", // the one placement: the back edge's right end
           deskX: 0, deskY: 0, // the podium's base centre and base line
           hostX: 0, hostY: 0, // the maître d's feet at his desk
           u: 44 * 2.08,       // the figure unit the scene is sized at (the host's own)
-          figScale: 1,        // below 1 only in the lane, when the lane is narrow
+          figScale: 1,        // below 1 only when the room is too narrow for the pass and the scene to share the back edge
           couple: [],         // { fig, x, y } — feet points, resolved by layoutEntrance
           line: []            // { fig, x, y }
         };
@@ -2682,128 +2691,55 @@
           };
         }
 
-        // One station's rightward reach, for the entrance
-        // placement: its body, its guests, its number and
-        // its show label — everything the entrance scene
-        // must never cover. (For the lane only, a bar's
-        // counter run is excepted: the counter is
-        // continuous furniture running to the room's edge
-        // and the queue stands at its end, by the door —
-        // the bar's guest, number plaque and label still
-        // count in full.)
-        function stationReach(t, forLane) {
-          var labelHalf = Math.max(t.r * 2.0, 37);
-          var e;
-          if (t.kind === "bar") {
-            var cw = Math.max((t.cellW || 0) / 2 * 0.995, t.r * 1.3);
-            var standX = t.x + Math.min(cw - t.r * 0.62, t.r * 1.42);
-            e = Math.max(t.x + t.r * 0.95, standX + Math.max(t.r, 26) * 0.62, t.x + labelHalf);
-            if (!forLane) e = Math.max(e, t.x + cw);
-          } else if (t.kind === "booth") {
-            e = t.x + Math.max(t.r * 1.2, labelHalf);
-          } else {
-            e = t.x + Math.max(Math.min(t.r * 1.9, t.halfPitch || t.r * 1.9), t.r * 1.45, labelHalf);
-          }
-          return Math.min(e, W - 2);
-        }
-
         function layoutEntrance() {
           if (!entranceCast) buildEntranceCast(performance.now());
           var r0 = tables.length ? tables[0].r : 44;
           var u = r0 * 2.08; // the host's own unit — the scene is sized like everyone else
           var fh = u * 1.76, fw = u * 0.79; // a standing figure's height / width at that unit
-          var gy = groundY();
           entrance.u = u;
-          entrance.figScale = 1;
           entrance.couple = [];
           entrance.line = [];
-          // The foreground strip below the floor line: on
-          // phone-width stages the chrome reserve leaves a
-          // real band of floor in front of the front row,
-          // above the toolbar — deep enough, when it fits a
-          // standing figure, for the whole scene to stand
-          // in it, clear of every station above it.
-          var toolbarTop = H - 14 - (toolbarEl ? toolbarEl.offsetHeight : 0);
-          var stripH = toolbarTop - gy;
-          var mode, feetY, hx;
-          if (stripH >= fh + 6) {
-            mode = "strip";
-            feetY = toolbarTop - 5;
-            hx = W - fw * 5.9;
-          } else {
-            // The front-right floor: the horizontal scene
-            // fits when no station whose silhouette reaches
-            // down into the scene's band extends into its
-            // span from the left.
-            var clusterTop = gy - 2 - fh;
-            var clearR = 0;
-            for (var ci = 0; ci < tables.length; ci++) {
-              var ct = tables[ci];
-              if (ct.y + ct.r * 0.92 + 20 > clusterTop) {
-                clearR = Math.max(clearR, stationReach(ct, false));
-              }
-            }
-            if (W - fw * 6.4 >= clearR + 4) {
-              mode = "floor";
-              feetY = gy - 2;
-              hx = W - fw * 5.9;
-            } else {
-              mode = "lane";
-            }
+          // The scene stands at the back edge's right end:
+          // every figure's feet rest on the floor line
+          // itself (hallDims' floorTop — the line the whole
+          // floor hangs from), the host tucked a step
+          // further back behind his desk, and the bodies
+          // rise in front of the glass wall, clear of every
+          // station below the line. The pass holds the
+          // edge's left stretch (see passWidth); on a room
+          // too narrow for the two to share the edge at
+          // full size, the scene steps its figures down
+          // just far enough to clear the pass's right end
+          // — the host himself, who works the floor, keeps
+          // the guests' own scale throughout (see drawHost).
+          var feetY = hallDims().floorTop;
+          var scale = 1;
+          var clusterW = fw * 6.4; // host, desk, couple and the line's run out the door
+          var availW = W - passWidth() - 10;
+          if (clusterW > availW) scale = clamp(availW / clusterW, 0.5, 1);
+          entrance.figScale = scale;
+          var sfw = fw * scale, sfh = fh * scale;
+          // Left to right: the maître d' behind his desk,
+          // the couple at the desk facing him, then the
+          // line behind them trailing right, toward the
+          // door and out of the frame's right edge.
+          var hx = W - sfw * 5.9;
+          entrance.deskX = hx + sfw * 0.10;
+          entrance.deskY = feetY + 2;
+          entrance.hostX = hx;
+          entrance.hostY = feetY - sfh * 0.06;
+          entrance.couple = [
+            { fig: entranceCast.couple[0], x: hx + sfw * 1.02, y: feetY - 2 },
+            { fig: entranceCast.couple[1], x: hx + sfw * 1.80, y: feetY - 2 - sfh * 0.03 }
+          ];
+          for (var qi = 0; qi < entranceCast.line.length; qi++) {
+            entrance.line.push({
+              fig: entranceCast.line[qi],
+              x: hx + sfw * (2.66 + qi * 0.78),
+              y: feetY - 2 - sfh * 0.02 * (qi % 2)
+            });
           }
-          if (mode === "lane") {
-            // Single file down the entrance edge: the desk
-            // at the front of the floor, the couple at it,
-            // and the line trailing down past the floor's
-            // front edge and out of the frame.
-            var hardR = 0;
-            for (var li = 0; li < tables.length; li++) hardR = Math.max(hardR, stationReach(tables[li], true));
-            var laneW = W - hardR;
-            var scale = 1;
-            if (fw > laneW - 4) scale = clamp((laneW - 4) / fw, 0.4, 1);
-            entrance.figScale = scale;
-            var lfw = fw * scale, lfh = fh * scale;
-            var lx = hardR + laneW / 2;
-            if (lx > W - lfw * 0.3) lx = W - lfw * 0.3;
-            if (lx < lfw * 0.5) lx = lfw * 0.5;
-            entrance.deskX = lx;
-            entrance.deskY = gy - 2;
-            entrance.hostX = lx - lfw * 0.08;
-            entrance.hostY = gy - 2 - lfh * 0.30;
-            entrance.couple = [
-              { fig: entranceCast.couple[0], x: lx - lfw * 0.30, y: gy - 2 + lfh * 0.30 },
-              { fig: entranceCast.couple[1], x: lx + lfw * 0.30, y: gy - 2 + lfh * 0.38 }
-            ];
-            for (var qi = 0; qi < entranceCast.line.length; qi++) {
-              entrance.line.push({
-                fig: entranceCast.line[qi],
-                x: lx + lfw * 0.14 * (qi + 1),
-                y: gy - 2 + lfh * (0.72 + qi * 0.44)
-              });
-            }
-          } else {
-            // The horizontal scene, left to right: the
-            // maître d' behind his desk, the couple at the
-            // desk facing him, then the line behind them
-            // trailing right, toward the door and out of
-            // the frame's edge.
-            entrance.deskX = hx + fw * 0.10;
-            entrance.deskY = feetY - fh * 0.02;
-            entrance.hostX = hx;
-            entrance.hostY = feetY - fh * (mode === "strip" ? 0.10 : 0.16);
-            entrance.couple = [
-              { fig: entranceCast.couple[0], x: hx + fw * 1.02, y: feetY },
-              { fig: entranceCast.couple[1], x: hx + fw * 1.80, y: feetY - fh * 0.03 }
-            ];
-            for (var qi2 = 0; qi2 < entranceCast.line.length; qi2++) {
-              entrance.line.push({
-                fig: entranceCast.line[qi2],
-                x: hx + fw * (2.66 + qi2 * 0.78),
-                y: feetY - fh * 0.02 * (qi2 % 2)
-              });
-            }
-          }
-          entrance.mode = mode;
+          entrance.mode = "back";
           host.homeX = entrance.hostX;
           host.homeY = entrance.hostY;
         }
@@ -2903,10 +2839,11 @@
         }
 
         // The entrance scene, painted once per frame in
-        // the floor's front order — after every station,
-        // so it stands in front of the floor it dresses,
-        // and the maître d' himself (painted with the
-        // movers, at his desk behind the podium) shows
+        // the floor's back order — after every station,
+        // standing at the back edge it dresses, clear of
+        // everything below the floor line, and the maître
+        // d' himself (painted with the movers, at his desk
+        // behind the podium) shows
         // over the desk's top. The desk first, then the
         // couple at it, then the line behind them.
         function drawEntrance(nowMs) {
@@ -2924,6 +2861,19 @@
         // base on the floor line and its back wall rising
         // this far in front of the glass's lower reach.
         function kitchenH() { return clamp(H * 0.17, 96, 150); }
+
+        // The pass stands at the UPPER LEFT of the room: its
+        // counter runs along the back edge of the floor for
+        // this width from the left wall — wide enough to
+        // hold the steel, the plates and the waiter at his
+        // post behind it, and no wider. The rest of the back
+        // edge is the room's own glass, and the entrance
+        // stands at the back edge's right end (see
+        // layoutEntrance). Nothing of the kitchen sits
+        // anywhere else in the room, and nothing of any
+        // scene sits along the floor's front edge, where
+        // the control bar covers the stage.
+        function passWidth() { return clamp(W * 0.38, 190, 360); }
 
         // ---------- The diners: TBOT people, men and women, all different sizes ----------
         // Every seated guest is a TBOT person with a sex and a
@@ -3145,16 +3095,18 @@
             }
             tables[i].r = tableR;
           }
-          waiter.homeX = W / 2;
+          waiter.homeX = passWidth() / 2;
           // Home is the kitchen pass, which stands at the
-          // back edge of the floor: the waiter waits just in
-          // front of its counter, behind the back row.
+          // upper left of the room, along the back edge of
+          // the floor: the waiter waits just in front of its
+          // counter, behind the back row.
           waiter.homeY = top - 14;
           if (waiter.state === "pass") { waiter.x = waiter.homeX; waiter.y = waiter.homeY; }
           // The maître d's post is his desk at the
           // entrance: layoutEntrance places the desk, the
-          // couple at it and the line behind them along the
-          // entrance edge, clear of every station, and
+          // couple at it and the line behind them at the
+          // back edge's right end — the room's entrance —
+          // clear of every station, and
           // seats the host at the desk — the post every
           // escort starts from and returns to (see
           // spawnArrivals).
@@ -3257,7 +3209,8 @@
         // cached room painting, and by the table layout: the
         // coffered-ceiling band across the top, the tall
         // arched windows below it, the kitchen pass standing
-        // at the back edge of the FLOOR below them — its
+        // at the back edge of the FLOOR below them, at its
+        // left stretch — its
         // counter base on the floor line itself, so the pass
         // and the waiter at it belong to the dining room,
         // right behind the back row of tables — and the wall
@@ -3342,14 +3295,15 @@
             if (over > 0) floorTop = Math.max(maxTop2, 0);
             winY0 = ceilH; // the glass starts under the (possibly compressed) ceiling band
           }
-          // THE CHANDELIER CLEARANCE: the three crystal
+          // THE CHANDELIER CLEARANCE: the two crystal
           // chandeliers over the pass hang at fixed points
-          // of the room's width — the sixths, in paintRoom —
-          // and the row NEVER moves sideways. Sideways was
+          // of the pass's own stretch — its quarter and
+          // three-quarter points, in paintRoom —
+          // and the pair NEVER moves sideways. Sideways was
           // the old answer, and it was the defect: whenever
           // the KITCHEN sign over the waiter at the pass
-          // rose into the crystals' reach, the middle
-          // fixture was shoved toward the right one and the
+          // rose into the crystals' reach, a
+          // fixture was shoved toward its neighbour and the
           // pair clustered, breaking the row's equal gaps.
           // The clearance is made vertically instead, here:
           // the sign's top at its pass spot (the waiter's
@@ -3481,11 +3435,20 @@
           }
 
           // The kitchen pass: a steel counter standing at
-          // the back edge of the floor, its back wall rising
-          // in front of the glass's lower reach — three
-          // crystal chandeliers under its header beam, and the
-          // KITCHEN sign. The pass belongs to the room: the
-          // waiter works at it right behind the back row.
+          // the back edge of the floor's LEFT stretch — the
+          // upper left of the room — its back wall rising
+          // in front of the glass's lower reach, two
+          // crystal chandeliers under its header beam, and
+          // the KITCHEN sign. The pass belongs to the room:
+          // the waiter works at it right behind the back
+          // row. The whole pass is painted inside its own
+          // stretch of the back edge (pwEnd): past its right
+          // end the room's glass runs on down to the floor
+          // line, and the entrance stands at the edge's far
+          // end (see layoutEntrance).
+          var pwEnd = passWidth();
+          ctx.save();
+          ctx.beginPath(); ctx.rect(0, kt - 8, pwEnd, kh + 28); ctx.clip();
           ctx.fillStyle = "#2e2013";
           ctx.fillRect(0, kt, W, kh - 24);
           // The header beam: a dark soffit finishing the
@@ -3543,19 +3506,21 @@
           heat.addColorStop(1, "rgba(255,150,60,0)");
           ctx.fillStyle = heat;
           ctx.fillRect(0, kb - 3, W, 19);
-          // Plates stacked on the pass, waiting to run.
+          // Plates stacked on the pass, waiting to run —
+          // one stack near each end of the counter's own
+          // stretch, the waiter working between them.
           ctx.fillStyle = "#f4f7f8";
           for (var pi = 0; pi < 3; pi++) {
-            var px2 = W * 0.16 + pi * 15;
+            var px2 = pwEnd * 0.26 + pi * 15;
             ctx.beginPath(); ctx.ellipse(px2, kb - 28, 11, 3.4, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(W * 0.84 - pi * 15, kb - 28, 11, 3.4, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(pwEnd * 0.80 - pi * 15, kb - 28, 11, 3.4, 0, 0, Math.PI * 2); ctx.fill();
           }
           // Crystal chandeliers over the pass, hanging
           // from the header beam, SPACED OUT evenly across
-          // the width of the pass — centred at the
-          // one-sixth, one-half and five-sixths points of
-          // the room's width, so the gaps between them are
-          // equal at every screen width — the great
+          // the width of the pass's own stretch — centred
+          // at its quarter and three-quarter points, so
+          // the gap between them stays even at every
+          // screen width — the great
           // chandelier's own language at pass scale: two
           // gold tiers of candles and crystal drops, a
           // crystal column between the tiers, and a crystal
@@ -3568,21 +3533,21 @@
           // himself (see drawKitchenSign).
           var pchH = clamp(kh * 0.46, 34, 58);
           var pchW = clamp(W * 0.085, 48, 84);
-          var passLx = [W / 6, W / 2, (W * 5) / 6];
-          // The row hangs at the sixths and NOWHERE else —
+          var passLx = [pwEnd * 0.27, pwEnd * 0.73];
+          // The pair hangs over the pass and NOWHERE else —
           // in the lobby, mid-shift, on any screen. An
           // earlier pass answered a rising KITCHEN sign by
-          // nudging the middle fixture sideways toward the
-          // right one, which clustered the pair and broke
-          // the row's equal gaps; the clearance is made in
+          // nudging a fixture sideways toward its neighbour,
+          // which clustered the pair and broke the row's
+          // equal gaps; the clearance is made in
           // hallDims now (the pass band borrows height from
           // the glass whenever the sign would reach the
           // lowest crystal), so by the time the room is
-          // painted the middle fixture already clears the
+          // painted each fixture already clears the
           // sign. No fixture ever moves sideways, is shrunk,
-          // or is removed, and the two gaps between the
-          // three fixtures stay equal in every state.
-          for (var li = 0; li < 3; li++) {
+          // or is removed, and the gap between the
+          // two fixtures stays even in every state.
+          for (var li = 0; li < 2; li++) {
             var lx = passLx[li];
             // The warm glow the pendants gave the pass.
             var glow = ctx.createRadialGradient(lx, kt + pchH * 0.55, 2, lx, kt + pchH * 0.55, 58);
@@ -3661,6 +3626,18 @@
               ctx.stroke();
             }
           }
+          ctx.restore();
+          // The pass's right end: a dark end cheek where
+          // the counter stops and the glass takes over, so
+          // the steel reads as a counter that ENDS at the
+          // room's left stretch — a finished end standing
+          // in the room, not a band sliced mid-run.
+          ctx.fillStyle = "#1c1108";
+          ctx.fillRect(pwEnd - 3, kt, 3, kh - 24);
+          ctx.fillStyle = "#5f6d75";
+          ctx.fillRect(pwEnd - 3, kb - 26, 3, 26);
+          ctx.fillStyle = "rgba(20, 30, 34, 0.55)";
+          ctx.fillRect(pwEnd - 3, kb - 3, 3, 3);
           // (No KITCHEN sign is painted here: the sign is
           // drawn live over the waiter — see drawKitchenSign.)
         }
@@ -5323,7 +5300,7 @@
         // one of the people family (see the host, by the
         // waiter above) — leads them across the floor to
         // their station, they fold down into their seats,
-        // and the host walks back to the pass. One trip
+        // and the host walks back to his desk. One trip
         // seats a small group (up to ESCORT_GROUP_MAX
         // parties, routed nearest-first), so a full opening
         // deal settles in a couple of trips and the floor
@@ -5499,7 +5476,7 @@
         }
 
         // An arriving guest's pose, the walk-aways' pose
-        // run in reverse: stride in from the pass with the
+        // run in reverse: stride in from the desk with the
         // feet on the floor line the whole way (no step
         // lift — the grounding rule), stand a beat in front
         // of the station, then fold down into the seat —
@@ -6312,12 +6289,14 @@
             else drawHost(nowMs);
             wi2++;
           }
-          // The entrance scene stands at the floor's front
-          // edge, in front of everything on the floor: the
+          // The entrance scene stands at the floor's back
+          // edge, at its right end: the
           // maître d's desk (over the maître d' himself,
           // painted with the movers at his post behind it),
           // the couple at the desk and the line behind
-          // them, trailing out the door.
+          // them, trailing out the door at the upper right.
+          // The floor's front edge — under the control
+          // bar's reach — carries no scene at all.
           drawEntrance(nowMs);
           drawWaiter(nowMs);
           drawFloats(nowMs);
