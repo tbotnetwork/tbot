@@ -4837,16 +4837,26 @@
         // (upper left), MAÎTRE D' at the entrance (upper
         // right), TBAR on the bar. It is part of the
         // furniture, not a plaque hanging in the air over
-        // the counter: its letters sit at the middle of the
-        // counter's front face — the panel drawBar paints
-        // between the brass trim under the top (centre +
-        // 0.36r) and the counter's bottom edge (centre +
-        // 0.68r) — so they ride the counter wherever the
-        // layout puts it, and the face band keeps them below
-        // the counter top the whole run: no visible part of
-        // a seated guest (who shows only above that top) and
-        // no number stand (which rides on the top) is ever
-        // under them.
+        // the counter: the letters sit on a dark plaque
+        // inset mounted on the counter's front face — the
+        // panel drawBar paints between the brass trim under
+        // the top (centre + 0.36r) and the counter's bottom
+        // edge (centre + 0.68r) — so they ride the counter
+        // wherever the layout puts it. The plaque is not
+        // decoration: at a packed floor the face band
+        // shrinks to a few pixels and the brass foot rail
+        // (centre + 0.56r) runs straight through where the
+        // letters sit, leaving gold on gold. So at EVERY
+        // floor size the lettering keeps a dark panel
+        // behind it — the KITCHEN sign's deep-brown plaque
+        // with a fine gold trim, painted over the face, its
+        // trim and its rail — and the letters are sized up
+        // to what the run allows. Where the plaque must
+        // stand taller than the thin face, it rises over
+        // the counter top's dark band at the seam (a stretch
+        // no guest and no stand ever reaches) and its
+        // bottom edge never reaches the show labels' line
+        // below the counter.
         // The counter run it rides is the LONGEST
         // consecutive run of bar stations standing in one
         // row: the bar seats take the last run of slots (see
@@ -4936,58 +4946,112 @@
               b: nt.y - nt.r * 0.08 + tentR * 0.76 / 2 + 1
             });
           }
-          // Fit the lettering: start at the face's own
-          // scale, then, while any stand's box would meet
-          // the letters, try sliding along the face to a
-          // clear stretch beside that stand; if no clear
-          // stretch exists at this size, step the letters
-          // down a point and try again.
-          var fontPx = Math.round(clamp(r * 0.45, 11, 17));
-          var placedX = cx, textW = 0;
-          for (; fontPx >= 7; fontPx--) {
+          // Every show label's pill box in the run too,
+          // measured with drawLabel's own fit (its size
+          // steps down until the name fits its cap), so the
+          // plaque never rides over a label either.
+          var obstacles = stands.slice();
+          for (var li = 0; li < run.length; li++) {
+            var lt2 = run[li];
+            if (!lt2.show) continue;
+            var lMaxW = Math.max(lt2.r * 1.9 * 2.1, 74);
+            var lSize = 10.5;
+            ctx.font = "700 " + lSize + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+            var lTw = ctx.measureText(lt2.show.name).width;
+            while (lTw > lMaxW - 12 && lSize > 6.5) {
+              lSize -= 0.5;
+              ctx.font = "700 " + lSize + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+              lTw = ctx.measureText(lt2.show.name).width;
+            }
+            if (lTw > lMaxW - 12) lTw = lMaxW - 12;
+            var lPw = lTw + 12, lPh = lSize + 7;
+            var lPx = clamp(lt2.x - lPw / 2, 3, W - lPw - 3);
+            obstacles.push({
+              l: lPx - 1, r: lPx + lPw + 1,
+              t: lt2.y + lt2.r * 0.92 - 1, b: lt2.y + lt2.r * 0.92 + lPh + 1
+            });
+          }
+          // The plaque's vertical seat: centred on the
+          // face, but never so low that its bottom edge
+          // reaches the show labels' line (centre + 0.92r).
+          var labelLine = ySum / run.length + r * 0.92 - 3;
+          // Fit the plaque and its lettering: start at the
+          // largest size the run's span allows, then, while
+          // any stand's or label's box would meet the
+          // plaque, try sliding along the face to a clear
+          // stretch beside that box; if no clear stretch
+          // exists at this size, step the letters down a
+          // point and try again. The lettering never steps
+          // below 12px — the dark plaque behind it is what
+          // keeps it readable at a glance, at the opening
+          // six and at the full house alike.
+          var fontPx = Math.round(clamp(r * 0.55, 14, 24));
+          var placedX = cx, placedY = faceC, textW = 0, plaqueW = 0, plaqueH = 0;
+          for (; fontPx >= 12; fontPx--) {
             ctx.font = "800 " + fontPx + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
             textW = ctx.measureText("TBAR").width;
-            if (textW > (right - left) - 6 && fontPx > 7) continue;
-            var th = fontPx * 0.75;
+            plaqueW = textW + fontPx * 1.15;
+            plaqueH = fontPx * 1.45;
+            if (plaqueW > (right - left) - 4 && fontPx > 12) continue;
+            var py = faceC;
+            if (py + plaqueH / 2 > labelLine) py = labelLine - plaqueH / 2;
             var cands = [cx];
-            for (var ci = 0; ci < stands.length; ci++) {
-              cands.push(stands[ci].r + textW / 2);
-              cands.push(stands[ci].l - textW / 2);
+            for (var ci = 0; ci < obstacles.length; ci++) {
+              cands.push(obstacles[ci].r + plaqueW / 2);
+              cands.push(obstacles[ci].l - plaqueW / 2);
             }
             var chosen = null, chosenD = Infinity;
             for (var ki = 0; ki < cands.length; ki++) {
               var cand = cands[ki];
-              if (right - left >= textW + 4) {
-                cand = clamp(cand, left + textW / 2 + 2, right - textW / 2 - 2);
+              if (right - left >= plaqueW + 4) {
+                cand = clamp(cand, left + plaqueW / 2 + 2, right - plaqueW / 2 - 2);
               }
-              var tl = cand - textW / 2, tr = cand + textW / 2;
-              var tt = faceC - th / 2, tb = faceC + th / 2;
+              var tl = cand - plaqueW / 2, tr = cand + plaqueW / 2;
+              var tt = py - plaqueH / 2, tb = py + plaqueH / 2;
               var hit = false;
-              for (var hi = 0; hi < stands.length; hi++) {
-                var sb = stands[hi];
+              for (var hi = 0; hi < obstacles.length; hi++) {
+                var sb = obstacles[hi];
                 if (tl < sb.r && tr > sb.l && tt < sb.b && tb > sb.t) { hit = true; break; }
               }
               if (!hit && Math.abs(cand - cx) < chosenD) {
                 chosenD = Math.abs(cand - cx); chosen = cand;
               }
             }
-            if (chosen !== null) { placedX = chosen; break; }
+            if (chosen !== null) { placedX = chosen; placedY = py; break; }
           }
-          if (fontPx < 7) fontPx = 7;
+          if (fontPx < 12) {
+            fontPx = 12;
+            ctx.font = "800 " + fontPx + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+            textW = ctx.measureText("TBAR").width;
+            plaqueW = textW + fontPx * 1.15;
+            plaqueH = fontPx * 1.45;
+            placedY = faceC;
+            if (placedY + plaqueH / 2 > labelLine) placedY = labelLine - plaqueH / 2;
+            if (right - left >= plaqueW + 4) {
+              placedX = clamp(cx, left + plaqueW / 2 + 2, right - plaqueW / 2 - 2);
+            }
+          }
+          // The dark plaque itself, inset on the counter
+          // front: a deep-brown panel with a fine gold trim
+          // — the KITCHEN sign's treatment — painted over
+          // the face, its brass trim and its foot rail, so
+          // the gold lettering never sits on gold again.
+          var px0 = placedX - plaqueW / 2, py0 = placedY - plaqueH / 2;
+          ctx.fillStyle = "#2a1a0c";
+          ctx.beginPath();
+          if (ctx.roundRect) ctx.roundRect(px0, py0, plaqueW, plaqueH, Math.min(6, plaqueH * 0.28));
+          else ctx.rect(px0, py0, plaqueW, plaqueH);
+          ctx.fill();
+          ctx.strokeStyle = "rgba(201, 162, 77, 0.85)";
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+          // The letters themselves: bright gold on the
+          // dark plaque, readable at a glance.
           ctx.font = "800 " + fontPx + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
-          textW = ctx.measureText("TBAR").width;
-          if (right - left >= textW + 4) {
-            placedX = clamp(placedX, left + textW / 2 + 2, right - textW / 2 - 2);
-          }
-          // The letters themselves: a soft dark seat under
-          // the gold, so they read as mounted brass on the
-          // dark wood.
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-          ctx.fillText("TBAR", placedX, faceC + Math.max(0.6, fontPx * 0.06));
           ctx.fillStyle = "#ffbe1a";
-          ctx.fillText("TBAR", placedX, faceC);
+          ctx.fillText("TBAR", placedX, placedY + Math.max(0.6, fontPx * 0.05));
           ctx.textBaseline = "alphabetic";
         }
 
