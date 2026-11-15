@@ -5593,13 +5593,36 @@
           // The seat fold: once the host stands at the
           // stop and its whole party stands at its marks
           // with him, the party folds down into its seats.
+          // Readiness is judged ONCE, against the stand
+          // points, and then latched by the fold itself
+          // (sitP > 0). The fold carries each guest from
+          // its stand point UP to its seat line — a full
+          // seat-depth away from the stand point — so a
+          // readiness check that keeps measuring the
+          // distance back to the stand point reads "not
+          // ready" again the moment the fold has pulled a
+          // guest a few pixels toward the seat, and an
+          // earlier build's fold froze partway on exactly
+          // that: the host walked out with the first party
+          // of a trip and then stood at its station
+          // forever, the queue behind him never drained,
+          // and parties only ever sat when a failsafe
+          // seated them without him — live, the procession
+          // simply never happened. Once the fold has begun
+          // it runs to the end on its own: nothing can
+          // call a guest away mid-fold (the movement step
+          // above skips any guest whose fold has begun),
+          // so nothing needs re-checking.
           if (activeEscort && host.state === "escortSeat") {
             var stop = activeEscort.stops[activeEscort.stopIdx];
-            var ready = true;
-            for (var rai = 0; rai < arrivals.length; rai++) {
-              if (arrivals[rai].t === stop.t) {
-                var rdx = arrivals[rai].x - arrivals[rai].standX, rdy = arrivals[rai].y - arrivals[rai].standY;
-                if (rdx * rdx + rdy * rdy > 49) { ready = false; break; }
+            var ready = activeEscort.sitP > 0;
+            if (!ready) {
+              ready = true;
+              for (var rai = 0; rai < arrivals.length; rai++) {
+                if (arrivals[rai].t === stop.t) {
+                  var rdx = arrivals[rai].x - arrivals[rai].standX, rdy = arrivals[rai].y - arrivals[rai].standY;
+                  if (rdx * rdx + rdy * rdy > 49) { ready = false; break; }
+                }
               }
             }
             if (ready) {
