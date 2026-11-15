@@ -4828,75 +4828,166 @@
           ctx.textBaseline = "alphabetic";
         }
 
-        // ---------- The TBAR sign ----------
-        // The bar's own anchor sign, in the same house
-        // style as the KITCHEN sign above: the same dark
-        // plaque, the same gold trim and gold lettering, so
-        // the room's three anchors read as a set — KITCHEN
-        // at the pass (upper left), MAÎTRE D' at the
-        // entrance (upper right), TBAR at the bar. It hangs
-        // over the bar counter run (the consecutive run of
-        // bar stations — see stationKindAt), centred on the
-        // run's span and seated in the seam between two
-        // stations, in the band just above the bar guests'
-        // own reach (the layout's diner envelope,
-        // DINER_TOP_R, with its headroom, plus a small
-        // gap): the seam keeps it clear of every station's
-        // number plaque and show label, which ride at their
-        // station's centre, and of every seated guest, who
-        // sits at a centre too; the band keeps it clear of
-        // every guest's head; and the bar rows stand far
-        // below the pass and the HUD, so it never reaches
-        // either. Drawn live, after the stations and the
-        // KITCHEN sign, so nothing ever covers it.
+        // ---------- The TBAR lettering ----------
+        // The bar's name, lettered ON the bar itself: gold
+        // letters mounted on the front face of the dark-wood
+        // counter, in the same gold as the KITCHEN sign's
+        // lettering and the MAÎTRE D' plaque, so the room's
+        // three anchors read as a set — KITCHEN at the pass
+        // (upper left), MAÎTRE D' at the entrance (upper
+        // right), TBAR on the bar. It is part of the
+        // furniture, not a plaque hanging in the air over
+        // the counter: its letters sit at the middle of the
+        // counter's front face — the panel drawBar paints
+        // between the brass trim under the top (centre +
+        // 0.36r) and the counter's bottom edge (centre +
+        // 0.68r) — so they ride the counter wherever the
+        // layout puts it, and the face band keeps them below
+        // the counter top the whole run: no visible part of
+        // a seated guest (who shows only above that top) and
+        // no number stand (which rides on the top) is ever
+        // under them.
+        // The counter run it rides is the LONGEST
+        // consecutive run of bar stations standing in one
+        // row: the bar seats take the last run of slots (see
+        // stationKindAt) and at some floor sizes that run
+        // wraps onto the next row, leaving one long run and
+        // a short spill — the name rides the long run, at
+        // the opening six and at the full house alike.
+        // Sideways it is centred on the run's span, snapped
+        // to the seam between two stations — the stretch of
+        // the run no guest or stand reaches — and if a
+        // stand's plaque would still meet the lettering (the
+        // tightest phone floors), the letters shift along
+        // the face or step down a size until they clear
+        // every stand in the run. Drawn live, after the
+        // stations, so the letters paint onto the finished
+        // counter face, over its wood and its foot rail,
+        // the way mounted letters sit on a real bar front.
         function drawBarSign() {
           var bars = [];
           for (var i = 0; i < tables.length; i++) {
             if (tables[i].kind === "bar") bars.push(tables[i]);
           }
           if (!bars.length) return;
-          var topY = Infinity, left = Infinity, right = -Infinity;
-          for (var bi = 0; bi < bars.length; bi++) {
-            var bt = bars[bi];
-            var bcw = Math.max((bt.cellW || 0) / 2 * 0.995, bt.r * 1.3);
-            if (bt.slotY < topY) topY = bt.slotY;
-            if (bt.x - bcw < left) left = bt.x - bcw;
-            if (bt.x + bcw > right) right = bt.x + bcw;
+          // Group the bar stations into consecutive runs
+          // standing in one row (same slot row, neighbouring
+          // slots), then take the longest run — widest span
+          // breaks a tie.
+          var sorted = bars.slice().sort(function (a, b) {
+            return (a.slotY - b.slotY) || (a.slotX - b.slotX);
+          });
+          var runs = [[sorted[0]]];
+          for (var si = 1; si < sorted.length; si++) {
+            var prev = sorted[si - 1], bt = sorted[si];
+            var sameRow = Math.abs(bt.slotY - prev.slotY) < 1;
+            var adjacent = Math.abs(bt.slotX - prev.slotX) <= (bt.cellW || 0) * 1.6;
+            if (sameRow && adjacent) runs[runs.length - 1].push(bt);
+            else runs.push([bt]);
           }
-          var cellW = bars[0].cellW || 0;
+          var run = runs[0], runSpan = -1;
+          for (var ri = 0; ri < runs.length; ri++) {
+            var rsp = runs[ri][runs[ri].length - 1].slotX - runs[ri][0].slotX;
+            if (runs[ri].length > run.length ||
+                (runs[ri].length === run.length && rsp > runSpan)) {
+              run = runs[ri]; runSpan = rsp;
+            }
+          }
+          // The run's span and the counter face's middle,
+          // measured off the stations as they are actually
+          // drawn (current x/y, drawBar's own counter
+          // half-width), so the lettering stays glued to the
+          // counter while the floor settles into a new grid.
+          var left = Infinity, right = -Infinity, ySum = 0;
+          for (var bi = 0; bi < run.length; bi++) {
+            var rt = run[bi];
+            var rcw = Math.max((rt.cellW || 0) / 2 * 0.995, rt.r * 1.3);
+            if (rt.x - rcw < left) left = rt.x - rcw;
+            if (rt.x + rcw > right) right = rt.x + rcw;
+            ySum += rt.y;
+          }
+          var r = run[0].r;
+          var faceC = ySum / run.length + r * 0.52;
+          // Centred on the span, snapped to the nearest seam
+          // between two stations of the run.
           var cx = (left + right) / 2;
-          if (cellW > 0) {
-            // Snap the centre to the nearest counter seam
-            // inside the run (a multiple of the cell
-            // width): the seam is the one stretch of the
-            // run no guest, number plaque or label reaches.
-            var seam = Math.round(cx / cellW) * cellW;
-            if (seam > left + 4 && seam < right - 4) cx = seam;
+          if (run.length > 1) {
+            var byX = run.slice().sort(function (a, b) { return a.x - b.x; });
+            var bestSeam = null, bestSeamD = Infinity;
+            for (var mi = 0; mi < byX.length - 1; mi++) {
+              var seamX = (byX[mi].x + byX[mi + 1].x) / 2;
+              var seamD = Math.abs(seamX - cx);
+              if (seamD < bestSeamD) { bestSeamD = seamD; bestSeam = seamX; }
+            }
+            if (bestSeam !== null) cx = bestSeam;
           }
-          ctx.font = "800 14px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
-          var signW = ctx.measureText("TBAR").width + 26;
-          var signH = 24;
-          cx = clamp(cx, signW / 2 + 3, W - signW / 2 - 3);
-          // The band above the bar guests: the topmost bar
-          // row's diner envelope top (the same reach
-          // layoutTables fits into each cell), plus a gap.
-          var guestTop = topY - DINER_TOP_R * bars[0].r - 2;
-          var sy = guestTop - 6 - signH;
-          var minTop = hallDims().floorTop + 2;
-          if (sy < minTop) sy = minTop;
-          var sx = cx - signW / 2;
-          ctx.fillStyle = "#2a1a0c";
-          ctx.beginPath();
-          if (ctx.roundRect) ctx.roundRect(sx, sy, signW, signH, 6);
-          else ctx.rect(sx, sy, signW, signH);
-          ctx.fill();
-          ctx.strokeStyle = "rgba(201,162,77,0.75)";
-          ctx.lineWidth = 1.2;
-          ctx.stroke();
-          ctx.fillStyle = "#ffbe1a";
+          // Every number stand's plaque box in the run,
+          // measured with drawBar's own stand geometry, so
+          // the fit below can prove the letters clear them.
+          var stands = [];
+          for (var ni = 0; ni < run.length; ni++) {
+            var nt = run[ni];
+            var ncw = Math.max((nt.cellW || 0) / 2 * 0.995, nt.r * 1.3);
+            var standX = nt.x + Math.min(ncw - nt.r * 0.62, nt.r * 1.42);
+            var tentR = Math.max(nt.r, 26);
+            stands.push({
+              l: standX - tentR * 1.16 / 2 - 2, r: standX + tentR * 1.16 / 2 + 2,
+              t: nt.y - nt.r * 0.08 - tentR * 0.76 / 2 - 1,
+              b: nt.y - nt.r * 0.08 + tentR * 0.76 / 2 + 1
+            });
+          }
+          // Fit the lettering: start at the face's own
+          // scale, then, while any stand's box would meet
+          // the letters, try sliding along the face to a
+          // clear stretch beside that stand; if no clear
+          // stretch exists at this size, step the letters
+          // down a point and try again.
+          var fontPx = Math.round(clamp(r * 0.45, 11, 17));
+          var placedX = cx, textW = 0;
+          for (; fontPx >= 7; fontPx--) {
+            ctx.font = "800 " + fontPx + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+            textW = ctx.measureText("TBAR").width;
+            if (textW > (right - left) - 6 && fontPx > 7) continue;
+            var th = fontPx * 0.75;
+            var cands = [cx];
+            for (var ci = 0; ci < stands.length; ci++) {
+              cands.push(stands[ci].r + textW / 2);
+              cands.push(stands[ci].l - textW / 2);
+            }
+            var chosen = null, chosenD = Infinity;
+            for (var ki = 0; ki < cands.length; ki++) {
+              var cand = cands[ki];
+              if (right - left >= textW + 4) {
+                cand = clamp(cand, left + textW / 2 + 2, right - textW / 2 - 2);
+              }
+              var tl = cand - textW / 2, tr = cand + textW / 2;
+              var tt = faceC - th / 2, tb = faceC + th / 2;
+              var hit = false;
+              for (var hi = 0; hi < stands.length; hi++) {
+                var sb = stands[hi];
+                if (tl < sb.r && tr > sb.l && tt < sb.b && tb > sb.t) { hit = true; break; }
+              }
+              if (!hit && Math.abs(cand - cx) < chosenD) {
+                chosenD = Math.abs(cand - cx); chosen = cand;
+              }
+            }
+            if (chosen !== null) { placedX = chosen; break; }
+          }
+          if (fontPx < 7) fontPx = 7;
+          ctx.font = "800 " + fontPx + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+          textW = ctx.measureText("TBAR").width;
+          if (right - left >= textW + 4) {
+            placedX = clamp(placedX, left + textW / 2 + 2, right - textW / 2 - 2);
+          }
+          // The letters themselves: a soft dark seat under
+          // the gold, so they read as mounted brass on the
+          // dark wood.
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText("TBAR", cx, sy + signH / 2 + 1);
+          ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+          ctx.fillText("TBAR", placedX, faceC + Math.max(0.6, fontPx * 0.06));
+          ctx.fillStyle = "#ffbe1a";
+          ctx.fillText("TBAR", placedX, faceC);
           ctx.textBaseline = "alphabetic";
         }
 
