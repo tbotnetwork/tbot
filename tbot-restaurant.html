@@ -5170,20 +5170,23 @@
         // them — is the whole point of the piece.
         //
         // A walker's clock is its AGE, advanced by the
-        // frame loop a step at a time (dtMs, capped like
-        // every other frame-stepped timer in the game) —
-        // never by the wall clock. An earlier build aged
-        // walkers off performance.now(): whenever the
-        // page's frames ran sparse (a backgrounded tab, an
-        // in-app webview presenting on demand), a departure
-        // could spawn on one presented frame and be swept
-        // as finished before the next frame was ever
-        // shown — the banner announced the party and the
-        // party was simply never SEEN to leave. On the
-        // frame clock the walk takes its full staged time
-        // in PRESENTED time at a full frame rate, and
-        // under sparse presentation it stays on the floor,
-        // mid-stride, until it has been seen through.
+        // frame loop a step at a time — each step the REAL
+        // time since the last presented frame (see the
+        // frame loop's note on dtMs), so the walk takes
+        // its full staged time in real seconds at any
+        // presented rate, in step with the wall-clock
+        // schedule that waits on it. An earlier build
+        // stepped the age by at most 50 ms a frame: at a
+        // full frame rate that read the same, but under
+        // the sparse presentation of a real phone session
+        // the walk fell further and further behind the
+        // room — the leave's wall-clock failsafe completed
+        // departures whose parties were still rising from
+        // their seats, and the re-deal landed on top of
+        // them. The step's one-second cap still bounds
+        // what a returning hidden tab can carry in a
+        // single frame, so a walk is never swept unseen
+        // by more than that one second.
         var WALK_RISE_MS = 420;  // getting up out of the seat
         var WALK_STAND_MS = 650; // the beat at full height before striding off
         var walkers = []; // { sex, build, size, r, blinkAt, blinkDur, bobPh, t, seatX, seatY, standY, exitX, exitY, age, walkMs, totalMs }
@@ -6178,7 +6181,41 @@
         // first presented frame of any load is an entry.
         var inLobbyLastFrame = false;
         function frame(nowMs) {
-          var dtMs = Math.min(nowMs - lastFrameMs, 50);
+          // The step every moving thing in the room takes
+          // this frame — the host, the waiter, the escorted
+          // arrivals, the departing walkers, the seat fold —
+          // is the REAL time since the last presented frame,
+          // so travel runs on the same wall clock as every
+          // schedule around it (the ticket calls, the leave
+          // cycle, the empty beat, the round itself). An
+          // earlier build capped the step at 50 ms: at the
+          // probe's steady sixty frames a second the two
+          // clocks agreed and every trip ran clean, but a
+          // real session presents far fewer frames — a
+          // phone's webview redrawing this full-screen
+          // canvas manages a handful a second — and there
+          // travel ran five, ten, twenty times slower than
+          // the room it moved through. The host's return
+          // leg alone ate ten wall-clock seconds, so in
+          // ordinary play he effectively never left his
+          // desk; a departing party was still rising when
+          // the leave's twelve-second wall-clock failsafe
+          // force-completed it, and the re-deal landed on a
+          // station whose guests were still beside it —
+          // the numbers changed around a party that had
+          // never been seen to leave. The one-second cap
+          // left here guards only a tab returning from
+          // hidden: no single presented frame may carry
+          // more than a second of travel, so nothing can
+          // complete unseen in one step. Every consumer
+          // clamps its own step (a walk lands exactly on
+          // its mark, the fold caps at one, the decays at
+          // zero), so a long frame moves each figure
+          // exactly as far as the time that passed — at a
+          // sparse rate the stride is choppier, never
+          // slower, and a trip takes its real seconds at
+          // any presented rate.
+          var dtMs = Math.min(nowMs - lastFrameMs, 1000);
           lastFrameMs = nowMs;
 
           // The bubble, tied to the state: a lobby entry —
@@ -6480,7 +6517,9 @@
             escortQueue: escortQueue.length,
             escorting: !!activeEscort,
             hostState: host.state,
+            hostPos: { x: Math.round(host.x), y: Math.round(host.y) },
             hostHome: { x: Math.round(host.homeX), y: Math.round(host.homeY) },
+            seatedHidden: tables.map(function (t) { return !!t.seatedHidden; }),
             entranceMode: entrance.mode,
             maitreDesk: { x: Math.round(entrance.deskX), y: Math.round(entrance.deskY) },
             entranceCouple: entrance.couple.length,
