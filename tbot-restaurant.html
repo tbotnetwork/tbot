@@ -2114,7 +2114,9 @@
         // stand-in while a photograph is still loading.
         // The waiter at the pass is NOT one of these — he
         // is the mascot himself, drawn by his own call,
-        // unchanged.
+        // unchanged. The HOST who seats the parties IS one
+        // of these — the family's standing cut-out, working
+        // the floor (see the host, by the waiter above).
         var PEOPLE_HEAD_U = 0.52;
         var peopleImgs = {};
         function loadPerson(key, src, w, h, head, seat) {
@@ -2499,6 +2501,7 @@
         var ticketNum = null;   // the number the kitchen is calling
         var nextLeaveAt = 0;    // when the next party gets up and leaves
         var nextTicketAt = 0;   // when the kitchen next calls a fresh ticket on its own schedule (see ticketCallDelay)
+        var lastTicketAt = 0;   // when the current ticket was printed, by any cause — the frame loop's hard cap reads it (see the frame loop)
 
         // The six-table tempo: while the floor stands at
         // the opening six tables, the room runs BRISK —
@@ -2529,25 +2532,35 @@
         // starting count: while the floor stands at six, a
         // new ticket prints every five to seven seconds
         // whether or not anyone has served or left, so
-        // calls and re-deals move together. The schedule is
-        // the kitchen's alone: it is armed when a shift
-        // opens and re-armed only when a SCHEDULED call
-        // fires (see the frame loop) — a print off a serve
-        // or a walk-out is an extra call on top and never
-        // pushes the next scheduled call later. (An earlier
-        // build re-armed the clock on every print, and in
-        // live play the calls still stretched to fifteen,
-        // twenty seconds apart; the schedule now stands
-        // apart from the prints it interleaves with.) At
-        // any other count there is no scheduled call at all
-        // (Infinity): the cadence is exactly the serve /
-        // leave cadence it always was.
+        // calls and re-deals move together.
+        //
+        // The schedule is armed in exactly ONE place:
+        // inside newTicket itself, so EVERY print — the
+        // shift's first, a serve's, a walk-out's, a
+        // scheduled call's — stamps lastTicketAt and arms
+        // the next call five to seven seconds out from
+        // that print. No start path, serve path or leave
+        // path can forget to arm it, arm it twice, or arm
+        // it off a different clock. (Two earlier builds
+        // armed the schedule from the outside — once on
+        // every print, once only on scheduled fires — and
+        // in live play the cadence still broke both ways:
+        // calls stretching past twenty seconds, calls
+        // landing barely four apart.) And the frame loop
+        // carries a HARD CAP on top of the armed time: at
+        // the starting count a ticket that has stood seven
+        // seconds prints a fresh one on the spot, whatever
+        // nextTicketAt says — so no single missed, stale
+        // or Infinity arm can ever hold a call open again.
+        // At any other count there is no scheduled call at
+        // all (Infinity): the cadence is exactly the serve
+        // / leave cadence it always was.
         function ticketCallDelay() {
           return tables.length === 6 ? rand(5000, 7000) : Infinity;
         }
-        function armTicketSchedule(nowMs) {
+        function armTicketSchedule() {
           var d = ticketCallDelay();
-          nextTicketAt = d === Infinity ? Infinity : nowMs + d;
+          nextTicketAt = d === Infinity ? Infinity : lastTicketAt + d;
         }
 
         // The shift's last call: in the final five seconds
@@ -2566,12 +2579,345 @@
 
         var waiter = {
           x: 0, y: 0, homeX: 0, homeY: 0,
-          state: "pass", // "pass" | "toTable" | "returning" | "escortGo" | "escortSeat"
+          state: "pass", // "pass" | "toTable" | "returning" — plate runs and the pass hold only
           target: null,
           carrying: false,
           blinkAt: 0, blinkDur: 140,
           stepPh: 0
         };
+
+        // The HOST — the MAÎTRE D': the seating escort is a
+        // TBOT person — one of the people family themselves
+        // (glossy black vinyl, cube head, red dome eyes,
+        // three-tuft hair, full adult size, the standing
+        // cut-out), not the mascot. He works the
+        // front-of-house from his desk at the room's
+        // entrance (see the entrance block below): he
+        // receives every party at the desk, walks out from
+        // it to lead the party to its station, seats it,
+        // and walks back to the desk — the opening deal,
+        // Pack 'em additions and mid-shift re-deals alike
+        // (see the escorted arrivals block). He is staff at
+        // a glance by his work alone: he is the one always
+        // at the desk or leading a party away from it. The
+        // mascot waiter keeps his own duties exactly as
+        // they were — the plate runs on serves and the
+        // final-five-seconds hold behind the steel — and
+        // never escorts. The host is one fixed figure (the
+        // slim muscular man of the family), at the guests'
+        // own scale, with his post at the maître d's desk
+        // (see layoutEntrance).
+        var host = {
+          x: 0, y: 0, homeX: 0, homeY: 0,
+          state: "pass", // "pass" | "escortGo" | "escortSeat" | "returning"
+          sex: "m", build: "m",
+          blinkAt: 0, blinkDur: 140, bobPh: 0,
+          stepPh: 0
+        };
+
+        // ---------- The entrance: the maître d's desk, the couple, the line ----------
+        // The maître d's desk — a host stand / podium —
+        // stands at the room's entrance: the front edge of
+        // the floor, by the door side of the room
+        // photograph (the glazed doors along the room's
+        // right side). The host stands at it as the maître
+        // d' — he is the host who receives parties at the
+        // desk, and every escort starts from his desk (see
+        // spawnArrivals) and returns to it. Around the desk
+        // the entrance keeps its busy-night scene at all
+        // times: a COUPLE — two TBOT people in their
+        // standing versions, a woman and a man from the
+        // guest family — stands at the desk facing him, as
+        // if checking in to be seated, and a LINE of
+        // several more TBOT people (standing versions,
+        // varied builds and sizes from the same family)
+        // waits behind the couple, trailing toward the
+        // entrance and out of it — the last of them already
+        // partway out the door. The couple and the line are
+        // living set dressing: grounded feet with contact
+        // shadows, drawn in the floor's front order, sized
+        // like everyone else — and they never move. When an
+        // escorted party is being seated the maître d'
+        // steps away from the desk to lead them and returns
+        // to the desk after; the couple and the line stay
+        // put throughout.
+        //
+        // The scene is placed by layoutEntrance (called at
+        // the end of layoutTables) so it never covers a
+        // station, a station number, the pass or the HUD,
+        // and the playing floor stays clear: it takes the
+        // clear foreground strip in front of the floor when
+        // the stage leaves one deep enough (the band the
+        // phone's chrome reserve leaves above the toolbar),
+        // else the front-right stretch of floor when no
+        // front-row station's silhouette reaches into its
+        // span, else a single-file lane down the right —
+        // the entrance — edge, its figures sized to the
+        // lane and trailing down and out of the frame.
+        var entrance = {
+          mode: "floor", // "strip" | "floor" | "lane"
+          deskX: 0, deskY: 0, // the podium's base centre and base line
+          hostX: 0, hostY: 0, // the maître d's feet at his desk
+          u: 44 * 2.08,       // the figure unit the scene is sized at (the host's own)
+          figScale: 1,        // below 1 only in the lane, when the lane is narrow
+          couple: [],         // { fig, x, y } — feet points, resolved by layoutEntrance
+          line: []            // { fig, x, y }
+        };
+        var entranceCast = null; // the couple and the line, built once and fixed
+        function buildEntranceCast(nowMs) {
+          function fig(sex, build, size) {
+            return {
+              sex: sex, build: build, size: size,
+              blinkAt: nowMs + rand(600, 3800), blinkDur: rand(120, 160),
+              bobPh: rand(0, Math.PI * 2)
+            };
+          }
+          entranceCast = {
+            couple: [fig("f", "f", 2.02), fig("m", "m", 2.18)],
+            line: [
+              fig("m", "heavy", 2.30), fig("f", "f", 1.86),
+              fig("m", "m", 2.08), fig("f", "heavy", 2.22),
+              fig("m", "m", 1.94)
+            ]
+          };
+        }
+
+        // One station's rightward reach, for the entrance
+        // placement: its body, its guests, its number and
+        // its show label — everything the entrance scene
+        // must never cover. (For the lane only, a bar's
+        // counter run is excepted: the counter is
+        // continuous furniture running to the room's edge
+        // and the queue stands at its end, by the door —
+        // the bar's guest, number plaque and label still
+        // count in full.)
+        function stationReach(t, forLane) {
+          var labelHalf = Math.max(t.r * 2.0, 37);
+          var e;
+          if (t.kind === "bar") {
+            var cw = Math.max((t.cellW || 0) / 2 * 0.995, t.r * 1.3);
+            var standX = t.x + Math.min(cw - t.r * 0.62, t.r * 1.42);
+            e = Math.max(t.x + t.r * 0.95, standX + Math.max(t.r, 26) * 0.62, t.x + labelHalf);
+            if (!forLane) e = Math.max(e, t.x + cw);
+          } else if (t.kind === "booth") {
+            e = t.x + Math.max(t.r * 1.2, labelHalf);
+          } else {
+            e = t.x + Math.max(Math.min(t.r * 1.9, t.halfPitch || t.r * 1.9), t.r * 1.45, labelHalf);
+          }
+          return Math.min(e, W - 2);
+        }
+
+        function layoutEntrance() {
+          if (!entranceCast) buildEntranceCast(performance.now());
+          var r0 = tables.length ? tables[0].r : 44;
+          var u = r0 * 2.08; // the host's own unit — the scene is sized like everyone else
+          var fh = u * 1.76, fw = u * 0.79; // a standing figure's height / width at that unit
+          var gy = groundY();
+          entrance.u = u;
+          entrance.figScale = 1;
+          entrance.couple = [];
+          entrance.line = [];
+          // The foreground strip below the floor line: on
+          // phone-width stages the chrome reserve leaves a
+          // real band of floor in front of the front row,
+          // above the toolbar — deep enough, when it fits a
+          // standing figure, for the whole scene to stand
+          // in it, clear of every station above it.
+          var toolbarTop = H - 14 - (toolbarEl ? toolbarEl.offsetHeight : 0);
+          var stripH = toolbarTop - gy;
+          var mode, feetY, hx;
+          if (stripH >= fh + 6) {
+            mode = "strip";
+            feetY = toolbarTop - 5;
+            hx = W - fw * 5.9;
+          } else {
+            // The front-right floor: the horizontal scene
+            // fits when no station whose silhouette reaches
+            // down into the scene's band extends into its
+            // span from the left.
+            var clusterTop = gy - 2 - fh;
+            var clearR = 0;
+            for (var ci = 0; ci < tables.length; ci++) {
+              var ct = tables[ci];
+              if (ct.y + ct.r * 0.92 + 20 > clusterTop) {
+                clearR = Math.max(clearR, stationReach(ct, false));
+              }
+            }
+            if (W - fw * 6.4 >= clearR + 4) {
+              mode = "floor";
+              feetY = gy - 2;
+              hx = W - fw * 5.9;
+            } else {
+              mode = "lane";
+            }
+          }
+          if (mode === "lane") {
+            // Single file down the entrance edge: the desk
+            // at the front of the floor, the couple at it,
+            // and the line trailing down past the floor's
+            // front edge and out of the frame.
+            var hardR = 0;
+            for (var li = 0; li < tables.length; li++) hardR = Math.max(hardR, stationReach(tables[li], true));
+            var laneW = W - hardR;
+            var scale = 1;
+            if (fw > laneW - 4) scale = clamp((laneW - 4) / fw, 0.4, 1);
+            entrance.figScale = scale;
+            var lfw = fw * scale, lfh = fh * scale;
+            var lx = hardR + laneW / 2;
+            if (lx > W - lfw * 0.3) lx = W - lfw * 0.3;
+            if (lx < lfw * 0.5) lx = lfw * 0.5;
+            entrance.deskX = lx;
+            entrance.deskY = gy - 2;
+            entrance.hostX = lx - lfw * 0.08;
+            entrance.hostY = gy - 2 - lfh * 0.30;
+            entrance.couple = [
+              { fig: entranceCast.couple[0], x: lx - lfw * 0.30, y: gy - 2 + lfh * 0.30 },
+              { fig: entranceCast.couple[1], x: lx + lfw * 0.30, y: gy - 2 + lfh * 0.38 }
+            ];
+            for (var qi = 0; qi < entranceCast.line.length; qi++) {
+              entrance.line.push({
+                fig: entranceCast.line[qi],
+                x: lx + lfw * 0.14 * (qi + 1),
+                y: gy - 2 + lfh * (0.72 + qi * 0.44)
+              });
+            }
+          } else {
+            // The horizontal scene, left to right: the
+            // maître d' behind his desk, the couple at the
+            // desk facing him, then the line behind them
+            // trailing right, toward the door and out of
+            // the frame's edge.
+            entrance.deskX = hx + fw * 0.10;
+            entrance.deskY = feetY - fh * 0.02;
+            entrance.hostX = hx;
+            entrance.hostY = feetY - fh * (mode === "strip" ? 0.10 : 0.16);
+            entrance.couple = [
+              { fig: entranceCast.couple[0], x: hx + fw * 1.02, y: feetY },
+              { fig: entranceCast.couple[1], x: hx + fw * 1.80, y: feetY - fh * 0.03 }
+            ];
+            for (var qi2 = 0; qi2 < entranceCast.line.length; qi2++) {
+              entrance.line.push({
+                fig: entranceCast.line[qi2],
+                x: hx + fw * (2.66 + qi2 * 0.78),
+                y: feetY - fh * 0.02 * (qi2 % 2)
+              });
+            }
+          }
+          entrance.mode = mode;
+          host.homeX = entrance.hostX;
+          host.homeY = entrance.hostY;
+        }
+
+        // The maître d's desk itself: a host stand in the
+        // room's own materials — a dark-wood podium with
+        // brass trim and a brass MAÎTRE D' plaque, a slanted
+        // top with the reservation book open on it. It is
+        // painted in the scene pass (see drawEntrance), in
+        // front of the maître d' himself: he stands behind
+        // it, waist-up over its top, the way a host stands
+        // at his stand.
+        function drawMaitreDesk() {
+          var u = entrance.u * entrance.figScale;
+          var cx = entrance.deskX, base = entrance.deskY;
+          var pw = u * 0.68, ph = u * 1.04;
+          var top = base - ph;
+          // Its contact shadow on the floor.
+          ctx.fillStyle = "rgba(12, 6, 3, 0.30)";
+          ctx.beginPath(); ctx.ellipse(cx, base + u * 0.02, pw * 0.58, u * 0.07, 0, 0, Math.PI * 2); ctx.fill();
+          // The front panel: dark wood, lit down its face.
+          var pGrad = ctx.createLinearGradient(0, top, 0, base);
+          pGrad.addColorStop(0, "#5a3a1e");
+          pGrad.addColorStop(0.5, "#402712");
+          pGrad.addColorStop(1, "#2c1a0c");
+          ctx.fillStyle = pGrad;
+          rrPath(cx - pw / 2, top, pw, ph, Math.min(6, u * 0.08));
+          ctx.fill();
+          // The brass trim under the top, and the inset
+          // panel line worked into the face.
+          ctx.fillStyle = "#c9a227";
+          ctx.fillRect(cx - pw / 2, top + Math.max(1.5, u * 0.035), pw, Math.max(1.5, u * 0.028));
+          ctx.strokeStyle = "rgba(201, 162, 39, 0.5)";
+          ctx.lineWidth = Math.max(1, u * 0.018);
+          rrPath(cx - pw * 0.36, top + ph * 0.30, pw * 0.72, ph * 0.52, Math.min(4, u * 0.05));
+          ctx.stroke();
+          // The brass plaque naming the desk, its lettering
+          // stepped down until it sits inside the plaque.
+          if (pw >= 34) {
+            var plw = pw * 0.64, plh = u * 0.175, plx = cx - plw / 2, ply = top + ph * 0.44;
+            ctx.fillStyle = "#c9a227";
+            rrPath(plx, ply, plw, plh, plh * 0.32);
+            ctx.fill();
+            ctx.fillStyle = "#2b1a12";
+            var plSize = u * 0.105;
+            ctx.font = "800 " + plSize + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+            while (plSize > 5 && ctx.measureText("MAÎTRE D'").width > plw - 5) {
+              plSize -= 0.5;
+              ctx.font = "800 " + plSize + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+            }
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("MAÎTRE D'", cx, ply + plh / 2 + 0.5);
+            ctx.textBaseline = "alphabetic";
+          }
+          // The slanted top, rising behind the panel's top
+          // edge, and the reservation book open on it.
+          ctx.fillStyle = "#241204";
+          ctx.beginPath();
+          ctx.moveTo(cx - pw * 0.54, top + u * 0.03);
+          ctx.lineTo(cx + pw * 0.54, top + u * 0.03);
+          ctx.lineTo(cx + pw * 0.45, top - u * 0.13);
+          ctx.lineTo(cx - pw * 0.45, top - u * 0.13);
+          ctx.closePath(); ctx.fill();
+          ctx.save();
+          ctx.translate(cx, top - u * 0.085);
+          ctx.rotate(-0.05);
+          ctx.fillStyle = "#f7f2e4";
+          ctx.fillRect(-u * 0.19, -u * 0.05, u * 0.38, u * 0.10);
+          ctx.strokeStyle = "rgba(43, 26, 18, 0.45)";
+          ctx.lineWidth = Math.max(0.8, u * 0.012);
+          ctx.strokeRect(-u * 0.19, -u * 0.05, u * 0.38, u * 0.10);
+          ctx.beginPath(); ctx.moveTo(0, -u * 0.05); ctx.lineTo(0, u * 0.05); ctx.stroke();
+          ctx.strokeStyle = "rgba(43, 26, 18, 0.30)";
+          ctx.beginPath();
+          ctx.moveTo(-u * 0.155, -u * 0.018); ctx.lineTo(-u * 0.045, -u * 0.018);
+          ctx.moveTo(-u * 0.155, u * 0.014); ctx.lineTo(-u * 0.045, u * 0.014);
+          ctx.moveTo(u * 0.045, -u * 0.018); ctx.lineTo(u * 0.155, -u * 0.018);
+          ctx.moveTo(u * 0.045, u * 0.014); ctx.lineTo(u * 0.155, u * 0.014);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // One of the entrance's people, standing: the
+        // family's standing cut-out at the guests' own
+        // scale (its size against the scene unit, exactly
+        // as a seated guest's size runs against its
+        // station's radius), feet on its point with its
+        // contact shadow, the drawn figure standing in
+        // while its photograph is still loading.
+        function drawEntranceFigure(fig, x, y, nowMs) {
+          var u = entrance.u * entrance.figScale * (fig.size / 2.08);
+          var rock = Math.sin(nowMs / 1150 + fig.bobPh) * 0.007;
+          if (!drawPhotoPerson(fig.build, "stand", x, y, u, 1, rock, true)) {
+            drawPlasticPerson(fig.sex, x, y, u, 1, 0, blinkLid(fig, nowMs), true);
+          }
+        }
+
+        // The entrance scene, painted once per frame in
+        // the floor's front order — after every station,
+        // so it stands in front of the floor it dresses,
+        // and the maître d' himself (painted with the
+        // movers, at his desk behind the podium) shows
+        // over the desk's top. The desk first, then the
+        // couple at it, then the line behind them.
+        function drawEntrance(nowMs) {
+          drawMaitreDesk();
+          for (var ci = 0; ci < entrance.couple.length; ci++) {
+            drawEntranceFigure(entrance.couple[ci].fig, entrance.couple[ci].x, entrance.couple[ci].y, nowMs);
+          }
+          for (var li = 0; li < entrance.line.length; li++) {
+            drawEntranceFigure(entrance.line[li].fig, entrance.line[li].x, entrance.line[li].y, nowMs);
+          }
+        }
 
         // The kitchen pass's height: the band stands at the
         // back edge of the floor (see hallDims), its counter
@@ -2667,7 +3013,7 @@
             show: null, // carrier deal { name } — never an episode
             state: "seated", // "seated" | "leaving" | "empty" | "arriving"
             stateAt: 0,
-            seatedHidden: false, // true while the party is waiting for / receiving its waiter escort (see the escorted arrivals block): the station is dealt and playable, its seated guests just are not painted yet
+            seatedHidden: false, // true while the party is waiting for / receiving its host escort (see the escorted arrivals block): the station is dealt and playable, its seated guests just are not painted yet
             guests: newParty(nowMs),
             flash: 0, flashColor: "#39d353",
             shakeT: 0, happyT: 0, plateT: 0, numPop: 0
@@ -2805,6 +3151,15 @@
           // front of its counter, behind the back row.
           waiter.homeY = top - 14;
           if (waiter.state === "pass") { waiter.x = waiter.homeX; waiter.y = waiter.homeY; }
+          // The maître d's post is his desk at the
+          // entrance: layoutEntrance places the desk, the
+          // couple at it and the line behind them along the
+          // entrance edge, clear of every station, and
+          // seats the host at the desk — the post every
+          // escort starts from and returns to (see
+          // spawnArrivals).
+          layoutEntrance();
+          if (host.state === "pass") { host.x = host.homeX; host.y = host.homeY; }
         }
 
         // A fresh Fisher–Yates shuffle of the full roster —
@@ -2854,7 +3209,7 @@
           floats = [];
           walkers = [];
           // The opening deal is an arrival like any other:
-          // the waiter walks each party in and seats it
+          // the host walks each party in and seats it
           // (see the escorted arrivals block).
           for (var qi = 0; qi < tables.length; qi++) queueEscort(tables[qi]);
         }
@@ -4345,7 +4700,7 @@
 
         function drawWaiter(nowMs) {
           var s = bodySize() * 1.12;
-          var moving = waiter.state !== "pass" && waiter.state !== "escortSeat";
+          var moving = waiter.state !== "pass";
           var bobY = moving ? Math.abs(Math.sin(waiter.stepPh)) * 3 : Math.sin(nowMs / 700) * 1.2;
           // Shadow, resting at the sprite's own bottom edge.
           var waiterSh = (s / SPRITE_BODY_FRAC) * SPRITE_ASPECT;
@@ -4748,13 +5103,16 @@
           ticketNum = pick;
           paintTicket();
           ticketSound();
-          // A print never touches the kitchen's own call
-          // schedule (see ticketCallDelay): the scheduled
-          // calls land every five to seven seconds at the
-          // starting count however this print happened —
-          // served, walked out, or scheduled itself (the
-          // frame loop re-arms the schedule when IT fires
-          // this print).
+          // EVERY print arms the kitchen's own call
+          // schedule (see ticketCallDelay): the print
+          // stamps its own time and the next scheduled
+          // call falls five to seven seconds after it,
+          // however this print happened — the shift's
+          // first, a serve, a walk-out, or the scheduled
+          // call itself. One arming place, one clock, so
+          // the cadence cannot drift path by path.
+          lastTicketAt = performance.now();
+          armTicketSchedule();
         }
 
         // ---------- Parties leaving: the numbers change ----------
@@ -4807,26 +5165,39 @@
           t.stateAt = nowMs;
           t.guests = newParty(nowMs);
           t.show = nextDeckShow(); // a new party, a new show at the table
-          queueEscort(t); // the waiter walks the new party in and seats it (see the escorted arrivals block)
+          queueEscort(t); // the host walks the new party in and seats it (see the escorted arrivals block)
         }
 
         // ---------- Walking away: a party gets up and goes ----------
         // When a party leaves, its people do not vanish:
         // each one GETS UP from their seat — rising from the
         // table, stepping out of the booth bench, stepping
-        // off the bar stool — stands at full height on the
-        // floor in front of their station, and WALKS off
-        // across the floor toward the nearest floor edge,
-        // legs stepping, a slight natural bob, the pair
-        // together with a small offset between them. A
-        // walker is its own little cast member, independent
-        // of the station's state machine: the station
-        // re-deals on exactly the timing it always has (see
-        // finishLeave and seatNewParty above), the new party
-        // arrives seated as always, and the walk never
-        // blocks a tap, a ticket or the shift clock. The
-        // whole stand-and-exit runs about a second to a
-        // second and a half.
+        // off the bar stool — STANDS a beat at full height
+        // on the floor in front of their station, and then
+        // WALKS off across the floor toward the nearest
+        // floor edge, legs stepping, a slight natural bob,
+        // the pair together with a small offset between
+        // them. A walker is its own little cast member,
+        // independent of the station's state machine: the
+        // station re-deals on exactly the timing it always
+        // has (see finishLeave and seatNewParty above), the
+        // new party arrives seated as always, and the walk
+        // never blocks a tap, a ticket or the shift clock.
+        //
+        // The departure is STAGED to be unmissable: rise,
+        // a full-height stand in front of the station,
+        // then a deliberate crossing — two and a half to
+        // four seconds of presented time in all. The first
+        // builds ran the whole stand-and-exit in about a
+        // second, most of it an ease that barely moves at
+        // either end, the rise itself masked behind the
+        // station's furniture: in live play, with the
+        // player's eyes on the ticket and the numbers, a
+        // one-second exit behind a table simply never
+        // registered — the banner fired and the party read
+        // as replaced. A departure you can watch land —
+        // up, standing, gone across the floor — is the
+        // whole point of the piece.
         //
         // A walker's clock is its AGE, advanced by the
         // frame loop a step at a time (dtMs, capped like
@@ -4839,11 +5210,12 @@
         // as finished before the next frame was ever
         // shown — the banner announced the party and the
         // party was simply never SEEN to leave. On the
-        // frame clock the walk takes the same ~1.5s of
-        // PRESENTED time at a full frame rate, and under
-        // sparse presentation it stays on the floor,
+        // frame clock the walk takes its full staged time
+        // in PRESENTED time at a full frame rate, and
+        // under sparse presentation it stays on the floor,
         // mid-stride, until it has been seen through.
-        var WALK_RISE_MS = 300; // getting up out of the seat
+        var WALK_RISE_MS = 420;  // getting up out of the seat
+        var WALK_STAND_MS = 350; // the beat at full height before striding off
         var walkers = []; // { sex, build, size, r, blinkAt, blinkDur, bobPh, seatX, seatY, standY, exitX, exitY, age, walkMs, totalMs }
 
         function spawnWalkers(t, nowMs) {
@@ -4867,13 +5239,17 @@
             else if (dL <= dR) { exitX = -r * 2.4; }
             else { exitX = W + r * 2.4; }
             var dist = Math.sqrt((exitX - seatX) * (exitX - seatX) + (exitY - standY) * (exitY - standY));
-            var walkMs = clamp(dist / 0.85, 450, 1150);
+            // A deliberate crossing, not a dart for the
+            // door: the floor's width at a pace a watcher
+            // can follow, so the walk reads across several
+            // seconds of presented frames.
+            var walkMs = clamp(dist / 0.38, 1300, 2800);
             walkers.push({
               sex: g.sex, build: g.build, size: g.size, r: r,
               blinkAt: g.blinkAt, blinkDur: g.blinkDur, bobPh: g.bobPh,
               seatX: seatX, seatY: seatY, standY: standY,
               exitX: exitX, exitY: exitY,
-              age: -i * 110, walkMs: walkMs, totalMs: WALK_RISE_MS + walkMs
+              age: -i * 110, walkMs: walkMs, totalMs: WALK_RISE_MS + WALK_STAND_MS + walkMs
             });
           }
         }
@@ -4884,8 +5260,10 @@
         // rise the feet travel from the seat line down to
         // the floor in front of the station while the
         // figure unfolds to full standing height; then it
-        // strides for the edge on a gentle ease, bobbing
-        // as it goes.
+        // stands a beat at full height in front of the
+        // station — the moment the eye catches: someone
+        // is UP — and only then strides for the edge on a
+        // gentle ease, bobbing as it goes.
         function walkerPose(w) {
           var el = w.age;
           if (el < WALK_RISE_MS) {
@@ -4897,9 +5275,12 @@
               stand: re, swing: 0
             };
           }
-          var wp = clamp((el - WALK_RISE_MS) / w.walkMs, 0, 1);
+          if (el < WALK_RISE_MS + WALK_STAND_MS) {
+            return { x: w.seatX, y: w.standY, stand: 1, swing: 0 };
+          }
+          var wp = clamp((el - WALK_RISE_MS - WALK_STAND_MS) / w.walkMs, 0, 1);
           var we = wp < 0.5 ? 2 * wp * wp : 1 - Math.pow(-2 * wp + 2, 2) / 2; // easeInOut
-          var ph = (el - WALK_RISE_MS) / 95;
+          var ph = (el - WALK_RISE_MS - WALK_STAND_MS) / 95;
           // The feet stay ON the floor line for the whole
           // stride — the pose's y is the floor line at the
           // walker's depth, start to finish, with no step
@@ -4930,7 +5311,7 @@
           }
         }
 
-        // ---------- Escorted arrivals: the waiter seats every party ----------
+        // ---------- Escorted arrivals: the host seats every party ----------
         // The mirror of the walk-aways: a party never just
         // appears seated. EVERY deal — the opening deal of
         // a shift, the lobby's deals (PLAY, each Pack 'em
@@ -4938,13 +5319,16 @@
         // mid-shift — is queued for an escort (queueEscort,
         // called by resetFloor, packEm and seatNewParty):
         // the party's people enter in their standing
-        // cut-outs from the pass, the game's own waiter
-        // leads them across the floor to their station,
-        // they fold down into their seats, and the waiter
-        // walks back to the pass. One trip seats a small
-        // group (up to ESCORT_GROUP_MAX parties, routed
-        // nearest-first), so a full opening deal settles in
-        // a couple of trips and the floor never stalls.
+        // cut-outs from his desk at the entrance, the HOST — a TBOT person,
+        // one of the people family (see the host, by the
+        // waiter above) — leads them across the floor to
+        // their station, they fold down into their seats,
+        // and the host walks back to the pass. One trip
+        // seats a small group (up to ESCORT_GROUP_MAX
+        // parties, routed nearest-first), so a full opening
+        // deal settles in a couple of trips and the floor
+        // never stalls. The mascot waiter never escorts:
+        // his work is the plate runs and the pass hold.
         //
         // The escort is PRESENTATION ONLY. A station is
         // dealt, callable, tappable and servable from the
@@ -4953,22 +5337,22 @@
         // wait on the walk; only the painting of its seated
         // guests is held (t.seatedHidden) until the escort
         // sets them down or the party seats directly. The
-        // escort YIELDS to the waiter's real duties: it
-        // starts only while he stands free at the pass, a
-        // plate run called mid-escort takes him at once
-        // (the party he was seating seats directly, the
-        // rest of the queue waits for his next free
-        // moment), a party that waits too long for him
-        // seats directly, and in the shift's final five
-        // seconds — while he holds behind the pass — there
-        // are no escorts at all: arrivals in that window
-        // seat directly. Arriving guests walk feet-on-floor
+        // escort keeps its timing and yield rules: it
+        // starts only while the host stands free at his
+        // post, a plate run called mid-escort seats the
+        // party being seated directly at once (the host
+        // walks on to the next stop, or home), a party
+        // that waits too long for him seats directly, and
+        // in the shift's final five seconds — while the
+        // waiter holds behind the pass — there are no
+        // escorts at all: arrivals in that window seat
+        // directly. Arriving guests walk feet-on-floor
         // with the walkers' own grounding (no step lift,
         // contact shadow under the feet), and they are
         // painted in the same floor order as the walkers.
         // Like the walkers, arrivals age on the frame
         // clock, so an escort is always seen through.
-        var ESCORT_GROUP_MAX = 3;  // parties per waiter trip
+        var ESCORT_GROUP_MAX = 3;  // parties per host trip
         var ESCORT_WAIT_MS = 3000; // a queued party seats directly after waiting this long
         var ESCORT_SIT_MS = 380;   // folding from standing into the seat
         var escortQueue = [];      // { t, guests, waitAge }
@@ -5008,18 +5392,18 @@
           activeEscort.stops.splice(idx, 1);
           if (!activeEscort.stops.length) {
             activeEscort = null;
-            if (waiter.state === "escortGo" || waiter.state === "escortSeat") waiter.state = "returning";
+            if (host.state === "escortGo" || host.state === "escortSeat") host.state = "returning";
           } else if (idx < activeEscort.stopIdx) {
             activeEscort.stopIdx--;
-          } else if (idx === activeEscort.stopIdx && (waiter.state === "escortGo" || waiter.state === "escortSeat")) {
+          } else if (idx === activeEscort.stopIdx && (host.state === "escortGo" || host.state === "escortSeat")) {
             // The stop he was serving is gone — move on to
             // the next, or head home if it was the last.
             if (activeEscort.stopIdx >= activeEscort.stops.length) {
               activeEscort = null;
-              waiter.state = "returning";
+              host.state = "returning";
             } else {
               activeEscort.sitP = 0;
-              waiter.state = "escortGo";
+              host.state = "escortGo";
             }
           }
         }
@@ -5028,12 +5412,16 @@
           escortQueue = [];
           arrivals = [];
           activeEscort = null;
+          // The host stands down with his queue: mid-trip
+          // he walks back to his desk at the entrance.
+          if (host.state === "escortGo" || host.state === "escortSeat") host.state = "returning";
         }
 
         // The group's standing guests, entering from the
-        // pass: each walks to the floor point in front of
+        // desk: each walks to the floor point in front of
         // its own seat (the walk-aways' stand point), then
-        // waits there for the waiter's seat cue.
+        // waits there for the host's seat cue. They enter
+        // from the host's post, on his heels.
         function spawnArrivals(stop, stopIdx) {
           var t = stop.t, r = t.r;
           var party = t.kind === "bar" ? stop.guests.slice(0, 1) : stop.guests;
@@ -5042,8 +5430,8 @@
             var side = t.kind === "bar" ? 0 : (i === 0 ? -1 : 1);
             var seatX = t.x + side * r * 0.52;
             var standY = t.y + r * 1.04;
-            var fromX = waiter.homeX + (stopIdx - 0.5) * 26 + (i - (party.length - 1) / 2) * 20;
-            var fromY = waiter.homeY + 18;
+            var fromX = host.homeX + (stopIdx - 0.5) * 26 + (i - (party.length - 1) / 2) * 20;
+            var fromY = host.homeY;
             var dx = seatX - fromX, dy = standY - fromY;
             var dist = Math.sqrt(dx * dx + dy * dy);
             arrivals.push({
@@ -5074,8 +5462,8 @@
           }
           if (!stops.length) return;
           // Route the trip nearest-first from where the
-          // waiter stands, so the group settles fast.
-          var ordered = [], pool = stops.slice(), px = waiter.x, py = waiter.y;
+          // host stands, so the group settles fast.
+          var ordered = [], pool = stops.slice(), px = host.x, py = host.y;
           while (pool.length) {
             var bi = 0, bd = Infinity;
             for (var i = 0; i < pool.length; i++) {
@@ -5089,11 +5477,11 @@
           }
           activeEscort = { stops: ordered, stopIdx: 0, sitP: 0 };
           for (var si = 0; si < ordered.length; si++) spawnArrivals(ordered[si], si);
-          waiter.state = "escortGo";
+          host.state = "escortGo";
         }
 
         // One stop seated: the party's seated guests take
-        // over from its standing arrivals, and the waiter
+        // over from its standing arrivals, and the host
         // walks on to the next stop — or home, his trip
         // done (the plain "returning" walk).
         function finishEscortStop() {
@@ -5104,9 +5492,9 @@
           activeEscort.sitP = 0;
           if (activeEscort.stopIdx >= activeEscort.stops.length) {
             activeEscort = null;
-            waiter.state = "returning";
+            host.state = "returning";
           } else {
-            waiter.state = "escortGo";
+            host.state = "escortGo";
           }
         }
 
@@ -5149,14 +5537,15 @@
         }
 
         // The escort's per-frame housekeeping, run from
-        // the frame loop beside stepWaiter: arrivals age
-        // on the frame clock (with a long failsafe — an
-        // arrival whose escort was somehow lost seats its
-        // party directly rather than standing forever),
-        // queued parties that outwait the waiter seat
-        // directly, the seat fold advances once the stop's
-        // guests are all standing at their station, and a
-        // free waiter picks up the next group — never in
+        // the frame loop beside stepWaiter and stepHost:
+        // arrivals age on the frame clock (with a long
+        // failsafe — an arrival whose escort was somehow
+        // lost seats its party directly rather than
+        // standing forever), queued parties that outwait
+        // the host seat directly, the seat fold advances
+        // once the stop's guests are all standing at their
+        // station and the host is standing with them, and
+        // a free host picks up the next group — never in
         // the final five seconds (see FINAL_CALL_MS).
         function stepEscorts(dtMs) {
           for (var ari = arrivals.length - 1; ari >= 0; ari--) {
@@ -5167,7 +5556,7 @@
             escortQueue[eqi].waitAge += dtMs;
             if (escortQueue[eqi].waitAge > ESCORT_WAIT_MS) seatDirectly(escortQueue[eqi].t);
           }
-          if (activeEscort && waiter.state === "escortSeat") {
+          if (activeEscort && host.state === "escortSeat") {
             var stop = activeEscort.stops[activeEscort.stopIdx];
             var ready = true;
             for (var rai = 0; rai < arrivals.length; rai++) {
@@ -5181,13 +5570,15 @@
               if (activeEscort.sitP >= 1) finishEscortStop();
             }
           }
-          // A trip interrupted by a plate run resumes
-          // from the pass once he is free again.
-          if (activeEscort && waiter.state === "pass" &&
+          // A trip whose current stop was seated directly
+          // from under him (a plate run's yield, a party
+          // that left) resumes from his post once he is
+          // standing free at it again.
+          if (activeEscort && host.state === "pass" &&
               overOverlay.hidden && !(gameOn && timeLeftMs <= FINAL_CALL_MS)) {
-            waiter.state = "escortGo";
+            host.state = "escortGo";
           }
-          if (!activeEscort && escortQueue.length && waiter.state === "pass" &&
+          if (!activeEscort && escortQueue.length && host.state === "pass" &&
               overOverlay.hidden && !(gameOn && timeLeftMs <= FINAL_CALL_MS)) {
             startEscortGroup();
           }
@@ -5225,8 +5616,9 @@
           // the pass — the waiter holds his post.
           if (timeLeftMs > FINAL_CALL_MS) {
             // A plate run outranks an escort in progress:
-            // the party he was seating seats directly and
-            // he runs the plate (the rest of the escort
+            // the party the host was seating seats directly
+            // and the waiter runs the plate (the host walks
+            // on to his next stop; the rest of the escort
             // queue waits for his next free moment).
             if (activeEscort) seatDirectly(activeEscort.stops[activeEscort.stopIdx].t);
             waiter.target = t;
@@ -5236,21 +5628,13 @@
         }
 
         function stepWaiter(dtMs) {
-          // At the pass he stands; at an escort stop he
-          // also stands, while the party folds into its
-          // seats (the fold itself is stepped in
-          // stepEscorts).
-          if (waiter.state === "pass" || waiter.state === "escortSeat") return;
+          // At the pass he stands. His only walks are the
+          // plate runs: out to the served table, then home.
+          if (waiter.state === "pass") return;
           var tx, ty;
           if (waiter.state === "toTable" && waiter.target) {
             tx = waiter.target.x;
             ty = waiter.target.y + waiter.target.r * 0.95;
-          } else if (waiter.state === "escortGo" && activeEscort) {
-            // An escort leg: the floor point in front of
-            // the stop's station, where its guests stand.
-            var et = activeEscort.stops[activeEscort.stopIdx].t;
-            tx = et.x;
-            ty = et.y + et.r * 1.04;
           } else {
             tx = waiter.homeX;
             ty = waiter.homeY;
@@ -5265,15 +5649,69 @@
               waiter.state = "returning";
               waiter.carrying = false;
               waiter.target = null;
-            } else if (waiter.state === "escortGo" && activeEscort) {
-              waiter.state = "escortSeat";
-              activeEscort.sitP = 0;
             } else {
               waiter.state = "pass";
             }
           } else {
             waiter.x += dx / dist * step;
             waiter.y += dy / dist * step;
+          }
+        }
+
+        // The host's walk, the waiter's plate-run walk
+        // mirrored for the escort legs: out to the floor
+        // point in front of the stop's station, where its
+        // guests stand — there he stands with them while
+        // they fold into their seats (the fold itself is
+        // stepped in stepEscorts) — then on to the next
+        // stop, or home to his post when the trip is done
+        // or stood down. A touch more deliberate than the
+        // waiter's dart: a host leads, he does not run.
+        function stepHost(dtMs) {
+          if (host.state === "pass" || host.state === "escortSeat") return;
+          var tx, ty;
+          if (host.state === "escortGo" && activeEscort) {
+            var et = activeEscort.stops[activeEscort.stopIdx].t;
+            tx = et.x;
+            ty = et.y + et.r * 1.04;
+          } else {
+            tx = host.homeX;
+            ty = host.homeY;
+          }
+          var dx = tx - host.x, dy = ty - host.y;
+          var dist = Math.sqrt(dx * dx + dy * dy);
+          var step = dtMs * 1.25;
+          host.stepPh += dtMs / 95;
+          if (dist <= Math.max(step, 2)) {
+            host.x = tx; host.y = ty;
+            if (host.state === "escortGo" && activeEscort) {
+              host.state = "escortSeat";
+              activeEscort.sitP = 0;
+            } else {
+              host.state = "pass";
+            }
+          } else {
+            host.x += dx / dist * step;
+            host.y += dy / dist * step;
+          }
+        }
+
+        // The host himself, painted in the floor order
+        // with the walkers and arrivals (see the frame
+        // loop): one of the people, at the guests' own
+        // scale, standing on the floor line wherever he
+        // stands — at his post, mid-crossing with a party
+        // behind him, or standing at a station while its
+        // party folds into its seats. His sway is the
+        // walk's, while he walks; at rest he simply
+        // stands. If his photograph has not landed yet,
+        // the drawn stand-in works the floor instead.
+        function drawHost(nowMs) {
+          var moving = host.state === "escortGo" || host.state === "returning";
+          var u = (tables.length ? tables[0].r : 44) * 2.08;
+          var rock = moving ? Math.sin(host.stepPh) * 0.05 : 0;
+          if (!drawPhotoPerson(host.build, "stand", host.x, host.y, u, 1, rock, true)) {
+            drawPlasticPerson(host.sex, host.x, host.y, u, 1, moving ? Math.sin(host.stepPh) : 0, blinkLid(host, nowMs), true);
           }
         }
 
@@ -5340,8 +5778,7 @@
           waiter.carrying = false;
           waiter.x = waiter.homeX;
           waiter.y = waiter.homeY;
-          newTicket();
-          armTicketSchedule(nowMs); // the kitchen's own call clock starts with the shift
+          newTicket(); // the print arms the kitchen's own call clock itself (see newTicket)
           nextLeaveAt = nowMs + rand(7000, 10000) * paceFactor();
           timeLeftMs = GAME_SECONDS * 1000;
           // The family's sequence rule: the description
@@ -5501,8 +5938,8 @@
           tables = [];
           floats = [];
           walkers = [];
-          clearEscorts();
-          if (waiter.state === "escortGo" || waiter.state === "escortSeat") waiter.state = "pass";
+          clearEscorts(); // stands the host down too — he walks back to his post (see clearEscorts)
+          if (waiter.state === "toTable" || waiter.state === "returning") waiter.state = "pass";
           ticketNum = null;
           layoutTables();
           paintIdleButtons();
@@ -5571,7 +6008,7 @@
             t.state = "seated";
             t.stateAt = nowMs;
             tables.push(t);
-            queueEscort(t); // the waiter walks each new party in and seats it
+            queueEscort(t); // the host walks each new party in and seats it
           }
           dealNumbers();
           for (var j = 0; j < tables.length; j++) tables[j].numPop = 1;
@@ -5694,7 +6131,13 @@
               if (!(restDescEl && restDescEl.parentNode)) {
                 clockHeld = false;
                 roundEndsAt = nowMs + timeLeftMs;
-                armTicketSchedule(nowMs); // the kitchen's clock runs with the shift clock, not ahead of it
+                // The kitchen's clock needs no re-arming
+                // here: every print arms the next call off
+                // its own stamp (see newTicket), and the
+                // frame loop's hard cap covers the held
+                // seconds — the first scheduled call lands
+                // at most seven seconds into the running
+                // clock however long the description held.
               }
             } else {
               timeLeftMs = roundEndsAt - nowMs;
@@ -5723,16 +6166,19 @@
                 // fresh ticket prints every five to seven
                 // seconds on the kitchen's own clock, under
                 // the same last-three-seconds hush as the
-                // leave cycle. The schedule is armed at the
-                // shift's open and re-armed HERE, only when
-                // a scheduled call fires — serves and
-                // walk-outs print their own tickets without
-                // ever moving it. At other counts
-                // nextTicketAt stands at Infinity and this
-                // never fires.
-                if (nowMs >= nextTicketAt && timeLeftMs > 3000) {
+                // leave cycle. Every print arms the next
+                // call inside newTicket itself; this check
+                // fires the armed call when its time comes —
+                // and, as a hard cap, fires it the moment
+                // the standing ticket turns seven seconds
+                // old, whatever the armed time says, so no
+                // ticket can ever be held open past the
+                // cadence again. At other counts there is
+                // no schedule (ticketCallDelay is Infinity)
+                // and this never fires.
+                if (ticketCallDelay() !== Infinity && timeLeftMs > 3000 &&
+                    (nowMs >= nextTicketAt || nowMs - lastTicketAt >= 7000)) {
                   newTicket();
-                  armTicketSchedule(nowMs);
                 }
               }
             }
@@ -5760,8 +6206,8 @@
           // the sign until the winner card appears. The
           // same window holds every escort: parties dealt
           // into it seat directly, and an escort in flight
-          // sets its parties down directly while he heads
-          // home.
+          // sets its parties down directly while the host
+          // heads home.
           if (gameOn && timeLeftMs <= FINAL_CALL_MS) {
             if (waiter.state === "toTable") {
               waiter.state = "returning";
@@ -5779,6 +6225,7 @@
           }
 
           stepWaiter(dtMs);
+          stepHost(dtMs);
           stepEscorts(dtMs);
 
           // Tables ease toward their slots after a resize
@@ -5836,21 +6283,23 @@
             walkers[wxi].age += dtMs;
             if (walkers[wxi].age >= walkers[wxi].totalMs) walkers.splice(wxi, 1);
           }
-          // Departing walkers and escorted arrivals share
-          // the one floor order: both are sorted by where
-          // their feet stand and painted between the
-          // stations fore and aft of them, exactly as the
-          // walkers always have been.
+          // Departing walkers, escorted arrivals and the
+          // host himself share the one floor order: all are
+          // sorted by where their feet stand and painted
+          // between the stations fore and aft of them,
+          // exactly as the walkers always have been.
           var movers = [];
           for (var mwi = 0; mwi < walkers.length; mwi++) movers.push({ y: walkerPose(walkers[mwi]).y, w: walkers[mwi] });
           for (var mai = 0; mai < arrivals.length; mai++) movers.push({ y: arrivalPose(arrivals[mai]).y, a: arrivals[mai] });
+          movers.push({ y: host.y, h: host });
           movers.sort(function (a, b) { return a.y - b.y; });
           var wi2 = 0;
           for (var j = 0; j < tables.length; j++) {
             var stj = tables[j];
             while (wi2 < movers.length && movers[wi2].y <= stj.y) {
               if (movers[wi2].w) drawWalker(movers[wi2].w, nowMs);
-              else drawArrival(movers[wi2].a, nowMs);
+              else if (movers[wi2].a) drawArrival(movers[wi2].a, nowMs);
+              else drawHost(nowMs);
               wi2++;
             }
             if (stj.kind === "booth") drawBooth(stj, nowMs);
@@ -5859,9 +6308,17 @@
           }
           while (wi2 < movers.length) {
             if (movers[wi2].w) drawWalker(movers[wi2].w, nowMs);
-            else drawArrival(movers[wi2].a, nowMs);
+            else if (movers[wi2].a) drawArrival(movers[wi2].a, nowMs);
+            else drawHost(nowMs);
             wi2++;
           }
+          // The entrance scene stands at the floor's front
+          // edge, in front of everything on the floor: the
+          // maître d's desk (over the maître d' himself,
+          // painted with the movers at his post behind it),
+          // the couple at the desk and the line behind
+          // them, trailing out the door.
+          drawEntrance(nowMs);
           drawWaiter(nowMs);
           drawFloats(nowMs);
           drawKitchenSign(nowMs);
@@ -5936,6 +6393,14 @@
             arrivals: arrivals.length,
             escortQueue: escortQueue.length,
             escorting: !!activeEscort,
+            hostState: host.state,
+            hostHome: { x: Math.round(host.homeX), y: Math.round(host.homeY) },
+            entranceMode: entrance.mode,
+            maitreDesk: { x: Math.round(entrance.deskX), y: Math.round(entrance.deskY) },
+            entranceCouple: entrance.couple.length,
+            entranceLine: entrance.line.length,
+            ticketAgeMs: ticketNum == null ? null : Math.max(0, performance.now() - lastTicketAt),
+            ticketDueInMs: nextTicketAt === Infinity ? null : Math.max(0, nextTicketAt - performance.now()),
             tableShows: tables.map(function (t) { return t.show ? t.show.name : null; }),
             waiterState: waiter.state,
             timeLeftMs: gameOn ? Math.max(0, timeLeftMs) : null,
