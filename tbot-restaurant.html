@@ -4828,6 +4828,78 @@
           ctx.textBaseline = "alphabetic";
         }
 
+        // ---------- The TBAR sign ----------
+        // The bar's own anchor sign, in the same house
+        // style as the KITCHEN sign above: the same dark
+        // plaque, the same gold trim and gold lettering, so
+        // the room's three anchors read as a set — KITCHEN
+        // at the pass (upper left), MAÎTRE D' at the
+        // entrance (upper right), TBAR at the bar. It hangs
+        // over the bar counter run (the consecutive run of
+        // bar stations — see stationKindAt), centred on the
+        // run's span and seated in the seam between two
+        // stations, in the band just above the bar guests'
+        // own reach (the layout's diner envelope,
+        // DINER_TOP_R, with its headroom, plus a small
+        // gap): the seam keeps it clear of every station's
+        // number plaque and show label, which ride at their
+        // station's centre, and of every seated guest, who
+        // sits at a centre too; the band keeps it clear of
+        // every guest's head; and the bar rows stand far
+        // below the pass and the HUD, so it never reaches
+        // either. Drawn live, after the stations and the
+        // KITCHEN sign, so nothing ever covers it.
+        function drawBarSign() {
+          var bars = [];
+          for (var i = 0; i < tables.length; i++) {
+            if (tables[i].kind === "bar") bars.push(tables[i]);
+          }
+          if (!bars.length) return;
+          var topY = Infinity, left = Infinity, right = -Infinity;
+          for (var bi = 0; bi < bars.length; bi++) {
+            var bt = bars[bi];
+            var bcw = Math.max((bt.cellW || 0) / 2 * 0.995, bt.r * 1.3);
+            if (bt.slotY < topY) topY = bt.slotY;
+            if (bt.x - bcw < left) left = bt.x - bcw;
+            if (bt.x + bcw > right) right = bt.x + bcw;
+          }
+          var cellW = bars[0].cellW || 0;
+          var cx = (left + right) / 2;
+          if (cellW > 0) {
+            // Snap the centre to the nearest counter seam
+            // inside the run (a multiple of the cell
+            // width): the seam is the one stretch of the
+            // run no guest, number plaque or label reaches.
+            var seam = Math.round(cx / cellW) * cellW;
+            if (seam > left + 4 && seam < right - 4) cx = seam;
+          }
+          ctx.font = "800 14px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+          var signW = ctx.measureText("TBAR").width + 26;
+          var signH = 24;
+          cx = clamp(cx, signW / 2 + 3, W - signW / 2 - 3);
+          // The band above the bar guests: the topmost bar
+          // row's diner envelope top (the same reach
+          // layoutTables fits into each cell), plus a gap.
+          var guestTop = topY - DINER_TOP_R * bars[0].r - 2;
+          var sy = guestTop - 6 - signH;
+          var minTop = hallDims().floorTop + 2;
+          if (sy < minTop) sy = minTop;
+          var sx = cx - signW / 2;
+          ctx.fillStyle = "#2a1a0c";
+          ctx.beginPath();
+          if (ctx.roundRect) ctx.roundRect(sx, sy, signW, signH, 6);
+          else ctx.rect(sx, sy, signW, signH);
+          ctx.fill();
+          ctx.strokeStyle = "rgba(201,162,77,0.75)";
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+          ctx.fillStyle = "#ffbe1a";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("TBAR", cx, sy + signH / 2 + 1);
+          ctx.textBaseline = "alphabetic";
+        }
+
         function addFloat(x, y, text, color) {
           floats.push({ x: x, y: y, text: text, color: color, t0: performance.now() });
           if (floats.length > 8) floats.shift();
@@ -6445,6 +6517,7 @@
           drawWaiter(nowMs);
           drawFloats(nowMs);
           drawKitchenSign(nowMs);
+          drawBarSign();
 
           requestAnimationFrame(frame);
         }
