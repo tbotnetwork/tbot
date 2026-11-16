@@ -2880,7 +2880,8 @@
         // party-leave re-deal — the same event that re-deals
         // the station numbers (see finishLeave) — DJ → PJ
         // Morton at the piano → Erykah Badu with the
-        // microphone → DJ, the incoming act taking the stage
+        // microphone → the rapper → the TBOT band → DJ,
+        // the incoming act taking the stage
         // as the new party is dealt. A fresh deal of the
         // floor (lobby load, Reset, a new shift) always
         // opens on the opening act again.
@@ -5259,6 +5260,13 @@
         //     him to the stage).
         //   "erykah-badu-mic" — Erykah Badu in her headwrap
         //     with a microphone, no piano.
+        //   "rapper-mic" — a TBOT rapper with a handheld
+        //     microphone, one hand on the mic at his face,
+        //     the other gesturing as he performs.
+        //   "tbot-band" — a small TBOT band: drums centre-
+        //     back, guitar and bass flanking, drawn compact
+        //     so all three figures and their instruments
+        //     stay inside the (shortened) stage footprint.
         // Every act's figure is a TBOT person of the guest
         // family — glossy black vinyl, adult proportions —
         // built to the current head standard (see
@@ -5275,12 +5283,14 @@
         // re-deals with the floor as always, and the stage
         // stays callable under whichever act is on it.
         var STAGE_OPENING_ACT = "dj-decks";
-        var STAGE_ACT_ORDER = ["dj-decks", "pj-morton-piano", "erykah-badu-mic"];
+        var STAGE_ACT_ORDER = ["dj-decks", "pj-morton-piano", "erykah-badu-mic", "rapper-mic", "tbot-band"];
         var STAGE_ACT_ID = STAGE_OPENING_ACT;
         var STAGE_ACTS = {
           "pj-morton-piano": { name: "PJ Morton at the piano", role: "PIANIST", draw: drawActPiano },
           "erykah-badu-mic": { name: "Erykah Badu — headwrap and microphone", role: "SINGER", draw: drawActBadu },
-          "dj-decks": { name: "The DJ on the decks", role: "DJ", roleDx: -0.38, draw: drawActDJ }
+          "dj-decks": { name: "The DJ on the decks", role: "DJ", roleDx: -0.38, draw: drawActDJ },
+          "rapper-mic": { name: "The rapper — handheld microphone", role: "RAPPER", draw: drawActRapper },
+          "tbot-band": { name: "The TBOT band — drums, guitar and bass", role: "BAND", draw: drawActBand }
         };
         // One step of the rotation, taken on the re-deal
         // event alone: the incoming act is named at once
@@ -5603,6 +5613,63 @@
           }
         }
 
+        // ACT — the rapper: a TBOT performer in a wide,
+        // grounded performing stance, a HANDHELD microphone
+        // in the hand raised to his face, his free arm out
+        // gesturing on the phrase as he rides the beat with
+        // a low bounce. No wrap and no stand — the mic is in
+        // his hand, which is what sets him apart from the
+        // singer. Everything stays well inside the stage:
+        // his widest point, the gesturing hand, reaches
+        // about 0.62u from centre.
+        function drawActRapper(env) {
+          var u = env.u, cx = env.cx, fy = env.platTop, nowMs = env.nowMs;
+          var bounce = -Math.abs(Math.sin(nowMs / 280)) * u * 0.04 -
+            (env.happyT > 0 ? Math.sin(env.happyT * Math.PI) * u * 0.07 : 0);
+          var sway = Math.sin(nowMs / 760) * 0.03;
+          ctx.save();
+          ctx.translate(cx, fy + bounce);
+          ctx.rotate(sway);
+          ctx.translate(-cx, -fy);
+          // Legs, planted wide on the platform.
+          ctx.strokeStyle = "#101014";
+          ctx.lineCap = "round";
+          ctx.lineWidth = u * 0.115;
+          ctx.beginPath();
+          ctx.moveTo(cx - u * 0.09, fy - u * 0.80); ctx.lineTo(cx - u * 0.24, fy - u * 0.02);
+          ctx.moveTo(cx + u * 0.09, fy - u * 0.80); ctx.lineTo(cx + u * 0.25, fy - u * 0.02);
+          ctx.stroke();
+          drawActTorso(cx, fy - u * 1.44, fy - u * 0.76, u * 0.28);
+          // The free arm, gesturing out on the phrase.
+          var gest = Math.sin(nowMs / 520) * u * 0.06;
+          drawActArm(cx - u * 0.26, fy - u * 1.38, cx - u * 0.47, fy - u * 1.20, cx - u * 0.56, fy - u * 1.00 + gest, u * 0.10);
+          // The mic arm, bent up so the hand rides at his
+          // face, the microphone in it.
+          drawActArm(cx + u * 0.26, fy - u * 1.38, cx + u * 0.45, fy - u * 1.34, cx + u * 0.23, fy - u * 1.60, u * 0.10);
+          drawActHead(cx, fy - u * 1.72, u * 0.55, nowMs, false);
+          // The handheld microphone: a short handle running
+          // from his hand up toward his mouth, ball on top.
+          ctx.strokeStyle = "#26262b";
+          ctx.lineWidth = Math.max(1.6, u * 0.05);
+          ctx.lineCap = "round";
+          ctx.beginPath(); ctx.moveTo(cx + u * 0.25, fy - u * 1.57); ctx.lineTo(cx + u * 0.13, fy - u * 1.68); ctx.stroke();
+          ctx.fillStyle = "#3c3f46";
+          ctx.beginPath(); ctx.arc(cx + u * 0.115, fy - u * 1.695, u * 0.066, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "rgba(255,255,255,0.5)";
+          ctx.beginPath(); ctx.arc(cx + u * 0.095, fy - u * 1.715, u * 0.021, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+          if (env.happyT > 0) {
+            ctx.save();
+            ctx.globalAlpha = clamp(env.happyT * 1.4, 0, 1) * 0.9;
+            ctx.fillStyle = "#ffd166";
+            ctx.font = "700 " + Math.round(u * 0.4) + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("♪", cx - u * 0.62, fy - u * 2.02 + (1 - env.happyT) * u * 0.2);
+            ctx.fillText("♫", cx + u * 0.58, fy - u * 2.08 + (1 - env.happyT) * u * 0.26);
+            ctx.restore();
+          }
+        }
+
         // ACT — the DJ on the decks (the launch act): the
         // DJ's table runs the LONG WAY along the left side
         // of the stage (John's ruling, 2026-11-16: "Make
@@ -5706,6 +5773,153 @@
           }
         }
 
+        // ACT — the TBOT band: three TBOT figures in a
+        // COMPACT arrangement built for the shortened
+        // stage — the drummer centre-back behind his kit,
+        // the guitarist and the bassist flanking him,
+        // standing grounded on the platform. Every figure
+        // is drawn at band scale (heads 0.40u wide against
+        // the solo acts' 0.54–0.56u) and every part is
+        // measured to stay inside the platform: the flank
+        // figures stand at ±1.02u, their guitar necks point
+        // up and OUT (never across the drummer), and the
+        // widest points of the whole act — the neck tips at
+        // ±1.47u and the crash cymbal at +0.73u — sit inside
+        // the stage's half width at every size (the half
+        // width never falls below ≈1.65u where the layout
+        // clamps bite — see drawActDJ's note). The kit sits
+        // on the platform, the flankers' feet stand on it,
+        // and the BAND plate and the number stand keep
+        // their seats, clear of the act. Each player keeps
+        // a subtle motion on the room's clock: the drummer's
+        // sticks alternate, the guitarist strums, the
+        // bassist plucks, and all three sway a touch out of
+        // phase with each other.
+        function drawActBand(env) {
+          var u = env.u, cx = env.cx, fy = env.platTop, nowMs = env.nowMs;
+          var happyBounce = env.happyT > 0 ? -Math.sin(env.happyT * Math.PI) * u * 0.05 : 0;
+
+          // One standing flank player — guitar (dir −1, on
+          // the left) or bass (dir +1, on the right) — his
+          // instrument held close, its neck up and outward.
+          function drawBandMate(mx, dir, phase, bodyColor) {
+            var sway = Math.sin(nowMs / 850 + phase) * 0.022;
+            ctx.save();
+            ctx.translate(mx, fy + happyBounce);
+            ctx.rotate(sway);
+            ctx.translate(-mx, -fy);
+            // Legs, grounded on the platform.
+            ctx.strokeStyle = "#101014";
+            ctx.lineCap = "round";
+            ctx.lineWidth = u * 0.095;
+            ctx.beginPath();
+            ctx.moveTo(mx - u * 0.07, fy - u * 0.54); ctx.lineTo(mx - u * 0.11, fy - u * 0.02);
+            ctx.moveTo(mx + u * 0.07, fy - u * 0.54); ctx.lineTo(mx + u * 0.12, fy - u * 0.02);
+            ctx.stroke();
+            drawActTorso(mx, fy - u * 1.06, fy - u * 0.52, u * 0.20);
+            drawActHead(mx, fy - u * 1.30, u * 0.40, nowMs, false);
+            // The instrument: a compact body at his hip and
+            // a neck running up and OUT, away from the kit.
+            var bodyX = mx + dir * u * 0.04, bodyY = fy - u * 0.60;
+            var neckX = mx + dir * u * 0.40, neckY = fy - u * 0.95;
+            ctx.strokeStyle = "#241a12";
+            ctx.lineCap = "round";
+            ctx.lineWidth = Math.max(1.4, u * 0.045);
+            ctx.beginPath(); ctx.moveTo(bodyX, bodyY - u * 0.04); ctx.lineTo(neckX, neckY); ctx.stroke();
+            ctx.fillStyle = "#17130e";
+            ctx.beginPath(); ctx.arc(neckX, neckY, u * 0.045, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = bodyColor;
+            ctx.beginPath(); ctx.ellipse(bodyX, bodyY, u * 0.19, u * 0.145, dir * 0.5, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+            ctx.beginPath(); ctx.arc(bodyX + dir * u * 0.03, bodyY, u * 0.055, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "rgba(255, 240, 214, 0.20)";
+            ctx.beginPath(); ctx.ellipse(bodyX - dir * u * 0.06, bodyY - u * 0.07, u * 0.07, u * 0.035, dir * 0.5, 0, Math.PI * 2); ctx.fill();
+            // The neck hand, up the neck.
+            drawActArm(mx + dir * u * 0.18, fy - u * 1.00, mx + dir * u * 0.30, fy - u * 0.90, mx + dir * u * 0.335, fy - u * 0.905, u * 0.082);
+            // The playing hand, working the strings over
+            // the body — strumming / plucking on the clock.
+            var play = Math.sin(nowMs / 210 + phase) * u * 0.026;
+            drawActArm(mx - dir * u * 0.18, fy - u * 1.00, mx - dir * u * 0.04, fy - u * 0.80, bodyX - dir * u * 0.02, bodyY - u * 0.03 + play, u * 0.082);
+            ctx.restore();
+          }
+
+          // The drummer, centre-back: torso and head behind
+          // the kit, bouncing a touch on the beat.
+          var dBounce = Math.sin(nowMs / 460) * u * 0.012 + happyBounce;
+          drawActTorso(cx, fy - u * 1.16 + dBounce, fy - u * 0.60 + dBounce, u * 0.21);
+          drawActHead(cx, fy - u * 1.40 + dBounce, u * 0.40, nowMs, false);
+          // The kit, standing on the platform: cymbal stands
+          // first, then the kick, the snare and the tom.
+          ctx.strokeStyle = "#3a3a41";
+          ctx.lineWidth = Math.max(1, u * 0.025);
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(cx - u * 0.50, fy - u * 0.78); ctx.lineTo(cx - u * 0.50, fy - u * 0.02);
+          ctx.moveTo(cx + u * 0.52, fy - u * 0.90); ctx.lineTo(cx + u * 0.52, fy - u * 0.02);
+          ctx.stroke();
+          // The kick drum.
+          ctx.fillStyle = "#26232a";
+          ctx.beginPath(); ctx.arc(cx, fy - u * 0.27, u * 0.26, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = "rgba(201, 162, 39, 0.75)";
+          ctx.lineWidth = Math.max(1, u * 0.022);
+          ctx.beginPath(); ctx.arc(cx, fy - u * 0.27, u * 0.26, 0, Math.PI * 2); ctx.stroke();
+          ctx.fillStyle = "#17161a";
+          ctx.beginPath(); ctx.arc(cx, fy - u * 0.27, u * 0.185, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#c9a227";
+          ctx.beginPath(); ctx.arc(cx, fy - u * 0.27, u * 0.045, 0, Math.PI * 2); ctx.fill();
+          // The snare (left) and the tom (right): pale heads
+          // on dark shells, either side of the kick's top.
+          var drumHeads = [[-0.31, 0.50], [0.33, 0.53]];
+          for (var dhi = 0; dhi < drumHeads.length; dhi++) {
+            var dhx = cx + drumHeads[dhi][0] * u, dhy = fy - drumHeads[dhi][1] * u;
+            ctx.fillStyle = "#1d1c22";
+            ctx.fillRect(dhx - u * 0.15, dhy, u * 0.30, u * 0.085);
+            ctx.fillStyle = "#efe9da";
+            ctx.beginPath(); ctx.ellipse(dhx, dhy, u * 0.15, u * 0.052, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = "rgba(201, 162, 39, 0.6)";
+            ctx.lineWidth = Math.max(0.8, u * 0.016);
+            ctx.beginPath(); ctx.ellipse(dhx, dhy, u * 0.15, u * 0.052, 0, 0, Math.PI * 2); ctx.stroke();
+          }
+          // The cymbals: hi-hat left, crash right, in gold.
+          ctx.fillStyle = "#d9a92e";
+          ctx.beginPath(); ctx.ellipse(cx - u * 0.50, fy - u * 0.80, u * 0.19, u * 0.034, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "rgba(120, 72, 0, 0.45)";
+          ctx.beginPath(); ctx.ellipse(cx - u * 0.50, fy - u * 0.815, u * 0.19, u * 0.02, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.save();
+          ctx.translate(cx + u * 0.52, fy - u * 0.92);
+          ctx.rotate(-0.12);
+          ctx.fillStyle = "#d9a92e";
+          ctx.beginPath(); ctx.ellipse(0, 0, u * 0.21, u * 0.038, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "rgba(255, 244, 200, 0.5)";
+          ctx.beginPath(); ctx.ellipse(-u * 0.05, -u * 0.012, u * 0.08, u * 0.014, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+          // His arms over the kit, the sticks alternating on
+          // the clock — left to the snare, right to the tom.
+          var hit1 = Math.sin(nowMs / 230) * u * 0.03, hit2 = Math.sin(nowMs / 230 + Math.PI) * u * 0.03;
+          drawActArm(cx - u * 0.19, fy - u * 1.10 + dBounce, cx - u * 0.30, fy - u * 0.82 + dBounce, cx - u * 0.29, fy - u * 0.60 + hit1, u * 0.082);
+          drawActArm(cx + u * 0.19, fy - u * 1.10 + dBounce, cx + u * 0.31, fy - u * 0.82 + dBounce, cx + u * 0.31, fy - u * 0.63 + hit2, u * 0.082);
+          ctx.strokeStyle = "#c9a86a";
+          ctx.lineWidth = Math.max(1, u * 0.022);
+          ctx.beginPath();
+          ctx.moveTo(cx - u * 0.29, fy - u * 0.60 + hit1); ctx.lineTo(cx - u * 0.33, fy - u * 0.50 + hit1);
+          ctx.moveTo(cx + u * 0.31, fy - u * 0.63 + hit2); ctx.lineTo(cx + u * 0.36, fy - u * 0.53 + hit2);
+          ctx.stroke();
+          // The flankers: guitar left in warm wood, bass
+          // right in deep blue, swaying out of phase.
+          drawBandMate(cx - u * 1.02, -1, 0, "#b35c2e");
+          drawBandMate(cx + u * 1.02, 1, 2.1, "#3e6b8a");
+          if (env.happyT > 0) {
+            ctx.save();
+            ctx.globalAlpha = clamp(env.happyT * 1.4, 0, 1) * 0.9;
+            ctx.fillStyle = "#ffd166";
+            ctx.font = "700 " + Math.round(u * 0.38) + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("♪", cx - u * 1.05, fy - u * 1.78 + (1 - env.happyT) * u * 0.2);
+            ctx.fillText("♫", cx + u * 1.05, fy - u * 1.84 + (1 - env.happyT) * u * 0.26);
+            ctx.restore();
+          }
+        }
+
         // The act's ROLE PLATE: a small name plate centred
         // under the act, on the stage's front face — gold
         // lettering on a dark plate, the KITCHEN sign's and
@@ -5713,7 +5927,8 @@
         // fine gold trim, #ffbe1a letters) — reading the
         // current act's role from STAGE_ACTS (DJ under the
         // decks, PIANIST under the piano, SINGER under the
-        // microphone). It is part of the act unit: drawStage
+        // microphone, RAPPER under the rapper, BAND under
+        // the band). It is part of the act unit: drawStage
         // paints it with the act, so it swaps on the same
         // turnover beat as the act itself. Its seat is the
         // platform's front face: its top edge sits just
