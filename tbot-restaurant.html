@@ -5258,9 +5258,9 @@
         var STAGE_ACT_ORDER = ["dj-decks", "pj-morton-piano", "erykah-badu-mic"];
         var STAGE_ACT_ID = STAGE_OPENING_ACT;
         var STAGE_ACTS = {
-          "pj-morton-piano": { name: "PJ Morton at the piano", draw: drawActPiano },
-          "erykah-badu-mic": { name: "Erykah Badu — headwrap and microphone", draw: drawActBadu },
-          "dj-decks": { name: "The DJ on the decks", draw: drawActDJ }
+          "pj-morton-piano": { name: "PJ Morton at the piano", role: "PIANIST", draw: drawActPiano },
+          "erykah-badu-mic": { name: "Erykah Badu — headwrap and microphone", role: "SINGER", draw: drawActBadu },
+          "dj-decks": { name: "The DJ on the decks", role: "DJ", roleDx: -0.38, draw: drawActDJ }
         };
         // One step of the rotation, taken on the re-deal
         // event alone: the incoming act is named at once
@@ -5584,67 +5584,152 @@
         }
 
         // ACT — the DJ on the decks (the launch act): the
-        // DJ standing at
-        // a pair of turntables, hands on the discs, riding
-        // the track with a gentle bounce.
+        // DJ's table runs the LONG WAY along the left side
+        // of the stage (John's ruling, 2026-11-16: "Make
+        // the DJ table go the long way on the left side
+        // but still facing the tables") — its long axis
+        // runs VERTICALLY, parallel to the left wall, along
+        // the stage's left edge, the two turntables and the
+        // mixer spaced along that vertical run. The DJ
+        // stands BEHIND the table on the WALL side (to its
+        // left), still FACING THE TABLES — facing right,
+        // into the room — his arms reaching right onto the
+        // discs, riding the track with a gentle bounce.
+        // The whole unit stays inside the stage footprint:
+        // the DJ's head (centre djX, half width 0.28u) is
+        // the unit's leftmost point at cx - 1.36u, inside
+        // the stage's half width at every size (u is 0.30
+        // of the stage width before its clamps, and where
+        // the clamps bite the stage only gets wider for the
+        // same u), and the table's room-facing edge at
+        // cx - 0.07u leaves the stage's right half, the
+        // number stand and the serve point untouched. The
+        // act's role plate follows the table: it centres on
+        // the table's own x (see roleDx in STAGE_ACTS).
         function drawActDJ(env) {
           var u = env.u, cx = env.cx, fy = env.platTop, nowMs = env.nowMs;
           var bounce = -Math.abs(Math.sin(nowMs / 300)) * u * 0.035 -
             (env.happyT > 0 ? Math.sin(env.happyT * Math.PI) * u * 0.07 : 0);
-          var deckTop = fy - u * 0.60;
-          // The DJ, behind the decks: torso and head,
-          // bouncing on the beat.
+          var djX = cx - u * 1.08;
+          var tableX = cx - u * 0.38;
+          var tableTop = fy - u * 1.62, tableBot = fy - u * 0.02;
+          var discY1 = fy - u * 1.28, discY2 = fy - u * 0.36;
+          // The DJ, behind the table: torso and head on the
+          // wall side, bouncing on the beat, facing right
+          // into the room.
           ctx.save();
           ctx.translate(0, bounce);
-          drawActTorso(cx, fy - u * 1.26, fy - u * 0.56, u * 0.30);
-          drawActHead(cx, fy - u * 1.52, u * 0.56, nowMs, false);
+          // His legs, on the platform behind the table, so
+          // he stands grounded on the wall side.
+          ctx.strokeStyle = "#101014";
+          ctx.lineCap = "round";
+          ctx.lineWidth = u * 0.115;
+          ctx.beginPath();
+          ctx.moveTo(djX - u * 0.10, fy - u * 0.60); ctx.lineTo(djX - u * 0.13, fy - u * 0.02);
+          ctx.moveTo(djX + u * 0.10, fy - u * 0.60); ctx.lineTo(djX + u * 0.14, fy - u * 0.02);
+          ctx.stroke();
+          drawActTorso(djX, fy - u * 1.26, fy - u * 0.56, u * 0.30);
+          drawActHead(djX, fy - u * 1.52, u * 0.56, nowMs, false);
           ctx.restore();
-          // The decks: a dark counter with two turntables
-          // and the mixer between them.
-          var dGrad = ctx.createLinearGradient(0, deckTop, 0, fy);
-          dGrad.addColorStop(0, "#33323a");
-          dGrad.addColorStop(1, "#101013");
+          // The table: a dark counter whose LONG axis runs
+          // vertically along the stage's left edge — a tall,
+          // narrow slab (1.60u long, 0.62u across) with its
+          // gold trim on the long room-facing edge.
+          var dGrad = ctx.createLinearGradient(tableX - u * 0.31, 0, tableX + u * 0.31, 0);
+          dGrad.addColorStop(0, "#101013");
+          dGrad.addColorStop(1, "#33323a");
           ctx.fillStyle = dGrad;
-          rrPath(cx - u * 1.32, deckTop, u * 2.64, fy - deckTop, Math.min(5, u * 0.08));
+          rrPath(tableX - u * 0.31, tableTop, u * 0.62, tableBot - tableTop, Math.min(5, u * 0.08));
           ctx.fill();
           ctx.fillStyle = "#c9a227";
-          ctx.fillRect(cx - u * 1.32, deckTop, u * 2.64, Math.max(1.4, u * 0.03));
-          for (var di = -1; di <= 1; di += 2) {
-            var dx = cx + di * u * 0.70;
+          ctx.fillRect(tableX + u * 0.28, tableTop, Math.max(1.4, u * 0.03), tableBot - tableTop);
+          ctx.fillRect(tableX - u * 0.31, tableTop, u * 0.62, Math.max(1.4, u * 0.03));
+          // The two turntables, spaced along the vertical
+          // run, their records turning on the frame clock.
+          var discYs = [discY1, discY2];
+          for (var di = 0; di < 2; di++) {
+            var dy = discYs[di];
             ctx.fillStyle = "#1c1c21";
-            ctx.beginPath(); ctx.ellipse(dx, deckTop + u * 0.10, u * 0.34, u * 0.085, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(tableX, dy, u * 0.23, 0, Math.PI * 2); ctx.fill();
             ctx.strokeStyle = "rgba(255, 240, 214, 0.25)";
             ctx.lineWidth = Math.max(0.8, u * 0.014);
-            ctx.beginPath(); ctx.ellipse(dx, deckTop + u * 0.10, u * 0.24, u * 0.058, 0, 0, Math.PI * 2); ctx.stroke();
-            // The record turning: a lit mark riding the
-            // disc's rim on the frame clock.
+            ctx.beginPath(); ctx.arc(tableX, dy, u * 0.165, 0, Math.PI * 2); ctx.stroke();
             var ang = nowMs / 420 + di * 1.7;
             ctx.fillStyle = "#e5322d";
-            ctx.beginPath(); ctx.arc(dx + Math.cos(ang) * u * 0.27, deckTop + u * 0.10 + Math.sin(ang) * u * 0.066, Math.max(1.2, u * 0.028), 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(tableX + Math.cos(ang) * u * 0.185, dy + Math.sin(ang) * u * 0.185, Math.max(1.2, u * 0.028), 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = "#f7f3e8";
-            ctx.beginPath(); ctx.ellipse(dx, deckTop + u * 0.10, u * 0.045, u * 0.014, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(tableX, dy, Math.max(1.2, u * 0.04), 0, Math.PI * 2); ctx.fill();
           }
-          // The mixer, centre, with its faders.
+          // The mixer, midway along the run between the
+          // decks, with its faders.
           ctx.fillStyle = "#26252c";
-          ctx.fillRect(cx - u * 0.17, deckTop + u * 0.03, u * 0.34, u * 0.15);
+          ctx.fillRect(tableX - u * 0.18, fy - u * 0.97, u * 0.36, u * 0.30);
           ctx.fillStyle = "#e3c268";
           for (var fi = -1; fi <= 1; fi++) {
-            ctx.fillRect(cx + fi * u * 0.09 - u * 0.012, deckTop + u * (0.06 + (fi + 1) * 0.03), u * 0.024, u * 0.03);
+            ctx.fillRect(tableX + fi * u * 0.09 - u * 0.012, fy - u * (0.90 - (fi + 1) * 0.05), u * 0.024, u * 0.05);
           }
-          // His arms, down to the discs, hands riding the
-          // records as they turn.
-          drawActArm(cx - u * 0.27, fy - u * 1.20 + bounce, cx - u * 0.52, fy - u * 0.92 + bounce, cx - u * 0.66, deckTop + u * 0.08, u * 0.10);
-          drawActArm(cx + u * 0.27, fy - u * 1.20 + bounce, cx + u * 0.52, fy - u * 0.92 + bounce, cx + u * 0.74, deckTop + u * 0.08, u * 0.10);
+          // His arms, reaching RIGHT from his shoulders
+          // across to the discs — he works the decks from
+          // the wall side, facing the tables — hands riding
+          // the records as they turn.
+          drawActArm(djX + u * 0.24, fy - u * 1.20 + bounce, djX + u * 0.52, fy - u * 1.26 + bounce, tableX - u * 0.04, discY1 + u * 0.04, u * 0.10);
+          drawActArm(djX + u * 0.26, fy - u * 1.14 + bounce, djX + u * 0.54, fy - u * 0.80 + bounce, tableX - u * 0.04, discY2 + u * 0.04, u * 0.10);
           if (env.happyT > 0) {
             ctx.save();
             ctx.globalAlpha = clamp(env.happyT * 1.4, 0, 1) * 0.9;
             ctx.fillStyle = "#ffd166";
             ctx.font = "700 " + Math.round(u * 0.4) + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
             ctx.textAlign = "center";
-            ctx.fillText("♪", cx - u * 0.85, fy - u * 1.95 + (1 - env.happyT) * u * 0.2);
-            ctx.fillText("♫", cx + u * 0.9, fy - u * 2.0 + (1 - env.happyT) * u * 0.26);
+            ctx.fillText("♪", djX - u * 0.15, fy - u * 1.95 + (1 - env.happyT) * u * 0.2);
+            ctx.fillText("♫", tableX + u * 0.55, fy - u * 1.75 + (1 - env.happyT) * u * 0.26);
             ctx.restore();
           }
+        }
+
+        // The act's ROLE PLATE: a small name plate centred
+        // under the act, on the stage's front face — gold
+        // lettering on a dark plate, the KITCHEN sign's and
+        // the TBAR plaque's own treatment (#2a1a0c panel,
+        // fine gold trim, #ffbe1a letters) — reading the
+        // current act's role from STAGE_ACTS (DJ under the
+        // decks, PIANIST under the piano, SINGER under the
+        // microphone). It is part of the act unit: drawStage
+        // paints it with the act, so it swaps on the same
+        // turnover beat as the act itself. Its seat is the
+        // platform's front face: its top edge sits just
+        // below the platform's gold trim (platTop + 3), so
+        // it never touches the act, the decks, the piano or
+        // the singer above the platform top, and where the
+        // thin face cannot hold its full height it hangs a
+        // few pixels over the platform's bottom edge, still
+        // inside the stage's own footprint and the 24px
+        // reserve layoutStage keeps below the stage — clear
+        // of the number stand on the room-facing edge
+        // (centred on the stage, the stand far to its right
+        // at every stage width) and of every station (the
+        // floor grid starts right of the whole stage band).
+        // The lettering never steps below 11px, so the role
+        // reads at phone widths as well as on desktop.
+        function drawStageRolePlate(role, cx, platTop, u) {
+          if (!role) return;
+          var fontPx = clamp(Math.round(u * 0.34), 11, 12);
+          ctx.font = "800 " + fontPx + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+          var plaqueW = ctx.measureText(role).width + 22;
+          var plaqueH = Math.round(fontPx * 1.66);
+          var px0 = cx - plaqueW / 2, py0 = platTop + 3;
+          ctx.fillStyle = "#2a1a0c";
+          ctx.beginPath();
+          if (ctx.roundRect) ctx.roundRect(px0, py0, plaqueW, plaqueH, Math.min(6, plaqueH * 0.28));
+          else ctx.rect(px0, py0, plaqueW, plaqueH);
+          ctx.fill();
+          ctx.strokeStyle = "rgba(201, 162, 77, 0.85)";
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+          ctx.fillStyle = "#ffbe1a";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(role, cx, py0 + plaqueH / 2 + Math.max(0.6, fontPx * 0.05));
+          ctx.textBaseline = "alphabetic";
         }
 
         // The stage itself, painted live each frame (after
@@ -5728,14 +5813,17 @@
             ctx.globalAlpha = 1 - swapP;
             ctx.translate(-swapP * st.u * 0.9, 0);
             STAGE_ACTS[st.prevActId].draw({ cx: cx, platTop: platTop - 3, u: st.u, nowMs: nowMs, happyT: 0 });
+            drawStageRolePlate(STAGE_ACTS[st.prevActId].role, cx + (STAGE_ACTS[st.prevActId].roleDx || 0) * st.u, platTop, st.u);
             ctx.restore();
             ctx.save();
             ctx.globalAlpha = swapP;
             ctx.translate(-(1 - swapP) * st.u * 0.6, 0);
             act.draw({ cx: cx, platTop: platTop - 3, u: st.u, nowMs: nowMs, happyT: st.happyT });
+            drawStageRolePlate(act.role, cx + (act.roleDx || 0) * st.u, platTop, st.u);
             ctx.restore();
           } else {
             act.draw({ cx: cx, platTop: platTop - 3, u: st.u, nowMs: nowMs, happyT: st.happyT });
+            drawStageRolePlate(act.role, cx + (act.roleDx || 0) * st.u, platTop, st.u);
           }
           // A served plate on the stage's front edge, while
           // the serve beat plays.
@@ -7517,6 +7605,7 @@
             tableCount: tables.length,
             tableKinds: tables.map(function (t) { return t.kind || "table"; }),
             stageAct: STAGE_ACT_ID,
+            stageRole: (STAGE_ACTS[STAGE_ACT_ID] || {}).role || null,
             stagePrevAct: stageStation.prevActId,
             stageSwap: Math.round(stageStation.swapT * 100) / 100,
             stageNumber: stageStation.number,
