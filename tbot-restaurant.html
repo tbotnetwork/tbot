@@ -732,7 +732,7 @@
     </style>
   </head>
   <body>
-    <canvas id="stage" aria-label="A grand dining room at sunset, its photograph combined from the world's great three-star restaurants: a coffered wood ceiling with lantern pendants, portraits and a great wave canvas on the walls, a glass wall over a harbour at sunset, a kitchen pass at the upper left of the room, a maître d's desk at the upper right with a couple checking in and a line waiting behind them, and numbered tables, booths and bar seats of TBOT guests. You are the waiter — tap the station wearing the number the kitchen calls. When a party leaves, the numbers change."></canvas>
+    <canvas id="stage" aria-label="A grand dining room at sunset, its photograph combined from the world's great three-star restaurants: a coffered wood ceiling with lantern pendants, portraits and a great wave canvas on the walls, a glass wall over a harbour at sunset, a bar at the upper left of the room, an open kitchen on the lower floor, a maître d's desk at the upper right with a couple checking in and a line waiting behind them, and numbered tables, booths and bar seats of TBOT guests. You are the waiter — tap the station wearing the number the kitchen calls. When a party leaves, the numbers change."></canvas>
 
     <!-- Background music: the last 17 seconds of "Velvet Rot" by
          Kimo (the series track), looped behind the game. Sound
@@ -2570,10 +2570,10 @@
         }
 
         // The shift's last call: in the final five seconds
-        // no new plate runs leave the pass, and a waiter
-        // already out on the floor is recalled — he stands
-        // at his post behind the steel, under the KITCHEN
-        // sign, until the winner card appears. (Serves in
+        // no new plate runs leave the open kitchen, and a
+        // waiter already out on the floor is recalled — he
+        // stands at his post at the open kitchen, under
+        // the KITCHEN sign, until the winner card appears. (Serves in
         // those seconds still count exactly as always —
         // the tap is judged and the next ticket prints;
         // only the walk is held.) Without this, a plate run
@@ -2610,8 +2610,8 @@
         // at the desk or leading a party away from it. The
         // mascot waiter keeps his own duties exactly as
         // they were — the plate runs on serves and the
-        // final-five-seconds hold behind the steel — and
-        // never escorts. The host is one fixed figure (the
+        // final-five-seconds hold at the open kitchen —
+        // and never escorts. The host is one fixed figure (the
         // slim muscular man of the family), at the guests'
         // own scale, with his post at the maître d's desk
         // (see layoutEntrance).
@@ -3014,24 +3014,65 @@
           stageStation.r = Math.max(r0, 24);
         }
 
-        // The kitchen pass's height: the band stands at the
-        // back edge of the floor (see hallDims), its counter
-        // base on the floor line and its back wall rising
-        // this far in front of the glass's lower reach.
+        // The BAR's band height: the bar stands at the back
+        // edge of the floor (see hallDims), its counter base
+        // on the floor line and its back bar rising this far
+        // in front of the glass's lower reach. (This band was
+        // the kitchen pass's before the fixture swap —
+        // John's ruling, 2026-11-16: the bar takes the
+        // upper left, and an open kitchen takes the lower
+        // floor the bar vacated.)
         function kitchenH() { return clamp(H * 0.17, 96, 150); }
 
-        // The pass stands at the UPPER LEFT of the room: its
+        // The bar stands at the UPPER LEFT of the room: its
         // counter runs along the back edge of the floor for
         // this width from the left wall — wide enough to
-        // hold the steel, the plates and the waiter at his
-        // post behind it, and no wider. The rest of the back
-        // edge is the room's own glass, and the entrance
-        // stands at the back edge's right end (see
-        // layoutEntrance). Nothing of the kitchen sits
-        // anywhere else in the room, and nothing of any
-        // scene sits along the floor's front edge, where
-        // the control bar covers the stage.
+        // hold the back-bar shelves, the counter and the bar
+        // stations lined along it as its seats, and no
+        // wider. The rest of the back edge is the room's own
+        // glass, and the entrance stands at the back edge's
+        // right end (see layoutEntrance).
         function passWidth() { return clamp(W * 0.38, 190, 360); }
+
+        // How many of the floor's stations are bar seats:
+        // the last run of the deal (see stationKindAt) —
+        // about a third of the floor at any count of two or
+        // more, none below that.
+        function barCountFor(count) {
+          return count >= 2 ? Math.round(count / 3) : 0;
+        }
+
+        // The OPEN KITCHEN's height and footprint: a real
+        // open-kitchen set on the LOWER floor, in the area
+        // the bar run vacated — its run starts right of the
+        // stage's reserved band (so it stands clear of the
+        // stage on the left) and runs to the room's right
+        // edge, from its top edge down to the ground line
+        // above the control bar, so the whole set — back
+        // wall, hanging pans, chefs and counter — stays
+        // fully visible at phone widths, clear of the
+        // header at the top and the control bar at the
+        // bottom. The dealt grid ends above its top edge
+        // (see layoutTables).
+        function openKitchenH() { return clamp(H * 0.13, 88, 124); }
+        function openKitchenRect() {
+          var x0 = stageReserveW();
+          var gy = groundY();
+          return {
+            x0: x0, x1: W,
+            top: gy - openKitchenH(), bottom: gy,
+            cx: (x0 + W) / 2, h: openKitchenH()
+          };
+        }
+        // The two pots on the open kitchen's counter, one in
+        // front of each chef — shared by the cached room
+        // painting (which draws the pots) and the live steam
+        // over them (see drawOpenKitchen).
+        function openKitchenPotXs() {
+          var r = openKitchenRect();
+          var off = clamp((r.x1 - r.x0) * 0.20, 48, 190);
+          return [r.cx - off, r.cx + off];
+        }
 
         // ---------- The diners: TBOT people, men and women, all different sizes ----------
         // Every seated guest is a TBOT person with a sex and a
@@ -3154,6 +3195,16 @@
         function gridRows(count) {
           return Math.max(1, Math.ceil(count / gridCols(count)));
         }
+        // The dealt grid's row count under the fixture
+        // swap: the grid carries only the NON-bar stations
+        // (the bar stations line the bar counter at the
+        // upper left — see layoutTables), laid out at the
+        // column count the floor's full deal has always
+        // used.
+        function gridRowsFor(total) {
+          var nb = Math.max(total - barCountFor(total), 1);
+          return Math.max(1, Math.ceil(nb / gridCols(Math.max(total, 1))));
+        }
         // Which kind of station stands at each slot: the
         // floor is a bar & grill — round TABLES (exactly as
         // they have always been), high-back BOOTHS, and BAR
@@ -3179,9 +3230,30 @@
         function layoutTables() {
           var count = tables.length;
           var top = hallDims().floorTop;
-          var bottom = groundY();
-          var cols = gridCols(count);
-          var rows = gridRows(count);
+          var barCount = barCountFor(count);
+          var nonBar = count - barCount;
+          // The fixture swap (John's ruling, 2026-11-16):
+          // the BAR stands at the UPPER LEFT, where the
+          // kitchen pass stood — its counter runs along the
+          // back edge for passWidth() and the bar stations
+          // line that counter as its seats (see the bar
+          // branch in the loop below) — and the OPEN KITCHEN
+          // stands on the LOWER floor, in the area the bar
+          // run vacated, right of the stage's band. The
+          // dealt grid (tables and booths) reserves BOTH
+          // footprints: it starts below the bar stations'
+          // labels under the back edge and ends above the
+          // open kitchen's top edge, and it starts right of
+          // the stage's reserved band as always — so no
+          // dealt station ever sits under or behind the
+          // bar, the open kitchen, or the stage, at the
+          // 6-station opening or the 16-station full house,
+          // on desktop or phone widths.
+          var okRect = openKitchenRect();
+          var gridTop = top + 34;
+          var gridBottom = okRect.top - 8;
+          var cols = gridCols(Math.max(count, 1));
+          var rows = Math.max(1, Math.ceil(Math.max(nonBar, 1) / cols));
           // The stage's footprint is carved out of the
           // floor: the stage stands against the LEFT wall
           // in the middle of the room (see layoutStage),
@@ -3190,69 +3262,56 @@
           // station ever sits under or behind the stage.
           var gridX0 = stageReserveW();
           var cellW = (W - gridX0) / cols;
-          // The cell pitch is the floor's real height divided
-          // by the rows — NEVER rounded up to a minimum: a
-          // minimum pitch is what pushed the front row past
-          // the ground line on short screens, off the visible
-          // stage and behind the phone's bottom chrome. When
-          // the floor is short the pitch compresses and the
-          // radius below compresses with it, so the grid
-          // always ends exactly at the ground line.
-          var cellH = Math.max((bottom - top) / rows, 1);
-          // The radius is fitted to the floor cell, not just
-          // the grid pitch: a dressed table reaches about
-          // DINER_TOP_R r + 2 above its centre (the seated
-          // guests at their LARGEST size, 2.35× — see
-          // drawTable — with headroom for their hop) and 0.92r + 19 below it (cloth, contact
-          // shadow, show label) — (DINER_TOP_R + 0.92)r + 21 of vertical room
-          // in all — so the fitted radius keeps the whole
-          // table standing on the floor, in front of the
-          // glass, never in it. And because a table reaches
-          // further above its centre than below it, each
-          // slot seats the table's whole silhouette centred
-          // in its cell, not the table's centre: slotOffY
-          // places the centre so the guests clear the
-          // floor's back edge by the same margin the label
-          // clears the ground line.
-          // The radius floor steps DOWN with the cell (to 5,
-          // reached only on the shortest stages): holding a
-          // 12px floor here would leave the silhouette taller
-          // than its compressed cell and spill the front row
-          // below the ground line again. The number tents do
-          // NOT step down with it — they are sized off a
-          // floored radius in drawTable, so the digits keep
-          // their enlarged readable size on a compressed
-          // floor.
-          // Sideways the fit is derived from the largest
-          // diner too: at 2.35× a diner's sprite spans
-          // DINER_SPAN_R (2.51r) from the table's centre (see
-          // drawTable), so the width factor steps down to
-          // 0.245 — the photographed people's real span then
-          // takes about 0.35 of the cell's width, still
-          // inside the half-pitch, and even the biggest
-          // neighbours never touch at 14 or 16.
+          // The cell pitch is the grid band's real height
+          // divided by the rows — NEVER rounded up to a
+          // minimum: a minimum pitch is what pushed the
+          // front row past the ground line on short
+          // screens. When the band is short the pitch
+          // compresses and the radius below compresses with
+          // it, so the grid always ends exactly at the open
+          // kitchen's edge.
+          var cellH = Math.max((gridBottom - gridTop) / rows, 1);
+          // The radius is fitted to the floor cell, exactly
+          // as it always was (see DINER_TOP_R / DINER_SPAN_R
+          // above): the whole silhouette — guests above the
+          // centre, cloth, contact shadow and show label
+          // below — fits inside its cell, so even the
+          // biggest diner never covers its number tent,
+          // never overlaps a neighbour, and the silhouette
+          // is centred in its cell by slotOffY.
           var tableR = clamp(Math.min(cellW * 0.245, (cellH - 21) / (DINER_TOP_R + 0.92)), 5, 60);
           var topExt = DINER_TOP_R * tableR + 2, botExt = 0.92 * tableR + 19;
           var slotOffY = topExt + (cellH - topExt - botExt) / 2;
+          var gi = 0, bi = 0;
+          var barSegW = barCount ? passWidth() / barCount : 0;
           for (var i = 0; i < tables.length; i++) {
-            // Each table owns a SLOT on the floor and keeps
-            // it for the whole round; its x/y ease toward
-            // the slot (see the frame loop) only after a
-            // resize or a Pack 'em moves the grid itself.
+            // Each station owns its place and keeps it for
+            // the whole round; its x/y ease toward the slot
+            // (see the frame loop) only after a resize or a
+            // Pack 'em moves the layout itself.
             if (tables[i].slot < 0) tables[i].slot = i;
-            var c = tables[i].slot % cols, r = Math.floor(tables[i].slot / cols);
-            tables[i].slotX = gridX0 + cellW * (c + 0.5);
-            tables[i].slotY = top + cellH * r + slotOffY;
-            // The cell's half-pitch: the rug under each
-            // setting (see drawTable) is capped at this, so
-            // neighbouring rugs never overlap however packed
-            // the floor gets.
-            tables[i].halfPitch = Math.min(cellW, cellH) / 2;
-            // The cell's width (the bar counter's run is
-            // measured against it — see drawBar) and the
-            // kind of station standing at this slot.
-            tables[i].cellW = cellW;
             tables[i].kind = stationKindAt(i, count);
+            if (tables[i].kind === "bar") {
+              // A bar station lines the bar counter at the
+              // upper left: its seat stands behind the
+              // counter — the counter's bottom on the floor
+              // line, exactly as drawBar paints it — and its
+              // segment of the counter run is one equal
+              // share of the bar's width, meeting its
+              // neighbours edge to edge as one long bar.
+              tables[i].slotX = barSegW * (bi + 0.5);
+              tables[i].slotY = top - tableR * 0.68;
+              tables[i].cellW = barSegW;
+              tables[i].halfPitch = Math.min(barSegW, cellH) / 2;
+              bi++;
+            } else {
+              var c = gi % cols, r = Math.floor(gi / cols);
+              tables[i].slotX = gridX0 + cellW * (c + 0.5);
+              tables[i].slotY = gridTop + cellH * r + slotOffY;
+              tables[i].cellW = cellW;
+              tables[i].halfPitch = Math.min(cellW, cellH) / 2;
+              gi++;
+            }
             if (!tables[i].placed) {
               tables[i].x = tables[i].slotX;
               tables[i].y = tables[i].slotY;
@@ -3260,12 +3319,14 @@
             }
             tables[i].r = tableR;
           }
-          waiter.homeX = passWidth() / 2;
-          // Home is the kitchen pass, which stands at the
-          // upper left of the room, along the back edge of
-          // the floor: the waiter waits just in front of its
-          // counter, behind the back row.
-          waiter.homeY = top - 14;
+          // Home is the OPEN KITCHEN on the lower floor:
+          // the waiter waits at its counter, at the centre
+          // of the kitchen's run, between the chefs — the
+          // post the kitchen's tickets print from, plates
+          // are picked up from, and the final-five-seconds
+          // hold stands at (see FINAL_CALL_MS).
+          waiter.homeX = okRect.cx;
+          waiter.homeY = okRect.bottom - 14;
           if (waiter.state === "pass") { waiter.x = waiter.homeX; waiter.y = waiter.homeY; }
           // The maître d's post is his desk at the
           // entrance: layoutEntrance places the desk, the
@@ -3366,7 +3427,7 @@
           // The floor line moves with the table count (a
           // packed floor runs deeper — see hallDims), so the
           // count is part of the cache key.
-          var key = W + "x" + H + "@" + DPR + "/" + groundY() + "/" + tables.length + (roomImgReady ? "/photo" : "/loading");
+          var key = W + "x" + H + "@" + DPR + "/" + groundY() + "/" + tables.length + (roomImgReady ? "/photo" : "/loading") + (W <= 820 ? "/clr" + Math.round(stageClearTop()) : "");
           if (!roomCache || roomCacheKey !== key) {
             roomCache = document.createElement("canvas");
             roomCache.width = Math.max(1, Math.round(W * DPR));
@@ -3451,7 +3512,7 @@
           // floorTop − kh) and every table still stands
           // below the sill; only the proportions above the
           // floor compress, never the floor itself.
-          var needFloor = gridRows(tables.length) * 69;
+          var needFloor = gridRowsFor(tables.length) * 69 + 34 + openKitchenH() + 8;
           var maxTop2 = gy - needFloor;
           if (floorTop > maxTop2) {
             var over = floorTop - maxTop2;
@@ -3474,53 +3535,12 @@
             if (over > 0) floorTop = Math.max(maxTop2, 0);
             winY0 = ceilH; // the glass starts under the (possibly compressed) ceiling band
           }
-          // THE CHANDELIER CLEARANCE: the two crystal
-          // chandeliers over the pass hang at fixed points
-          // of the pass's own stretch — its quarter and
-          // three-quarter points, in paintRoom —
-          // and the pair NEVER moves sideways. Sideways was
-          // the old answer, and it was the defect: whenever
-          // the KITCHEN sign over the waiter at the pass
-          // rose into the crystals' reach, a
-          // fixture was shoved toward its neighbour and the
-          // pair clustered, breaking the row's equal gaps.
-          // The clearance is made vertically instead, here:
-          // the sign's top at its pass spot (the waiter's
-          // home, 14px above the floor line, his sprite's
-          // head above that, the sign's 6px gap and 21px
-          // plaque above that) is measured against the
-          // fixtures' lowest point — a lower-tier crystal
-          // drop, or the finial, whichever hangs lower —
-          // and if the sign would reach it, the pass band
-          // grows taller by borrowing height from the glass
-          // (down to the same 52px floor the guarantee above
-          // uses), then from the ceiling band (floor 16) —
-          // while floorTop, the floor line every table
-          // stands on, does not move a pixel, and neither
-          // does any fixture. On any screen tall enough that
-          // the sign already clears the crystals — the usual
-          // case — nothing is borrowed and the room is
-          // exactly as it was. (The waiter has no other sign
-          // spot to measure: in the lobby he stands at this
-          // same pass spot, behind the steel, so the pass
-          // spot is the only one the sign ever takes over
-          // him.)
-          var sHeadOff = (bodySize() * 1.12 / SPRITE_BODY_FRAC) * SPRITE_ASPECT * SPRITE_BODY_CY;
-          var signTopAbs = floorTop - 14 - sHeadOff - 27;
-          var chHalfAbs = clamp(W * 0.085, 48, 84) * 0.46;
-          for (var cbi = 0; cbi < 8; cbi++) {
-            var pchHAbs = clamp(kh * 0.46, 34, 58);
-            var fixBotAbs = (floorTop - kh) + Math.max(pchHAbs * 0.80 + chHalfAbs * 0.18 + 7.3, pchHAbs * 0.90 + 5.5);
-            var cDeficit = fixBotAbs - (signTopAbs - 4);
-            if (cDeficit <= 0) break;
-            var cRoom = Math.max(0, winH - 52) + Math.max(0, ceilH - 16);
-            if (cRoom <= 0) break;
-            var cStep = Math.min(cDeficit, cRoom);
-            var cGlass = Math.min(cStep, Math.max(0, winH - 52));
-            winH -= cGlass; kh += cGlass;
-            var cCeil = cStep - cGlass;
-            if (cCeil > 0) { ceilH -= cCeil; kh += cCeil; winY0 = ceilH; }
-          }
+          // (No chandelier clearance is measured here any
+          // more: the two crystal chandeliers hung over the
+          // old kitchen pass, and the KITCHEN sign that had
+          // to clear them now stands over the open kitchen
+          // on the lower floor — see drawKitchenSign — far
+          // from any fixture over the bar.)
           return {
             kh: kh, gy: gy,
             ceilH: ceilH,
@@ -3613,212 +3633,257 @@
             ctx.fillRect(0, 0, W, H);
           }
 
-          // The kitchen pass: a steel counter standing at
-          // the back edge of the floor's LEFT stretch — the
-          // upper left of the room — its back wall rising
-          // in front of the glass's lower reach, two
-          // crystal chandeliers under its header beam, and
-          // the KITCHEN sign. The pass belongs to the room:
-          // the waiter works at it right behind the back
-          // row. The whole pass is painted inside its own
-          // stretch of the back edge (pwEnd): past its right
-          // end the room's glass runs on down to the floor
-          // line, and the entrance stands at the edge's far
-          // end (see layoutEntrance).
+          // The BAR: a dark-wood bar standing at the back
+          // edge of the floor's LEFT stretch — the upper
+          // left of the room, where the kitchen pass stood
+          // before the fixture swap (John's ruling,
+          // 2026-11-16) — its back bar rising in front of
+          // the glass's lower reach: bottle shelves under a
+          // dark header beam, and the counter's base along
+          // the floor line. The bar stations line this
+          // counter as its seats (see layoutTables): each
+          // paints its own segment of the counter run over
+          // this base, edge to edge as one long bar, and
+          // the TBAR plaque mounts on the counter's front
+          // face in this new home (see drawBarSign). The
+          // KITCHEN sign is not here any more — it stands
+          // over the open kitchen on the lower floor (see
+          // drawKitchenSign). The whole bar is painted
+          // inside its own stretch of the back edge
+          // (pwEnd): past its right end the room's glass
+          // runs on down to the floor line, and the
+          // entrance stands at the edge's far end (see
+          // layoutEntrance).
           var pwEnd = passWidth();
           ctx.save();
           ctx.beginPath(); ctx.rect(0, kt - 8, pwEnd, kh + 28); ctx.clip();
-          ctx.fillStyle = "#2e2013";
-          ctx.fillRect(0, kt, W, kh - 24);
+          var barBack = ctx.createLinearGradient(0, kt, 0, kb);
+          barBack.addColorStop(0, "#33200f");
+          barBack.addColorStop(0.6, "#241204");
+          barBack.addColorStop(1, "#180b02");
+          ctx.fillStyle = barBack;
+          ctx.fillRect(0, kt, pwEnd, kh);
           // The header beam: a dark soffit finishing the
-          // top edge of the pass's back wall, so the band
-          // reads as a structure standing in the room — the
-          // chandeliers hang from it.
+          // top edge of the back bar, with its brass line.
           ctx.fillStyle = "#1c1108";
-          ctx.fillRect(0, kt, W, 5);
+          ctx.fillRect(0, kt, pwEnd, 5);
           ctx.fillStyle = "rgba(212,175,55,0.45)";
-          ctx.fillRect(0, kt + 5, W, 1.2);
-          var steel = ctx.createLinearGradient(0, kb - 26, 0, kb);
-          steel.addColorStop(0, "#eef2f4");
-          steel.addColorStop(0.35, "#c3ced4");
-          steel.addColorStop(0.75, "#9fadb5");
-          steel.addColorStop(1, "#7f8f98");
-          ctx.fillStyle = steel;
-          ctx.fillRect(0, kb - 26, W, 26);
-          // Brushed metal: fine horizontal streaks along the
-          // counter, and a hard highlight on its top edge.
-          ctx.fillStyle = "rgba(255,255,255,0.5)";
-          ctx.fillRect(0, kb - 26, W, 1.4);
-          for (var bsi = 0; bsi < 5; bsi++) {
-            ctx.fillStyle = bsi % 2 ? "rgba(40,55,62,0.10)" : "rgba(255,255,255,0.16)";
-            ctx.fillRect(0, kb - 21 + bsi * 4.4, W, 1);
+          ctx.fillRect(0, kt + 5, pwEnd, 1.2);
+          // The bottle shelves: two dark boards with brass
+          // fronts, bottles standing on them in amber,
+          // green, ruby and gold glass, deterministic in
+          // the room's own hash so the back bar never
+          // flickers. A warm wash of light falls under
+          // each shelf onto the bottles below it.
+          var shelfYs = [kt + kh * 0.36, kt + kh * 0.68];
+          var bottleCols = ["#b06a1e", "#3e6b46", "#7a1f24", "#c8b98a", "#2e4a6b", "#8a5a2e"];
+          // The header clearance at phone widths: the
+          // lobby masthead (logo, title and the NUMBER TO
+          // BEAT pill) hangs over the bar's right half, so
+          // the top shelf's bottles never rise above the
+          // masthead's own rendered bottom — the same
+          // measured clearance the stage keeps (see
+          // stageClearTop). In a round the masthead is
+          // gone and the plain band margin stands.
+          var barClearY = kt + 26;
+          if (W <= 820) barClearY = Math.max(barClearY, stageClearTop() + 2);
+          for (var shi = 0; shi < shelfYs.length; shi++) {
+            var shy = shelfYs[shi];
+            ctx.fillStyle = "rgba(255, 196, 86, 0.10)";
+            ctx.fillRect(0, shy + 3, pwEnd, kh * 0.15);
+            var bx = 7 + roomHash(shi * 31.7 + 1) * 6;
+            var bidx = shi * 7 + 1;
+            while (bx < pwEnd - 13) {
+              var bw2 = 7 + roomHash(bidx * 3.1 + 1) * 5;
+              var bh2 = kh * (0.16 + roomHash(bidx * 5.7 + 2) * 0.07);
+              if (shi === 0) bh2 = Math.min(bh2, Math.max(10, shy - barClearY));
+              ctx.fillStyle = bottleCols[bidx % bottleCols.length];
+              ctx.fillRect(bx, shy - bh2, bw2, bh2);
+              ctx.fillRect(bx + bw2 * 0.32, shy - bh2 - 4.5, bw2 * 0.36, 5);
+              ctx.fillStyle = "rgba(255,255,255,0.20)";
+              ctx.fillRect(bx + 1.2, shy - bh2 + 3, 1.4, Math.max(2, bh2 - 6));
+              bx += bw2 + 5 + roomHash(bidx * 7.3 + 3) * 7;
+              bidx++;
+            }
+            ctx.fillStyle = "#120a04";
+            ctx.fillRect(0, shy, pwEnd, 4);
+            ctx.fillStyle = "#c9a227";
+            ctx.fillRect(0, shy, pwEnd, 1.4);
           }
-          ctx.fillStyle = "rgba(20, 30, 34, 0.55)";
-          ctx.fillRect(0, kb - 3, W, 3);
+          // The counter's base along the floor line: a
+          // polished dark-wood top and front face, with
+          // the brass trim where they meet — the bar
+          // stations' own counter segments paint over it,
+          // and on an empty floor the bar still stands.
+          var barTopG = ctx.createLinearGradient(0, kb - 17, 0, kb - 9);
+          barTopG.addColorStop(0, "#7a4e2a");
+          barTopG.addColorStop(1, "#4a2c17");
+          ctx.fillStyle = barTopG;
+          ctx.fillRect(0, kb - 17, pwEnd, 8);
+          ctx.fillStyle = "#241204";
+          ctx.fillRect(0, kb - 9, pwEnd, 9);
+          ctx.fillStyle = "#c9a227";
+          ctx.fillRect(0, kb - 10.5, pwEnd, 1.6);
           // The counter's shadow falling on the floor below.
           var passShade = ctx.createLinearGradient(0, kb, 0, kb + 14);
           passShade.addColorStop(0, "rgba(4,10,6,0.35)");
           passShade.addColorStop(1, "rgba(4,10,6,0)");
           ctx.fillStyle = passShade;
-          ctx.fillRect(0, kb, W, 14);
-          // White tile backsplash behind the pass, and the
-          // warm strip of the heat lamps glowing under the
-          // counter's front edge.
-          // Subway tiles with offset joints, glazed and
-          // catching a little of the pass light.
-          ctx.save();
-          ctx.fillStyle = "rgba(214,232,224,0.07)";
-          ctx.fillRect(0, kb - 62, W, 34);
-          ctx.globalAlpha = 0.2;
-          ctx.strokeStyle = "#dfe9ec";
-          ctx.lineWidth = 1;
-          var tileRow = 0;
-          for (var tyy = kb - 62; tyy < kb - 26; tyy += 17, tileRow++) {
-            ctx.beginPath(); ctx.moveTo(0, tyy); ctx.lineTo(W, tyy); ctx.stroke();
-            for (var txx = (tileRow % 2) * 28; txx < W; txx += 56) {
-              ctx.beginPath(); ctx.moveTo(txx, tyy); ctx.lineTo(txx, Math.min(tyy + 17, kb - 28)); ctx.stroke();
-            }
-          }
+          ctx.fillRect(0, kb, pwEnd, 14);
           ctx.restore();
-          var heat = ctx.createLinearGradient(0, kb - 3, 0, kb + 16);
-          heat.addColorStop(0, "rgba(255,150,60,0.35)");
-          heat.addColorStop(1, "rgba(255,150,60,0)");
-          ctx.fillStyle = heat;
-          ctx.fillRect(0, kb - 3, W, 19);
-          // Plates stacked on the pass, waiting to run —
-          // one stack near each end of the counter's own
-          // stretch, the waiter working between them.
-          ctx.fillStyle = "#f4f7f8";
-          for (var pi = 0; pi < 3; pi++) {
-            var px2 = pwEnd * 0.26 + pi * 15;
-            ctx.beginPath(); ctx.ellipse(px2, kb - 28, 11, 3.4, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(pwEnd * 0.80 - pi * 15, kb - 28, 11, 3.4, 0, 0, Math.PI * 2); ctx.fill();
-          }
-          // Crystal chandeliers over the pass, hanging
-          // from the header beam, SPACED OUT evenly across
-          // the width of the pass's own stretch — centred
-          // at its quarter and three-quarter points, so
-          // the gap between them stays even at every
-          // screen width — the great
-          // chandelier's own language at pass scale: two
-          // gold tiers of candles and crystal drops, a
-          // crystal column between the tiers, and a crystal
-          // finial, each in the warm pool of light the
-          // pendants threw on the pass. They hang in the top
-          // of the pass band only — the lowest crystal stops
-          // well above the counter, the plates and the waiter
-          // at the pass. The KITCHEN sign is not painted here
-          // any more: it is drawn live, centred over the waiter
-          // himself (see drawKitchenSign).
-          var pchH = clamp(kh * 0.46, 34, 58);
-          var pchW = clamp(W * 0.085, 48, 84);
-          var passLx = [pwEnd * 0.27, pwEnd * 0.73];
-          // The pair hangs over the pass and NOWHERE else —
-          // in the lobby, mid-shift, on any screen. An
-          // earlier pass answered a rising KITCHEN sign by
-          // nudging a fixture sideways toward its neighbour,
-          // which clustered the pair and broke the row's
-          // equal gaps; the clearance is made in
-          // hallDims now (the pass band borrows height from
-          // the glass whenever the sign would reach the
-          // lowest crystal), so by the time the room is
-          // painted each fixture already clears the
-          // sign. No fixture ever moves sideways, is shrunk,
-          // or is removed, and the gap between the
-          // two fixtures stays even in every state.
-          for (var li = 0; li < 2; li++) {
-            var lx = passLx[li];
-            // The warm glow the pendants gave the pass.
-            var glow = ctx.createRadialGradient(lx, kt + pchH * 0.55, 2, lx, kt + pchH * 0.55, 58);
-            glow.addColorStop(0, "rgba(255, 196, 86, 0.5)");
-            glow.addColorStop(1, "rgba(255, 196, 86, 0)");
-            ctx.fillStyle = glow;
-            ctx.fillRect(lx - 58, kt - 6, 116, 122);
-            var ptierR = [pchW * 0.30, pchW * 0.46];
-            var ptierY = [kt + pchH * 0.58, kt + pchH * 0.80];
-            // The stem and its canopy, up into the beam.
-            ctx.strokeStyle = "#a87f24";
-            ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.moveTo(lx, kt); ctx.lineTo(lx, ptierY[0]); ctx.stroke();
-            ctx.fillStyle = "#c9a227";
-            ctx.beginPath();
-            ctx.moveTo(lx - 5.5, kt + 6); ctx.lineTo(lx + 5.5, kt + 6); ctx.lineTo(lx + 2, kt); ctx.lineTo(lx - 2, kt);
-            ctx.closePath(); ctx.fill();
-            // The crystal column between the tiers.
-            ctx.fillStyle = "rgba(240,248,255,0.9)";
-            for (var pcc = ptierY[0]; pcc <= ptierY[1]; pcc += 6) {
-              ctx.beginPath(); ctx.arc(lx, pcc, 1.6, 0, Math.PI * 2); ctx.fill();
-            }
-            for (var pti = 0; pti < 2; pti++) {
-              var ptr = ptierR[pti], pty = ptierY[pti];
-              // The gold ring of the tier.
-              ctx.strokeStyle = "#c9a227";
-              ctx.lineWidth = 2;
-              ctx.beginPath(); ctx.ellipse(lx, pty, ptr, ptr * 0.18, 0, 0, Math.PI * 2); ctx.stroke();
-              ctx.strokeStyle = "rgba(240,213,136,0.55)";
-              ctx.lineWidth = 1;
-              ctx.beginPath(); ctx.ellipse(lx, pty + 2, ptr * 0.94, ptr * 0.16, 0, 0, Math.PI * 2); ctx.stroke();
-              var pnDrop = pti === 0 ? 7 : 10;
-              for (var pdk = 0; pdk < pnDrop; pdk++) {
-                var pdAng = Math.PI * (0.06 + 0.88 * (pdk / (pnDrop - 1)));
-                var pdX = lx + Math.cos(pdAng) * ptr;
-                var pdY = pty + Math.sin(pdAng) * ptr * 0.18;
-                // Candles stand on the ring at every other
-                // drop point: a white stick and a flame.
-                if (pdk % 2 === 0) {
-                  ctx.fillStyle = "#fdf6e3";
-                  ctx.fillRect(pdX - 1.1, pdY - 7.5, 2.2, 5.5);
-                  ctx.fillStyle = "#ffb84d";
-                  ctx.beginPath(); ctx.ellipse(pdX, pdY - 9.6, 1.5, 2.6, 0, 0, Math.PI * 2); ctx.fill();
-                  ctx.fillStyle = "#ffedb0";
-                  ctx.beginPath(); ctx.ellipse(pdX, pdY - 9, 0.7, 1.3, 0, 0, Math.PI * 2); ctx.fill();
-                }
-                // A crystal drop hangs below the ring.
-                ctx.strokeStyle = "rgba(220,235,245,0.6)";
-                ctx.lineWidth = 0.8;
-                ctx.beginPath(); ctx.moveTo(pdX, pdY + 1); ctx.lineTo(pdX, pdY + 4); ctx.stroke();
-                ctx.fillStyle = "rgba(240,248,255,0.95)";
-                ctx.beginPath(); ctx.arc(pdX, pdY + 5.6, 1.7, 0, Math.PI * 2); ctx.fill();
-              }
-            }
-            // The finial crystal under the lowest tier.
-            var pfinY = kt + pchH * 0.90;
-            ctx.strokeStyle = "#a87f24";
-            ctx.lineWidth = 1.6;
-            ctx.beginPath(); ctx.moveTo(lx, ptierY[1]); ctx.lineTo(lx, pfinY - 4); ctx.stroke();
-            var pfinGrad = ctx.createLinearGradient(lx - 3, pfinY - 5, lx + 3, pfinY + 5);
-            pfinGrad.addColorStop(0, "#ffffff");
-            pfinGrad.addColorStop(0.5, "#dceefb");
-            pfinGrad.addColorStop(1, "#a9c8e2");
-            ctx.fillStyle = pfinGrad;
-            ctx.beginPath(); ctx.ellipse(lx, pfinY, 3, 5.5, 0, 0, Math.PI * 2); ctx.fill();
-            // Sparkles thrown off the crystals.
-            ctx.strokeStyle = "rgba(255,255,255,0.7)";
-            ctx.lineWidth = 1;
-            for (var psk = 0; psk < 3; psk++) {
-              var pskX = lx + (roomHash(li * 13.7 + psk * 7.3 + 2) - 0.5) * pchW * 0.8;
-              var pskY = kt + pchH * (0.5 + roomHash(li * 5.3 + psk * 3.9 + 5) * 0.4);
-              var pskR = 2 + roomHash(psk * 5.1 + li) * 1.6;
-              ctx.beginPath();
-              ctx.moveTo(pskX - pskR, pskY); ctx.lineTo(pskX + pskR, pskY);
-              ctx.moveTo(pskX, pskY - pskR); ctx.lineTo(pskX, pskY + pskR);
-              ctx.stroke();
-            }
-          }
-          ctx.restore();
-          // The pass's right end: a dark end cheek where
-          // the counter stops and the glass takes over, so
-          // the steel reads as a counter that ENDS at the
-          // room's left stretch — a finished end standing
-          // in the room, not a band sliced mid-run.
+          // The bar's right end: a dark end cheek where the
+          // counter stops and the glass takes over, so the
+          // bar reads as a finished structure standing in
+          // the room, not a band sliced mid-run.
           ctx.fillStyle = "#1c1108";
           ctx.fillRect(pwEnd - 3, kt, 3, kh - 24);
-          ctx.fillStyle = "#5f6d75";
-          ctx.fillRect(pwEnd - 3, kb - 26, 3, 26);
+          ctx.fillStyle = "#5a3a1e";
+          ctx.fillRect(pwEnd - 3, kb - 17, 3, 17);
           ctx.fillStyle = "rgba(20, 30, 34, 0.55)";
           ctx.fillRect(pwEnd - 3, kb - 3, 3, 3);
-          // (No KITCHEN sign is painted here: the sign is
-          // drawn live over the waiter — see drawKitchenSign.)
+
+          // The OPEN KITCHEN: a working kitchen set on the
+          // LOWER floor, in the area the bar run vacated —
+          // right of the stage's band, its top edge clear
+          // of the dealt grid (see layoutTables), open to
+          // the room. Painted here: its tiled back wall
+          // with a rail of hanging pans, the warm glow of
+          // its heat lamps, and its steel counter along its
+          // front — burners and a grill at its ends, pots
+          // along it, and the pickup plates stacked near
+          // its centre, where the waiter holds. The chefs
+          // who work it are painted live between the back
+          // wall and the counter (see drawOpenKitchen), and
+          // the KITCHEN sign stands over the set, over the
+          // waiter's post at its centre (see
+          // drawKitchenSign).
+          var okR = openKitchenRect();
+          var okW = okR.x1 - okR.x0;
+          ctx.save();
+          ctx.beginPath(); ctx.rect(okR.x0, okR.top, okW, okR.h); ctx.clip();
+          var okBack = ctx.createLinearGradient(0, okR.top, 0, okR.bottom);
+          okBack.addColorStop(0, "#2e2013");
+          okBack.addColorStop(0.55, "#241708");
+          okBack.addColorStop(1, "#1c1108");
+          ctx.fillStyle = okBack;
+          ctx.fillRect(okR.x0, okR.top, okW, okR.h);
+          // The header trim along its top edge.
+          ctx.fillStyle = "#1c1108";
+          ctx.fillRect(okR.x0, okR.top, okW, 5);
+          ctx.fillStyle = "rgba(212,175,55,0.45)";
+          ctx.fillRect(okR.x0, okR.top + 5, okW, 1.2);
+          // Subway tiles on the back wall's upper reach.
+          ctx.save();
+          ctx.globalAlpha = 0.18;
+          ctx.strokeStyle = "#dfe9ec";
+          ctx.lineWidth = 1;
+          var okTileRow = 0;
+          for (var oty = okR.top + 8; oty < okR.top + okR.h * 0.30; oty += 13, okTileRow++) {
+            ctx.beginPath(); ctx.moveTo(okR.x0, oty); ctx.lineTo(okR.x1, oty); ctx.stroke();
+            for (var otx = okR.x0 + (okTileRow % 2) * 22; otx < okR.x1; otx += 44) {
+              ctx.beginPath(); ctx.moveTo(otx, oty); ctx.lineTo(otx, Math.min(oty + 13, okR.top + okR.h * 0.30)); ctx.stroke();
+            }
+          }
+          ctx.restore();
+          // The hanging rail and its pans: a steel rail
+          // across the back wall, pans hanging from it by
+          // their handles, clear of the KITCHEN sign's seat
+          // at the set's centre.
+          var railY = okR.top + okR.h * 0.31;
+          ctx.fillStyle = "#8d9aa1";
+          ctx.fillRect(okR.x0 + 6, railY, okW - 12, 3);
+          var panFr = [0.14, 0.33, 0.67, 0.86];
+          for (var pni = 0; pni < panFr.length; pni++) {
+            var panX = okR.x0 + panFr[pni] * okW;
+            var panR = clamp(okR.h * 0.085, 7, 11);
+            ctx.strokeStyle = "#8d9aa1";
+            ctx.lineWidth = 1.6;
+            ctx.beginPath(); ctx.moveTo(panX, railY + 2); ctx.lineTo(panX, railY + 8); ctx.stroke();
+            ctx.fillStyle = "#26262b";
+            ctx.beginPath(); ctx.arc(panX, railY + 8 + panR, panR, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = "rgba(190,205,212,0.75)";
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
+            ctx.fillStyle = "#17181d";
+            ctx.beginPath(); ctx.arc(panX, railY + 8 + panR, panR * 0.62, 0, Math.PI * 2); ctx.fill();
+          }
+          // The heat lamps' warm glow under the back wall.
+          var okHeat = ctx.createLinearGradient(0, railY + 3, 0, railY + 3 + okR.h * 0.22);
+          okHeat.addColorStop(0, "rgba(255,150,60,0.20)");
+          okHeat.addColorStop(1, "rgba(255,150,60,0)");
+          ctx.fillStyle = okHeat;
+          ctx.fillRect(okR.x0, railY + 3, okW, okR.h * 0.22);
+          // The steel counter along the set's front: the
+          // old pass's steel, at the open kitchen's own
+          // front — brushed top, hard highlight, dark foot.
+          var okSteel = ctx.createLinearGradient(0, okR.bottom - 26, 0, okR.bottom);
+          okSteel.addColorStop(0, "#eef2f4");
+          okSteel.addColorStop(0.35, "#c3ced4");
+          okSteel.addColorStop(0.75, "#9fadb5");
+          okSteel.addColorStop(1, "#7f8f98");
+          ctx.fillStyle = okSteel;
+          ctx.fillRect(okR.x0, okR.bottom - 26, okW, 26);
+          ctx.fillStyle = "rgba(255,255,255,0.5)";
+          ctx.fillRect(okR.x0, okR.bottom - 26, okW, 1.4);
+          for (var obi = 0; obi < 5; obi++) {
+            ctx.fillStyle = obi % 2 ? "rgba(40,55,62,0.10)" : "rgba(255,255,255,0.16)";
+            ctx.fillRect(okR.x0, okR.bottom - 21 + obi * 4.4, okW, 1);
+          }
+          ctx.fillStyle = "rgba(20, 30, 34, 0.55)";
+          ctx.fillRect(okR.x0, okR.bottom - 3, okW, 3);
+          // Burners at the counter's left end, one lit.
+          for (var obn = 0; obn < 2; obn++) {
+            var obx = okR.x0 + 22 + obn * 24;
+            ctx.fillStyle = "#26262b";
+            ctx.beginPath(); ctx.ellipse(obx, okR.bottom - 27, 9, 2.8, 0, 0, Math.PI * 2); ctx.fill();
+            if (obn === 0) {
+              ctx.fillStyle = "rgba(255, 120, 50, 0.85)";
+              ctx.beginPath(); ctx.ellipse(obx, okR.bottom - 27, 4, 1.3, 0, 0, Math.PI * 2); ctx.fill();
+            }
+          }
+          // The grill at the counter's right end: a dark
+          // grate with a warm glow between its bars.
+          ctx.fillStyle = "#1d1c22";
+          ctx.fillRect(okR.x1 - 66, okR.bottom - 30, 52, 5);
+          ctx.fillStyle = "rgba(255, 120, 50, 0.55)";
+          for (var ogi = 0; ogi < 5; ogi++) ctx.fillRect(okR.x1 - 62 + ogi * 10, okR.bottom - 29, 4, 3);
+          // The pots on the counter, one in front of each
+          // chef (their spots are shared with the live
+          // steam — see openKitchenPotXs).
+          var okPots = openKitchenPotXs();
+          for (var opi = 0; opi < okPots.length; opi++) {
+            var opx = okPots[opi];
+            ctx.fillStyle = "#3a3f46";
+            ctx.fillRect(opx - 11, okR.bottom - 38, 22, 12);
+            ctx.fillStyle = "#565d66";
+            ctx.beginPath(); ctx.ellipse(opx, okR.bottom - 38, 11, 3.4, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "#26262b";
+            ctx.beginPath(); ctx.arc(opx, okR.bottom - 40, 2.2, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = "#26262b";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(opx - 14, okR.bottom - 33); ctx.lineTo(opx - 11, okR.bottom - 33);
+            ctx.moveTo(opx + 11, okR.bottom - 33); ctx.lineTo(opx + 14, okR.bottom - 33);
+            ctx.stroke();
+          }
+          // Plates stacked on the counter near its centre,
+          // waiting to run — the pickup point, either side
+          // of the waiter's post.
+          ctx.fillStyle = "#f4f7f8";
+          for (var ppi = 0; ppi < 3; ppi++) {
+            ctx.beginPath(); ctx.ellipse(okR.cx - 46 + ppi * 13, okR.bottom - 28, 10, 3.2, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(okR.cx + 46 - ppi * 13, okR.bottom - 28, 10, 3.2, 0, 0, Math.PI * 2); ctx.fill();
+          }
+          ctx.restore();
+          // The open kitchen's left edge: a dark cheek with
+          // a brass line where the set meets the stage's
+          // band, so the set reads as its own structure,
+          // clear of the stage.
+          ctx.fillStyle = "#1c1108";
+          ctx.fillRect(okR.x0 - 3, okR.top, 3, okR.h);
+          ctx.fillStyle = "rgba(201,162,39,0.65)";
+          ctx.fillRect(okR.x0 - 3, okR.top, 1.2, okR.h);
+
         }
         // The rug's weave: a small tile of carpet pile,
         // woven ONCE and deterministically (a fixed-seed
@@ -4963,23 +5028,96 @@
           }
         }
 
+        // ---------- The open kitchen's chefs ----------
+        // Two TBOT chefs work the open kitchen on the
+        // lower floor: they stand behind its steel
+        // counter, in white toques and aprons, bobbing at
+        // their work between the hanging pans and the
+        // counter, one to each side of the waiter's post
+        // at the kitchen's centre — the set the room
+        // painting lays out (see paintRoom). Steam rises
+        // off the pots on the counter in front of them,
+        // on the spots openKitchenPotXs shares with the
+        // painting. Painted live, after the room and the
+        // stations, before the waiter: the waiter at his
+        // post stands at the kitchen's centre, in front
+        // of the set, as he always stood at the pass.
+        var kitchenChefs = [
+          { blinkAt: 900, blinkDur: 140, bobPh: 0.7 },
+          { blinkAt: 2300, blinkDur: 150, bobPh: 2.5 }
+        ];
+        function drawChefFigure(x, anchorY, s, chef, nowMs) {
+          var bobY = Math.sin(nowMs / 620 + chef.bobPh) * 1.1;
+          drawTBOTFigure(x, anchorY + bobY * 0.4, s, blinkLid(chef, nowMs), 0);
+          // The chef's white apron, over the lower body —
+          // the waiter's own apron construction (see
+          // drawWaiter), at the chef's scale.
+          ctx.save();
+          ctx.translate(x, anchorY + bobY * 0.4);
+          ctx.scale(1, (SPRITE_BODY_H_FRAC * SPRITE_ASPECT / SPRITE_BODY_FRAC) / 1.1);
+          ctx.fillStyle = "rgba(253, 250, 243, 0.96)";
+          ctx.beginPath();
+          ctx.moveTo(-s * 0.21, s * 0.10);
+          ctx.lineTo(s * 0.21, s * 0.10);
+          ctx.lineTo(s * 0.26, s * 0.46);
+          ctx.lineTo(-s * 0.26, s * 0.46);
+          ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = "rgba(43,26,18,0.25)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.restore();
+          // The toque: a white band and a soft puff over
+          // the top of his head, seated where the sprite's
+          // own top runs.
+          var sh = (s / SPRITE_BODY_FRAC) * SPRITE_ASPECT;
+          var topY = anchorY + bobY * 0.4 - sh * SPRITE_BODY_CY;
+          ctx.fillStyle = "#fdfaf3";
+          ctx.beginPath(); ctx.ellipse(x, topY + sh * 0.075, s * 0.30, s * 0.115, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillRect(x - s * 0.27, topY + sh * 0.07, s * 0.54, s * 0.13);
+          ctx.fillStyle = "rgba(120,90,60,0.20)";
+          ctx.fillRect(x - s * 0.27, topY + sh * 0.07 + s * 0.105, s * 0.54, s * 0.025);
+        }
+        function drawOpenKitchen(nowMs) {
+          var okR = openKitchenRect();
+          var s = bodySize() * 0.98;
+          var off = clamp((okR.x1 - okR.x0) * 0.30, 56, 170);
+          drawChefFigure(okR.cx - off, okR.bottom - 14, s, kitchenChefs[0], nowMs);
+          drawChefFigure(okR.cx + off, okR.bottom - 14, s, kitchenChefs[1], nowMs);
+          // Steam off the pots, rising and thinning on
+          // the frame's own clock.
+          var pots = openKitchenPotXs();
+          for (var cpi = 0; cpi < pots.length; cpi++) {
+            for (var csi = 0; csi < 3; csi++) {
+              var cph = ((nowMs / 1100) + cpi * 0.37 + csi / 3) % 1;
+              var csx = pots[cpi] + Math.sin(cph * 5 + cpi * 2 + csi) * 3;
+              var csy = okR.bottom - 44 - cph * 24;
+              ctx.save();
+              ctx.globalAlpha = (1 - cph) * 0.30;
+              ctx.fillStyle = "#ffffff";
+              ctx.beginPath(); ctx.arc(csx, csy, 2.5 + cph * 3.5, 0, Math.PI * 2); ctx.fill();
+              ctx.restore();
+            }
+          }
+        }
+
         // ---------- The KITCHEN sign ----------
         // The sign is the waiter's station marker, drawn
         // live — after the room, the tables, the waiter and
         // the floats, so nothing ever covers it — centred
         // directly over the waiter TBOT wherever he stands
-        // at the pass: his in-round spot BEHIND the steel
-        // counter (waist-up behind the steel, exactly where
-        // he has always stood — he is not moved), which is
-        // also his lobby spot, the lobby keeping him behind
-        // the steel just as a round does. Its lower
-        // edge rides a few pixels above the top of his
-        // sprite (same idle bob as his figure, so the gap
-        // never breathes), clear of his head and of the
-        // ticket card in his left hand. While he is out on
-        // the floor serving, the sign stays over his home
-        // spot at the pass, marking the station he returns
-        // to — it never wanders over a table or a tent.
+        // at the OPEN KITCHEN on the lower floor: his post
+        // at the kitchen's counter, at the centre of its
+        // run between the chefs, which is also his lobby
+        // spot. Its lower edge rides a few pixels above
+        // the top of his sprite (same idle bob as his
+        // figure, so the gap never breathes), clear of his
+        // head and of the ticket card in his left hand.
+        // While he is out on the floor serving, the sign
+        // stays over his home spot at the open kitchen,
+        // marking the station he returns to — it never
+        // wanders over a table or a tent, and it no longer
+        // stands at the upper left: the bar stands there
+        // now, under its own TBAR plaque.
         function drawKitchenSign(nowMs) {
           var atPass = waiter.state === "pass";
           var ax = atPass ? waiter.x : waiter.homeX;
@@ -5012,9 +5150,10 @@
         // letters mounted on the front face of the dark-wood
         // counter, in the same gold as the KITCHEN sign's
         // lettering and the MAÎTRE D' plaque, so the room's
-        // three anchors read as a set — KITCHEN at the pass
+        // three anchors read as a set — TBAR on the bar
         // (upper left), MAÎTRE D' at the entrance (upper
-        // right), TBAR on the bar. It is part of the
+        // right), KITCHEN over the open kitchen (lower
+        // floor). It is part of the
         // furniture, not a plaque hanging in the air over
         // the counter: the letters sit on a dark plaque
         // inset mounted on the counter's front face — the
@@ -5204,10 +5343,55 @@
             textW = ctx.measureText("TBAR").width;
             plaqueW = textW + fontPx * 1.15;
             plaqueH = fontPx * 1.45;
-            placedY = faceC;
-            if (placedY + plaqueH / 2 > labelLine) placedY = labelLine - plaqueH / 2;
-            if (right - left >= plaqueW + 4) {
-              placedX = clamp(cx, left + plaqueW / 2 + 2, right - plaqueW / 2 - 2);
+            // The tightest floors — a full house at phone
+            // width, where the bar's segments run narrow
+            // (see layoutTables): no stretch of the counter
+            // face at face height clears every stand, so
+            // the plaque steps DOWN the bar's front instead
+            // — seated just under the stands' line, still
+            // mounted on the bar, its bottom edge inside
+            // the reserve under the back edge. There it
+            // must clear the STANDS (the gameplay numbers)
+            // above all: the show labels at the seam are
+            // flavour paint, and at this density they
+            // already run into each other.
+            var standBot = -Infinity;
+            for (var sbi = 0; sbi < stands.length; sbi++) {
+              if (stands[sbi].b > standBot) standBot = stands[sbi].b;
+            }
+            var py2 = standBot + 2 + plaqueH / 2;
+            var botLim = ySum / run.length + r * 0.92 + 21;
+            if (py2 + plaqueH / 2 > botLim) py2 = botLim - plaqueH / 2;
+            var cands2 = [cx];
+            for (var ci2 = 0; ci2 < stands.length; ci2++) {
+              cands2.push(stands[ci2].r + plaqueW / 2);
+              cands2.push(stands[ci2].l - plaqueW / 2);
+            }
+            var chosen2 = null, chosen2D = Infinity;
+            for (var ki2 = 0; ki2 < cands2.length; ki2++) {
+              var cand2 = cands2[ki2];
+              if (right - left >= plaqueW + 4) {
+                cand2 = clamp(cand2, left + plaqueW / 2 + 2, right - plaqueW / 2 - 2);
+              }
+              var tl2 = cand2 - plaqueW / 2, tr2 = cand2 + plaqueW / 2;
+              var tt2 = py2 - plaqueH / 2, tb2 = py2 + plaqueH / 2;
+              var hit2 = false;
+              for (var hi2 = 0; hi2 < stands.length; hi2++) {
+                var sb2 = stands[hi2];
+                if (tl2 < sb2.r && tr2 > sb2.l && tt2 < sb2.b && tb2 > sb2.t) { hit2 = true; break; }
+              }
+              if (!hit2 && Math.abs(cand2 - cx) < chosen2D) {
+                chosen2D = Math.abs(cand2 - cx); chosen2 = cand2;
+              }
+            }
+            if (chosen2 !== null) {
+              placedX = chosen2; placedY = py2;
+            } else {
+              placedY = faceC;
+              if (placedY + plaqueH / 2 > labelLine) placedY = labelLine - plaqueH / 2;
+              if (right - left >= plaqueW + 4) {
+                placedX = clamp(cx, left + plaqueW / 2 + 2, right - plaqueW / 2 - 2);
+              }
             }
           }
           // The dark plaque itself, inset on the counter
@@ -7769,6 +7953,7 @@
           // bar's reach — carries no scene at all.
           drawStage(nowMs);
           drawEntrance(nowMs);
+          drawOpenKitchen(nowMs);
           drawWaiter(nowMs);
           drawFloats(nowMs);
           drawKitchenSign(nowMs);
@@ -7845,6 +8030,9 @@
             stageSwap: Math.round(stageStation.swapT * 100) / 100,
             stageNumber: stageStation.number,
             stagePos: { x: Math.round(stageStation.cx), y: Math.round(stageStation.baseY), top: Math.round(stageStation.topY), w: Math.round(stageStation.w) },
+            barPos: { x: 0, y: Math.round(hallDims().floorTop - kitchenH()), w: Math.round(passWidth()), h: Math.round(kitchenH()) },
+            kitchenPos: { x: Math.round(openKitchenRect().x0), y: Math.round(openKitchenRect().top), w: Math.round(openKitchenRect().x1 - openKitchenRect().x0), h: Math.round(openKitchenRect().h) },
+            waiterHome: { x: Math.round(waiter.homeX), y: Math.round(waiter.homeY) },
             tableStates: tables.map(function (t) { return t.state; }),
             walkers: walkers.length,
             arrivals: arrivals.length,
