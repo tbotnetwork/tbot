@@ -1316,6 +1316,12 @@
             hudBeatValue.textContent = String(beatServed);
             hudBeatChip.hidden = false;
           }
+          // The pill is part of the masthead: when it
+          // paints, the block's real height grows, and the
+          // phone stage's measured clearance (see
+          // stageClearTop) must follow it — re-seat the
+          // stage against the block as it now stands.
+          layoutStage();
         }
         function beatFromScores(scores) {
           if (!scores) return null;
@@ -2856,6 +2862,137 @@
           }
         }
 
+        // ---------- The stage: the featured act, serve-able ----------
+        // A raised platform against the room's LEFT wall,
+        // in the middle of the room — below the kitchen
+        // pass (upper left), the performer facing right
+        // into the room (John's ruling, 2026-11-16: "the
+        // stage should be on the left-hand side in the
+        // middle"). Its footprint is carved out of the
+        // station grid (see layoutTables), so no dealt
+        // station ever sits under or behind it, and its
+        // number stand stands on its room-facing (right)
+        // edge. The act is a SWAPPABLE SLOT (see STAGE_ACTS,
+        // by the stage's drawing below) that ROTATES
+        // in-game: the featured song names who OPENS the
+        // rotation (today the DJ, by John's current-song
+        // ruling), and the act advances one step on every
+        // party-leave re-deal — the same event that re-deals
+        // the station numbers (see finishLeave) — DJ → PJ
+        // Morton at the piano → Erykah Badu with the
+        // microphone → DJ, the incoming act taking the stage
+        // as the new party is dealt. A fresh deal of the
+        // floor (lobby load, Reset, a new shift) always
+        // opens on the opening act again.
+        //
+        // The performer is a STATION in the same system as
+        // every table, booth and bar seat: his number is
+        // dealt from the same pool (see dealNumbers), shown
+        // on a stand at the stage's room-facing edge, callable by the
+        // kitchen (see newTicket), and tapping the stage
+        // serves him through the same tapTable as any other
+        // station — a right serve counts in SERVED and on
+        // the winner card, a wrong tap counts wrong, exactly
+        // like any other station, and there are no points
+        // anywhere, as everywhere in this game. He is NOT
+        // one of the dealt stations: the floor's ladder is
+        // untouched (the opening six stay six, Pack 'em
+        // still runs 6 → 16 dealt stations), the stage is
+        // one additional target whenever the floor is dealt,
+        // and on an empty floor (after Reset) it stands
+        // unnumbered and uncallable until stations are dealt
+        // again. He never leaves the stage and never walks
+        // out; when a party leaves and the numbers re-deal,
+        // his number re-deals with everyone else's.
+        var stageStation = {
+          isStage: true, kind: "stage",
+          x: 0, y: 0, r: 24, // (x, y) is the serve point at the stage's room-facing (right) edge; r sizes its plaque
+          cx: 0, cy: 0, baseY: 0, topY: 0, w: 0, platTop: 0, u: 34,
+          number: 0,
+          show: null, // carrier deal { name } — read by the prize machinery exactly like a table's (see tapTable)
+          flash: 0, flashColor: "#39d353",
+          shakeT: 0, happyT: 0, plateT: 0, numPop: 0,
+          prevActId: null, swapT: 0 // the rotation's turnover beat (see advanceStageAct)
+        };
+        var actBlink = { blinkAt: 0, blinkDur: 140, bobPh: 1.7 };
+
+        // The stage's width (its depth off the left wall)
+        // and the band the floor grid reserves for it: the
+        // platform itself plus the number stand on its
+        // room-facing edge and a breathing margin, so the
+        // nearest station's widest silhouette still clears
+        // the stand.
+        function stageWidth() { return clamp(W * 0.34, 118, 240); }
+        function stageReserveW() { return Math.round(stageWidth() + 26); }
+
+        // The top edge the stage must clear, MEASURED from
+        // the chrome actually on screen — never a fixed
+        // guess: at phone widths the lobby masthead (the
+        // TBOT logo / title block) is far taller than the
+        // 52px the back-wall layout once assumed, and it
+        // hid the whole act behind it. In the lobby the
+        // clearance is the masthead's own rendered bottom
+        // edge; in a shift it is the HUD's; anywhere else
+        // the plain 52px stands.
+        function stageClearTop() {
+          var clear = 52;
+          if (W <= 820) {
+            var cRect = canvas.getBoundingClientRect();
+            if (brandLogoEl && brandLogoEl.parentNode) {
+              var br = brandLogoEl.getBoundingClientRect();
+              if (br.height) clear = Math.max(clear, br.bottom - cRect.top + 6);
+            } else if (gameHud && !gameHud.hidden) {
+              var hr = gameHud.getBoundingClientRect();
+              if (hr.height) clear = Math.max(clear, hr.bottom - cRect.top + 6);
+            }
+          }
+          return clear;
+        }
+
+        function layoutStage() {
+          var d = hallDims();
+          var r0 = tables.length ? tables[0].r : 44;
+          var w = stageWidth();
+          var platH = clamp(r0 * 0.36, 10, 18);
+          var u = clamp(w * 0.30, 26, 46);
+          var actH = u * 2.02;
+          // Against the left wall, vertically centred on
+          // the floor band — below the pass, above the
+          // toolbar, facing right into the room.
+          var cy = (d.floorTop + groundY()) / 2;
+          var clearTop = stageClearTop();
+          var baseY = cy + (actH + platH) / 2;
+          // The whole stage — curtain, act, platform and
+          // the number stand on its front edge — must sit
+          // fully clear of the header block by that block's
+          // real height and stay off the toolbar: step the
+          // stage down past the measured clearance first,
+          // and if the floor band cannot hold it there,
+          // step the act's scale down until it fits between
+          // the clearance and the ground line.
+          if (baseY - platH - actH < clearTop) {
+            cy += clearTop - (baseY - platH - actH);
+            baseY = cy + (actH + platH) / 2;
+          }
+          if (baseY > groundY() - 24) {
+            var avail = (groundY() - 24) - clearTop;
+            u = clamp((avail - platH) / 2.02, 16, 46);
+            actH = u * 2.02;
+            cy = clearTop + (actH + platH) / 2;
+            baseY = cy + (actH + platH) / 2;
+          }
+          stageStation.cx = w / 2;
+          stageStation.cy = cy;
+          stageStation.x = w + 8; // the serve point, just off the room-facing edge
+          stageStation.baseY = baseY;
+          stageStation.y = cy;
+          stageStation.platTop = baseY - platH;
+          stageStation.w = w;
+          stageStation.u = u;
+          stageStation.topY = baseY - platH - actH;
+          stageStation.r = Math.max(r0, 24);
+        }
+
         // The kitchen pass's height: the band stands at the
         // back edge of the floor (see hallDims), its counter
         // base on the floor line and its back wall rising
@@ -3024,7 +3161,14 @@
           var bottom = groundY();
           var cols = gridCols(count);
           var rows = gridRows(count);
-          var cellW = W / cols;
+          // The stage's footprint is carved out of the
+          // floor: the stage stands against the LEFT wall
+          // in the middle of the room (see layoutStage),
+          // so the station grid starts right of the stage's
+          // reserved band at every floor size — no dealt
+          // station ever sits under or behind the stage.
+          var gridX0 = stageReserveW();
+          var cellW = (W - gridX0) / cols;
           // The cell pitch is the floor's real height divided
           // by the rows — NEVER rounded up to a minimum: a
           // minimum pitch is what pushed the front row past
@@ -3076,7 +3220,7 @@
             // resize or a Pack 'em moves the grid itself.
             if (tables[i].slot < 0) tables[i].slot = i;
             var c = tables[i].slot % cols, r = Math.floor(tables[i].slot / cols);
-            tables[i].slotX = cellW * (c + 0.5);
+            tables[i].slotX = gridX0 + cellW * (c + 0.5);
             tables[i].slotY = top + cellH * r + slotOffY;
             // The cell's half-pitch: the rug under each
             // setting (see drawTable) is capped at this, so
@@ -3111,6 +3255,7 @@
           // escort starts from and returns to (see
           // spawnArrivals).
           layoutEntrance();
+          layoutStage();
           if (host.state === "pass") { host.x = host.homeX; host.y = host.homeY; }
         }
 
@@ -3136,7 +3281,7 @@
         // table wears which, is the whole game. A party
         // leaving re-deals them (see partyLeaves).
         function dealNumbers() {
-          var poolSize = Math.max(NUMBER_POOL, tables.length + 4);
+          var poolSize = Math.max(NUMBER_POOL, tables.length + (tables.length ? 1 : 0) + 4);
           var pool = [];
           for (var i = 1; i <= poolSize; i++) pool.push(i);
           for (var j = pool.length - 1; j > 0; j--) {
@@ -3144,6 +3289,18 @@
             var tmp = pool[j]; pool[j] = pool[k]; pool[k] = tmp;
           }
           for (var t = 0; t < tables.length; t++) tables[t].number = pool[t];
+          // The stage's number is dealt from the same pool,
+          // as one additional target over the dealt floor:
+          // whenever the floor is dealt the performer wears
+          // the next number out of the same shuffle, and on
+          // an empty floor he wears none. His carrier show
+          // is dealt once and held, like a table's.
+          stageStation.number = tables.length ? pool[tables.length] : 0;
+          if (tables.length) {
+            if (!stageStation.show) stageStation.show = nextDeckShow();
+          } else {
+            stageStation.show = null;
+          }
         }
 
         function resetFloor(nowMs) {
@@ -3158,6 +3315,7 @@
             tables[i].happyT = 0; tables[i].plateT = 0; tables[i].numPop = 0;
           }
           dealNumbers();
+          resetStageAct(); // a fresh deal opens the rotation on the opening act (the DJ)
           floats = [];
           walkers = [];
           // The opening deal is an arrival like any other:
@@ -5055,6 +5213,575 @@
           ctx.textBaseline = "alphabetic";
         }
 
+        // ---------- The stage and its acts ----------
+        // THE ROTATING ACT SLOT: the acts are held in
+        // STAGE_ACTS as one replaceable unit per act —
+        // figure, instrument and stage dressing together —
+        // and they ROTATE in-game the same way the tables
+        // change (John's ruling, 2026-11-16): on every
+        // party-leave re-deal — the event that re-deals all
+        // the station numbers (see finishLeave) — the act
+        // advances ONE step through STAGE_ACT_ORDER, the
+        // outgoing act leaving the stage as the incoming
+        // act takes it (a short turnover beat stepped on
+        // the room's real-elapsed-time clock — see
+        // drawStage and the frame loop). The featured song
+        // names who OPENS the rotation: STAGE_OPENING_ACT
+        // is the DJ, by John's current-song ruling, and
+        // every fresh deal of the floor (lobby load, Reset,
+        // a new shift — see resetFloor) opens on him again.
+        // There is NO automatic song detection anywhere in
+        // the game. The registered acts:
+        //   "dj-decks" — a DJ on the decks (the OPENING act
+        //     — the fit for the current, DJ-made promo track).
+        //   "pj-morton-piano" — PJ Morton at the grand
+        //     piano (the promos that carry his "Mercy" bring
+        //     him to the stage).
+        //   "erykah-badu-mic" — Erykah Badu in her headwrap
+        //     with a microphone, no piano.
+        // Every act's figure is a TBOT person of the guest
+        // family — glossy black vinyl, adult proportions —
+        // built to the current head standard (see
+        // drawActHead): a ROUNDED-square head with soft
+        // corners and compact THREE-BLADE hair, the middle
+        // blade tallest, never long stalks. The Badu act's
+        // headwrap takes the blades' place, as a wrap does.
+        // An act never walks out of the room, and its idle
+        // motion — sway, hands, bounce — reads off the
+        // frame's own nowMs, the room's one
+        // real-elapsed-time clock, so it plays identically
+        // at phone frame rates. The stage's serve-ability
+        // never lapses across a rotation: its number
+        // re-deals with the floor as always, and the stage
+        // stays callable under whichever act is on it.
+        var STAGE_OPENING_ACT = "dj-decks";
+        var STAGE_ACT_ORDER = ["dj-decks", "pj-morton-piano", "erykah-badu-mic"];
+        var STAGE_ACT_ID = STAGE_OPENING_ACT;
+        var STAGE_ACTS = {
+          "pj-morton-piano": { name: "PJ Morton at the piano", draw: drawActPiano },
+          "erykah-badu-mic": { name: "Erykah Badu — headwrap and microphone", draw: drawActBadu },
+          "dj-decks": { name: "The DJ on the decks", draw: drawActDJ }
+        };
+        // One step of the rotation, taken on the re-deal
+        // event alone: the incoming act is named at once
+        // (the state probe and the serve machinery follow
+        // it immediately), and the turnover beat carries
+        // the swap visually — the outgoing act is kept as
+        // prevActId while swapT runs 1 → 0 on the frame
+        // loop's real-elapsed step.
+        function advanceStageAct() {
+          var idx = STAGE_ACT_ORDER.indexOf(STAGE_ACT_ID);
+          var next = STAGE_ACT_ORDER[(idx + 1) % STAGE_ACT_ORDER.length];
+          if (next === STAGE_ACT_ID) return;
+          stageStation.prevActId = STAGE_ACT_ID;
+          STAGE_ACT_ID = next;
+          stageStation.swapT = 1;
+        }
+        // A fresh deal of the floor opens on the opening
+        // act, with no turnover beat hanging over it.
+        function resetStageAct() {
+          STAGE_ACT_ID = STAGE_OPENING_ACT;
+          stageStation.prevActId = null;
+          stageStation.swapT = 0;
+        }
+
+        // One hair blade: a compact pointed leaf standing
+        // on the head's top — the act figures' hair is
+        // THREE of these (see drawActHead).
+        function drawActBlade(cx, baseY, h, w, tilt) {
+          ctx.save();
+          ctx.translate(cx, baseY);
+          ctx.rotate(tilt);
+          var g = ctx.createLinearGradient(0, -h, 0, 0);
+          g.addColorStop(0, "#26262b");
+          g.addColorStop(1, "#0a0a0c");
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.moveTo(-w / 2, 0);
+          ctx.quadraticCurveTo(-w * 0.46, -h * 0.62, 0, -h);
+          ctx.quadraticCurveTo(w * 0.46, -h * 0.62, w / 2, 0);
+          ctx.closePath(); ctx.fill();
+          ctx.restore();
+        }
+
+        // The act figure's head, to the family's current
+        // standard: a ROUNDED square with soft corners (a
+        // generous corner radius — never a hard cube),
+        // glossy black vinyl lit warm from the room, two
+        // big glossy red dome eyes with the family's blink,
+        // and compact three-blade hair, the middle blade
+        // tallest. With (wrap) set, a headwrap — a wrapped
+        // band with a front knot, in warm gold cloth —
+        // takes the blades' place. (cx, cy) is the head's
+        // centre and hw its width.
+        function drawActHead(cx, cy, hw, nowMs, wrap) {
+          var hh = hw * 0.94;
+          var top = cy - hh / 2;
+          if (!wrap) {
+            drawActBlade(cx - hw * 0.21, top + 3, hw * 0.30, hw * 0.14, -0.38);
+            drawActBlade(cx + hw * 0.21, top + 3, hw * 0.30, hw * 0.14, 0.38);
+            drawActBlade(cx, top + 3, hw * 0.44, hw * 0.16, 0);
+          }
+          var g = ctx.createLinearGradient(0, top, 0, top + hh);
+          g.addColorStop(0, "#3b3835");
+          g.addColorStop(0.22, "#1d1d21");
+          g.addColorStop(1, "#08080a");
+          ctx.fillStyle = g;
+          rrPath(cx - hw / 2, top, hw, hh, hw * 0.30);
+          ctx.fill();
+          ctx.strokeStyle = "rgba(0, 0, 0, 0.55)";
+          ctx.lineWidth = Math.max(0.8, hw * 0.02);
+          rrPath(cx - hw / 2, top, hw, hh, hw * 0.30);
+          ctx.stroke();
+          ctx.save();
+          rrPath(cx - hw / 2, top, hw, hh, hw * 0.30);
+          ctx.clip();
+          var sheen = ctx.createLinearGradient(cx - hw / 2, top, cx + hw * 0.35, top + hh);
+          sheen.addColorStop(0, "rgba(255, 236, 208, 0.26)");
+          sheen.addColorStop(0.45, "rgba(255, 236, 208, 0.05)");
+          sheen.addColorStop(1, "rgba(255, 236, 208, 0)");
+          ctx.fillStyle = sheen;
+          ctx.fillRect(cx - hw / 2, top, hw, hh);
+          ctx.fillStyle = "rgba(255, 244, 220, 0.30)";
+          ctx.beginPath(); ctx.ellipse(cx - hw * 0.24, top + hh * 0.24, hw * 0.21, hh * 0.11, -0.35, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+          if (wrap) {
+            // The headwrap: a band of warm gold cloth
+            // wrapped around the head's top, its front
+            // knot sitting centre — Erykah's silhouette.
+            ctx.fillStyle = "#c9971f";
+            ctx.beginPath();
+            ctx.moveTo(cx - hw * 0.52, top + hh * 0.10);
+            ctx.quadraticCurveTo(cx, top - hh * 0.30, cx + hw * 0.52, top + hh * 0.10);
+            ctx.lineTo(cx + hw * 0.50, top + hh * 0.30);
+            ctx.quadraticCurveTo(cx, top + hh * 0.06, cx - hw * 0.50, top + hh * 0.30);
+            ctx.closePath(); ctx.fill();
+            ctx.fillStyle = "#e3b93e";
+            ctx.beginPath(); ctx.ellipse(cx, top - hh * 0.05, hw * 0.13, hh * 0.11, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "rgba(120, 72, 0, 0.35)";
+            ctx.beginPath(); ctx.ellipse(cx, top - hh * 0.02, hw * 0.07, hh * 0.06, 0, 0, Math.PI * 2); ctx.fill();
+          }
+          // The eyes: two large round red domes, glossy —
+          // and the blink lid in the vinyl's own black.
+          var lid = blinkLid(actBlink, nowMs);
+          var eyeY = cy + hh * 0.06, eyeR = hw * 0.115;
+          for (var ed = -1; ed <= 1; ed += 2) {
+            var eyeX = cx + ed * hw * 0.235;
+            ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+            ctx.beginPath(); ctx.ellipse(eyeX, eyeY + eyeR * 0.14, eyeR * 1.06, eyeR * 1.02, 0, 0, Math.PI * 2); ctx.fill();
+            var eyeGrad = ctx.createRadialGradient(eyeX - eyeR * 0.35, eyeY - eyeR * 0.4, eyeR * 0.15, eyeX, eyeY, eyeR * 1.05);
+            eyeGrad.addColorStop(0, "#ff6a58");
+            eyeGrad.addColorStop(0.45, "#e01a12");
+            eyeGrad.addColorStop(1, "#8f0703");
+            ctx.fillStyle = eyeGrad;
+            ctx.beginPath(); ctx.arc(eyeX, eyeY, eyeR, 0, Math.PI * 2); ctx.fill();
+            if (lid > 0) {
+              var lidH = eyeR * lid;
+              ctx.fillStyle = "#0a0a0c";
+              ctx.beginPath();
+              ctx.ellipse(eyeX, eyeY - eyeR + lidH, eyeR * 1.04, Math.max(lidH, 0.4), 0, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            if (lid < 0.7) {
+              ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
+              ctx.beginPath(); ctx.ellipse(eyeX - eyeR * 0.34, eyeY - eyeR * 0.38, eyeR * 0.24, eyeR * 0.17, -0.5, 0, Math.PI * 2); ctx.fill();
+            }
+          }
+        }
+
+        // A glossy black-vinyl torso for an act figure,
+        // shoulders at shoulderY, running down to bottomY
+        // (where an instrument or the stage dressing takes
+        // over). (halfW) is the shoulder half width.
+        function drawActTorso(cx, shoulderY, bottomY, halfW) {
+          var g = ctx.createLinearGradient(0, shoulderY, 0, bottomY);
+          g.addColorStop(0, "#2b2a30");
+          g.addColorStop(0.45, "#141418");
+          g.addColorStop(1, "#08080a");
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.moveTo(cx - halfW * 0.42, shoulderY - halfW * 0.10);
+          ctx.lineTo(cx + halfW * 0.42, shoulderY - halfW * 0.10);
+          ctx.quadraticCurveTo(cx + halfW * 1.04, shoulderY + halfW * 0.10, cx + halfW * 0.92, (shoulderY + bottomY) / 2);
+          ctx.quadraticCurveTo(cx + halfW * 0.84, bottomY - halfW * 0.08, cx + halfW * 0.80, bottomY);
+          ctx.lineTo(cx - halfW * 0.80, bottomY);
+          ctx.quadraticCurveTo(cx - halfW * 0.84, bottomY - halfW * 0.08, cx - halfW * 0.92, (shoulderY + bottomY) / 2);
+          ctx.quadraticCurveTo(cx - halfW * 1.04, shoulderY + halfW * 0.10, cx - halfW * 0.42, shoulderY - halfW * 0.10);
+          ctx.closePath(); ctx.fill();
+          ctx.fillStyle = "rgba(255, 226, 188, 0.16)";
+          ctx.beginPath(); ctx.ellipse(cx - halfW * 0.42, shoulderY + halfW * 0.22, halfW * 0.34, halfW * 0.13, -0.35, 0, Math.PI * 2); ctx.fill();
+        }
+
+        // One arm for an act figure: shoulder → elbow →
+        // hand in the vinyl's black, with its gloss line
+        // and a round hand.
+        function drawActArm(sx, sy, ex, ey, hx, hy, w) {
+          ctx.strokeStyle = "#101014";
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.lineWidth = w;
+          ctx.beginPath();
+          ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.lineTo(hx, hy);
+          ctx.stroke();
+          ctx.strokeStyle = "rgba(255, 222, 182, 0.15)";
+          ctx.lineWidth = w * 0.3;
+          ctx.beginPath();
+          ctx.moveTo(sx - w * 0.16, sy); ctx.lineTo(ex - w * 0.16, ey); ctx.lineTo(hx - w * 0.16, hy);
+          ctx.stroke();
+          ctx.fillStyle = "#0c0c0f";
+          ctx.beginPath(); ctx.arc(hx, hy, w * 0.52, 0, Math.PI * 2); ctx.fill();
+        }
+
+        // ACT — PJ Morton at the piano (filed alternate):
+        // the pianist seated at a glossy black grand, his
+        // head and torso over the piano's body, his hands
+        // working the keys, swaying gently as he plays; a
+        // served plate lifts him into a happy bounce and a
+        // small flurry of notes.
+        function drawActPiano(env) {
+          var u = env.u, cx = env.cx, fy = env.platTop, nowMs = env.nowMs;
+          var sway = Math.sin(nowMs / 900) * 0.018;
+          var bounce = env.happyT > 0 ? -Math.sin(env.happyT * Math.PI) * u * 0.09 : 0;
+          var fx = cx + u * 0.52;
+          var bodyTop = fy - u * 0.88, bodyBot = fy - u * 0.54;
+          // The pianist, behind the piano: torso and head,
+          // swaying on the music.
+          ctx.save();
+          ctx.translate(fx, fy + bounce);
+          ctx.rotate(sway);
+          ctx.translate(-fx, -fy);
+          drawActTorso(fx, fy - u * 1.30, fy - u * 0.72, u * 0.31);
+          drawActHead(fx, fy - u * 1.56 + bounce * 0, u * 0.56, nowMs, false);
+          ctx.restore();
+          // The grand piano: a glossy black body, its tail
+          // curving away to the left, the lid raised over
+          // it, legs and a pedal lyre under it.
+          var pGrad = ctx.createLinearGradient(0, bodyTop, 0, bodyBot);
+          pGrad.addColorStop(0, "#2e2d33");
+          pGrad.addColorStop(0.5, "#131316");
+          pGrad.addColorStop(1, "#060607");
+          // Legs first, behind the body.
+          ctx.fillStyle = "#0b0b0d";
+          ctx.fillRect(cx - u * 1.18, bodyBot - u * 0.02, u * 0.10, fy - bodyBot + u * 0.02);
+          ctx.fillRect(cx + u * 0.88, bodyBot - u * 0.02, u * 0.10, fy - bodyBot + u * 0.02);
+          ctx.fillRect(cx - u * 0.12, bodyBot - u * 0.02, u * 0.07, (fy - bodyBot) * 0.62);
+          ctx.fillStyle = "#c9a227";
+          ctx.fillRect(cx - u * 0.155, fy - (fy - bodyBot) * 0.34, u * 0.14, u * 0.035);
+          // The raised lid, slanting up over the tail.
+          ctx.fillStyle = "#1a1a1f";
+          ctx.beginPath();
+          ctx.moveTo(cx - u * 0.95, bodyTop + u * 0.01);
+          ctx.lineTo(cx + u * 1.02, bodyTop + u * 0.01);
+          ctx.lineTo(cx - u * 0.42, bodyTop - u * 0.60);
+          ctx.lineTo(cx - u * 1.28, bodyTop - u * 0.52);
+          ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = "rgba(201, 162, 39, 0.55)";
+          ctx.lineWidth = Math.max(1, u * 0.02);
+          ctx.stroke();
+          ctx.strokeStyle = "#0b0b0d";
+          ctx.lineWidth = Math.max(1.4, u * 0.03);
+          ctx.beginPath(); ctx.moveTo(cx - u * 0.05, bodyTop); ctx.lineTo(cx - u * 0.40, bodyTop - u * 0.52); ctx.stroke();
+          // The body, with its curved tail.
+          ctx.fillStyle = pGrad;
+          ctx.beginPath();
+          ctx.moveTo(cx + u * 1.18, bodyTop);
+          ctx.lineTo(cx - u * 0.88, bodyTop);
+          ctx.quadraticCurveTo(cx - u * 1.56, bodyTop + u * 0.06, cx - u * 1.50, bodyBot - u * 0.05);
+          ctx.quadraticCurveTo(cx - u * 1.46, bodyBot + u * 0.01, cx - u * 1.05, bodyBot);
+          ctx.lineTo(cx + u * 1.18, bodyBot);
+          ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = "rgba(201, 162, 39, 0.5)";
+          ctx.lineWidth = Math.max(1, u * 0.018);
+          ctx.beginPath();
+          ctx.moveTo(cx + u * 1.18, bodyBot - u * 0.045);
+          ctx.lineTo(cx - u * 1.02, bodyBot - u * 0.045);
+          ctx.stroke();
+          ctx.fillStyle = "rgba(255, 240, 214, 0.13)";
+          ctx.beginPath(); ctx.ellipse(cx - u * 0.3, bodyTop + u * 0.07, u * 0.55, u * 0.045, -0.04, 0, Math.PI * 2); ctx.fill();
+          // The keys: a white strip at the piano's right
+          // end, where the pianist's hands work.
+          ctx.fillStyle = "#f7f3e8";
+          ctx.fillRect(cx + u * 0.80, bodyTop + u * 0.07, u * 0.36, u * 0.095);
+          ctx.fillStyle = "#101014";
+          for (var ki = 0; ki < 7; ki++) {
+            ctx.fillRect(cx + u * (0.845 + ki * 0.045), bodyTop + u * 0.07, u * 0.024, u * 0.058);
+          }
+          // His arms, forward to the keys, the hands
+          // alternating gently over them as he plays — and
+          // lifting with the bounce when a plate lands.
+          var bob1 = Math.sin(nowMs / 170) * u * 0.016, bob2 = Math.sin(nowMs / 170 + Math.PI) * u * 0.016;
+          drawActArm(fx - u * 0.24, fy - u * 1.24 + bounce, fx + u * 0.05, fy - u * 1.00 + bounce, cx + u * 0.86, bodyTop + u * 0.10 + bob1 + bounce, u * 0.105);
+          drawActArm(fx + u * 0.24, fy - u * 1.24 + bounce, fx + u * 0.38, fy - u * 1.02 + bounce, cx + u * 1.04, bodyTop + u * 0.10 + bob2 + bounce, u * 0.105);
+          // The music, drifting up off the piano: two
+          // quiet notes on a slow rise, and a brighter
+          // flurry while the serve beat plays.
+          ctx.fillStyle = "#ffd166";
+          ctx.textAlign = "center";
+          for (var ni = 0; ni < 2; ni++) {
+            var ph = ((nowMs / 3600) + ni * 0.5) % 1;
+            ctx.save();
+            ctx.globalAlpha = (1 - ph) * 0.45;
+            ctx.font = "700 " + Math.round(u * 0.34) + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+            ctx.fillText("♪", cx - u * 0.95 + ph * u * 0.25, fy - u * 1.15 - ph * u * 0.5);
+            ctx.restore();
+          }
+          if (env.happyT > 0) {
+            ctx.save();
+            ctx.globalAlpha = clamp(env.happyT * 1.4, 0, 1) * 0.9;
+            ctx.font = "700 " + Math.round(u * 0.4) + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+            ctx.fillText("♪", cx - u * 0.55, fy - u * 1.95 + (1 - env.happyT) * u * 0.2);
+            ctx.fillText("♫", cx + u * 0.35, fy - u * 2.02 + (1 - env.happyT) * u * 0.26);
+            ctx.restore();
+          }
+        }
+
+        // ACT 2 — Erykah Badu, headwrap and microphone:
+        // the singer standing centre stage, the wrap on
+        // her head, a microphone in her raised hand, her
+        // free arm gesturing as she sways.
+        function drawActBadu(env) {
+          var u = env.u, cx = env.cx, fy = env.platTop, nowMs = env.nowMs;
+          var sway = Math.sin(nowMs / 1000) * 0.022;
+          var bounce = env.happyT > 0 ? -Math.sin(env.happyT * Math.PI) * u * 0.09 : 0;
+          ctx.save();
+          ctx.translate(cx, fy + bounce);
+          ctx.rotate(sway);
+          ctx.translate(-cx, -fy);
+          // Legs, in the vinyl.
+          ctx.strokeStyle = "#101014";
+          ctx.lineCap = "round";
+          ctx.lineWidth = u * 0.115;
+          ctx.beginPath();
+          ctx.moveTo(cx - u * 0.10, fy - u * 0.80); ctx.lineTo(cx - u * 0.13, fy - u * 0.02);
+          ctx.moveTo(cx + u * 0.10, fy - u * 0.80); ctx.lineTo(cx + u * 0.14, fy - u * 0.02);
+          ctx.stroke();
+          drawActTorso(cx, fy - u * 1.42, fy - u * 0.76, u * 0.27);
+          // The free arm, gesturing out on the phrase.
+          var gest = Math.sin(nowMs / 640) * u * 0.05;
+          drawActArm(cx - u * 0.25, fy - u * 1.36, cx - u * 0.44, fy - u * 1.14, cx - u * 0.40, fy - u * 0.94 + gest, u * 0.10);
+          // The microphone arm, raised to her mouth.
+          drawActArm(cx + u * 0.25, fy - u * 1.36, cx + u * 0.42, fy - u * 1.30, cx + u * 0.24, fy - u * 1.58, u * 0.10);
+          drawActHead(cx, fy - u * 1.70, u * 0.54, nowMs, true);
+          // The microphone, at her hand by her mouth.
+          ctx.strokeStyle = "#26262b";
+          ctx.lineWidth = Math.max(1.6, u * 0.045);
+          ctx.beginPath(); ctx.moveTo(cx + u * 0.24, fy - u * 1.58); ctx.lineTo(cx + u * 0.13, fy - u * 1.66); ctx.stroke();
+          ctx.fillStyle = "#3c3f46";
+          ctx.beginPath(); ctx.arc(cx + u * 0.115, fy - u * 1.675, u * 0.062, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "rgba(255,255,255,0.5)";
+          ctx.beginPath(); ctx.arc(cx + u * 0.095, fy - u * 1.695, u * 0.02, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+          if (env.happyT > 0) {
+            ctx.save();
+            ctx.globalAlpha = clamp(env.happyT * 1.4, 0, 1) * 0.9;
+            ctx.fillStyle = "#ffd166";
+            ctx.font = "700 " + Math.round(u * 0.4) + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("♪", cx - u * 0.6, fy - u * 2.0 + (1 - env.happyT) * u * 0.2);
+            ctx.fillText("♫", cx + u * 0.55, fy - u * 2.06 + (1 - env.happyT) * u * 0.26);
+            ctx.restore();
+          }
+        }
+
+        // ACT — the DJ on the decks (the launch act): the
+        // DJ standing at
+        // a pair of turntables, hands on the discs, riding
+        // the track with a gentle bounce.
+        function drawActDJ(env) {
+          var u = env.u, cx = env.cx, fy = env.platTop, nowMs = env.nowMs;
+          var bounce = -Math.abs(Math.sin(nowMs / 300)) * u * 0.035 -
+            (env.happyT > 0 ? Math.sin(env.happyT * Math.PI) * u * 0.07 : 0);
+          var deckTop = fy - u * 0.60;
+          // The DJ, behind the decks: torso and head,
+          // bouncing on the beat.
+          ctx.save();
+          ctx.translate(0, bounce);
+          drawActTorso(cx, fy - u * 1.26, fy - u * 0.56, u * 0.30);
+          drawActHead(cx, fy - u * 1.52, u * 0.56, nowMs, false);
+          ctx.restore();
+          // The decks: a dark counter with two turntables
+          // and the mixer between them.
+          var dGrad = ctx.createLinearGradient(0, deckTop, 0, fy);
+          dGrad.addColorStop(0, "#33323a");
+          dGrad.addColorStop(1, "#101013");
+          ctx.fillStyle = dGrad;
+          rrPath(cx - u * 1.32, deckTop, u * 2.64, fy - deckTop, Math.min(5, u * 0.08));
+          ctx.fill();
+          ctx.fillStyle = "#c9a227";
+          ctx.fillRect(cx - u * 1.32, deckTop, u * 2.64, Math.max(1.4, u * 0.03));
+          for (var di = -1; di <= 1; di += 2) {
+            var dx = cx + di * u * 0.70;
+            ctx.fillStyle = "#1c1c21";
+            ctx.beginPath(); ctx.ellipse(dx, deckTop + u * 0.10, u * 0.34, u * 0.085, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = "rgba(255, 240, 214, 0.25)";
+            ctx.lineWidth = Math.max(0.8, u * 0.014);
+            ctx.beginPath(); ctx.ellipse(dx, deckTop + u * 0.10, u * 0.24, u * 0.058, 0, 0, Math.PI * 2); ctx.stroke();
+            // The record turning: a lit mark riding the
+            // disc's rim on the frame clock.
+            var ang = nowMs / 420 + di * 1.7;
+            ctx.fillStyle = "#e5322d";
+            ctx.beginPath(); ctx.arc(dx + Math.cos(ang) * u * 0.27, deckTop + u * 0.10 + Math.sin(ang) * u * 0.066, Math.max(1.2, u * 0.028), 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "#f7f3e8";
+            ctx.beginPath(); ctx.ellipse(dx, deckTop + u * 0.10, u * 0.045, u * 0.014, 0, 0, Math.PI * 2); ctx.fill();
+          }
+          // The mixer, centre, with its faders.
+          ctx.fillStyle = "#26252c";
+          ctx.fillRect(cx - u * 0.17, deckTop + u * 0.03, u * 0.34, u * 0.15);
+          ctx.fillStyle = "#e3c268";
+          for (var fi = -1; fi <= 1; fi++) {
+            ctx.fillRect(cx + fi * u * 0.09 - u * 0.012, deckTop + u * (0.06 + (fi + 1) * 0.03), u * 0.024, u * 0.03);
+          }
+          // His arms, down to the discs, hands riding the
+          // records as they turn.
+          drawActArm(cx - u * 0.27, fy - u * 1.20 + bounce, cx - u * 0.52, fy - u * 0.92 + bounce, cx - u * 0.66, deckTop + u * 0.08, u * 0.10);
+          drawActArm(cx + u * 0.27, fy - u * 1.20 + bounce, cx + u * 0.52, fy - u * 0.92 + bounce, cx + u * 0.74, deckTop + u * 0.08, u * 0.10);
+          if (env.happyT > 0) {
+            ctx.save();
+            ctx.globalAlpha = clamp(env.happyT * 1.4, 0, 1) * 0.9;
+            ctx.fillStyle = "#ffd166";
+            ctx.font = "700 " + Math.round(u * 0.4) + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("♪", cx - u * 0.85, fy - u * 1.95 + (1 - env.happyT) * u * 0.2);
+            ctx.fillText("♫", cx + u * 0.9, fy - u * 2.0 + (1 - env.happyT) * u * 0.26);
+            ctx.restore();
+          }
+        }
+
+        // The stage itself, painted live each frame (after
+        // the stations, before the entrance scene and the
+        // waiter): a deep-red curtain backdrop with a gold
+        // valance — the room's own red-and-gold dressing —
+        // a raised dark-wood platform with gold trim
+        // against the left wall, the current act on it
+        // facing the room, and the number stand on its
+        // room-facing edge, painted last so the number is
+        // always fully readable while the stage is dealt.
+        // On an empty floor the stage stands dressed and
+        // unnumbered.
+        function drawStage(nowMs) {
+          var st = stageStation;
+          if (!st.w || st.baseY <= 0) return;
+          var act = STAGE_ACTS[STAGE_ACT_ID] || STAGE_ACTS["dj-decks"];
+          var cx = st.cx, baseY = st.baseY, platTop = st.platTop;
+          var shakeX = st.shakeT > 0 ? Math.sin(nowMs / 22) * 4 * st.shakeT : 0;
+          ctx.save();
+          ctx.translate(shakeX, 0);
+          // The curtain backdrop.
+          var curW = st.w + 16, curX = cx - curW / 2;
+          var curTop = Math.max(st.topY - 8, 44), curBot = platTop + 3;
+          var cGrad = ctx.createLinearGradient(0, curTop, 0, curBot);
+          cGrad.addColorStop(0, "#971e29");
+          cGrad.addColorStop(0.6, "#7e1822");
+          cGrad.addColorStop(1, "#5d0f18");
+          ctx.fillStyle = cGrad;
+          rrPath(curX, curTop, curW, curBot - curTop, 6);
+          ctx.fill();
+          ctx.save();
+          rrPath(curX, curTop, curW, curBot - curTop, 6);
+          ctx.clip();
+          var foldW = Math.max(9, curW / 9);
+          for (var fi2 = 0; fi2 < 10; fi2++) {
+            ctx.fillStyle = fi2 % 2 ? "rgba(30, 2, 6, 0.20)" : "rgba(255, 205, 180, 0.07)";
+            ctx.fillRect(curX + fi2 * foldW, curTop, foldW * 0.52, curBot - curTop);
+          }
+          ctx.restore();
+          // The gold valance across the curtain's top,
+          // scalloped along its lower edge.
+          ctx.fillStyle = "#a32430";
+          ctx.fillRect(curX, curTop, curW, Math.max(7, st.u * 0.22));
+          ctx.fillStyle = "#c9a227";
+          var scN = Math.max(4, Math.round(curW / 26));
+          for (var sci = 0; sci < scN; sci++) {
+            ctx.beginPath();
+            ctx.arc(curX + (sci + 0.5) * (curW / scN), curTop + Math.max(7, st.u * 0.22), curW / scN / 2, 0, Math.PI);
+            ctx.fill();
+          }
+          ctx.fillRect(curX, curTop, curW, Math.max(1.6, st.u * 0.045));
+          ctx.strokeStyle = "rgba(201, 162, 39, 0.8)";
+          ctx.lineWidth = Math.max(1.2, st.u * 0.03);
+          rrPath(curX, curTop, curW, curBot - curTop, 6);
+          ctx.stroke();
+          // The platform: a contact shadow, a lit wood
+          // top, and a dark front face with gold trim.
+          ctx.fillStyle = "rgba(12, 6, 3, 0.30)";
+          ctx.beginPath(); ctx.ellipse(cx, baseY + 3, st.w * 0.56, Math.max(3, st.u * 0.10), 0, 0, Math.PI * 2); ctx.fill();
+          var topGrad = ctx.createLinearGradient(0, platTop - 3, 0, platTop + 2);
+          topGrad.addColorStop(0, "#7a4e2a");
+          topGrad.addColorStop(1, "#4a2c17");
+          ctx.fillStyle = topGrad;
+          ctx.fillRect(cx - st.w / 2, platTop - 3, st.w, 5);
+          var faceGrad = ctx.createLinearGradient(0, platTop + 2, 0, baseY);
+          faceGrad.addColorStop(0, "#3c2412");
+          faceGrad.addColorStop(1, "#241204");
+          ctx.fillStyle = faceGrad;
+          ctx.fillRect(cx - st.w / 2, platTop + 2, st.w, baseY - platTop - 2);
+          ctx.fillStyle = "#c9a227";
+          ctx.fillRect(cx - st.w / 2, platTop + 2, st.w, Math.max(1.6, st.u * 0.05));
+          // The act. Mid-rotation (a re-deal just turned
+          // the stage over), the outgoing act leaves into
+          // the wing as the incoming act takes the stage:
+          // both slide and fade on the turnover beat
+          // (swapT, stepped on the real-elapsed clock).
+          if (st.prevActId && st.swapT > 0 && STAGE_ACTS[st.prevActId] && st.prevActId !== STAGE_ACT_ID) {
+            var swapP = 1 - st.swapT;
+            ctx.save();
+            ctx.globalAlpha = 1 - swapP;
+            ctx.translate(-swapP * st.u * 0.9, 0);
+            STAGE_ACTS[st.prevActId].draw({ cx: cx, platTop: platTop - 3, u: st.u, nowMs: nowMs, happyT: 0 });
+            ctx.restore();
+            ctx.save();
+            ctx.globalAlpha = swapP;
+            ctx.translate(-(1 - swapP) * st.u * 0.6, 0);
+            act.draw({ cx: cx, platTop: platTop - 3, u: st.u, nowMs: nowMs, happyT: st.happyT });
+            ctx.restore();
+          } else {
+            act.draw({ cx: cx, platTop: platTop - 3, u: st.u, nowMs: nowMs, happyT: st.happyT });
+          }
+          // A served plate on the stage's front edge, while
+          // the serve beat plays.
+          if (st.plateT > 0) {
+            ctx.save();
+            ctx.globalAlpha = clamp(st.plateT * 1.6, 0, 1);
+            ctx.fillStyle = "#f4f7f8";
+            ctx.beginPath(); ctx.ellipse(cx + st.w * 0.31, platTop - 5, st.u * 0.30, st.u * 0.16, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = "#c9a227";
+            ctx.lineWidth = 1.4;
+            ctx.stroke();
+            ctx.restore();
+          }
+          // The serve flash, around the whole stage.
+          if (st.flash > 0) {
+            ctx.save();
+            ctx.globalAlpha = clamp(st.flash, 0, 1) * 0.85;
+            ctx.strokeStyle = st.flashColor;
+            ctx.lineWidth = 4;
+            rrPath(curX - 4, curTop - 4, curW + 8, baseY - curTop + 8, 10);
+            ctx.stroke();
+            ctx.restore();
+          }
+          // The number stand on the stage's room-facing
+          // (right) edge: a brass base on the platform's
+          // edge and the plaque — the tent card's own
+          // styling, via drawPlaque — mounted on the front
+          // edge at the stage's middle height, facing the
+          // room, clear of the act behind it and of every
+          // station (the floor grid is carved clear of the
+          // whole stage band — see layoutTables).
+          // Unnumbered on an empty floor: no stand.
+          if (st.number > 0) {
+            var standX = cx + st.w / 2 + 2, standY = st.cy;
+            var pop = 1 + (st.numPop > 0 ? Math.sin(st.numPop * Math.PI) * 0.22 : 0);
+            var tentR = Math.max(st.r, 26);
+            var tentW = tentR * 1.16 * pop, tentH = tentR * 0.76 * pop;
+            ctx.fillStyle = "#8a6a2f";
+            ctx.beginPath(); ctx.ellipse(standX, standY + tentH / 2 + 3.5, st.u * 0.20, st.u * 0.055, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "#e3c268";
+            ctx.beginPath(); ctx.ellipse(standX, standY + tentH / 2 + 2, st.u * 0.155, st.u * 0.042, 0, 0, Math.PI * 2); ctx.fill();
+            drawPlaque(standX, standY, tentW, tentH, st.number);
+          }
+          ctx.restore();
+        }
+
         function addFloat(x, y, text, color) {
           floats.push({ x: x, y: y, text: text, color: color, t0: performance.now() });
           if (floats.length > 8) floats.shift();
@@ -5297,6 +6024,7 @@
         function newTicket() {
           var nums = [];
           for (var i = 0; i < tables.length; i++) nums.push(tables[i].number);
+          if (stageStation.number) nums.push(stageStation.number); // the kitchen can call the stage like any station
           var pick = nums[Math.floor(Math.random() * nums.length)];
           if (nums.length > 1) {
             var guard = 0;
@@ -5350,11 +6078,14 @@
           leaver.stateAt = nowMs;
           var oldTicket = ticketNum;
           dealNumbers();
+          advanceStageAct(); // the re-deal turns the stage over too: the act advances one step with the numbers
           for (var i = 0; i < tables.length; i++) tables[i].numPop = 1;
+          if (stageStation.number) stageStation.numPop = 1; // the stage's number re-dealt with everyone else's — and pops with them
           var stillThere = false;
           for (var j = 0; j < tables.length; j++) {
             if (tables[j].number === ticketNum) { stillThere = true; break; }
           }
+          if (stageStation.number && stageStation.number === ticketNum) stillThere = true; // the called number may have re-dealt onto the stage
           // "Numbers changed!" belongs to THIS event alone —
           // a party leaving and the numbers re-dealt across
           // the hall.
@@ -5890,13 +6621,14 @@
         // ticket stands — find the right table and serve it.
         function tapTable(t) {
           if (!gameOn || waiter.state === "toTable") return;
+          var floatY = t.isStage ? t.topY - 8 : t.y - t.r - 8;
           if (t.number === ticketNum) {
             score += POINTS_RIGHT;
             servedCount++;
             lastServed = t.show;
             t.flash = 1; t.flashColor = "#39d353";
             t.happyT = 1; t.plateT = 1;
-            addFloat(t.x, t.y - t.r - 8, "Served!", "#7bf79b");
+            addFloat(t.x, floatY, "Served!", "#7bf79b");
             dingSound();
             newTicket();
           } else {
@@ -5904,7 +6636,7 @@
             wrongCount++;
             t.flash = 1; t.flashColor = "#e5322d";
             t.shakeT = 1;
-            addFloat(t.x, t.y - t.r - 8, "Wrong table", "#ff8a85");
+            addFloat(t.x, floatY, "Wrong table", "#ff8a85");
             buzzSound();
           }
           servedLabel.textContent = String(servedCount);
@@ -5931,8 +6663,15 @@
           if (waiter.state === "pass") return;
           var tx, ty;
           if (waiter.state === "toTable" && waiter.target) {
+            // A plate for the stage is run to the stage's
+            // room-facing edge: the waiter stops at the
+            // serve point just off that edge (the stage's
+            // own x/y — see layoutStage), in the lane in
+            // front of the stage, like any other serve.
             tx = waiter.target.x;
-            ty = waiter.target.y + waiter.target.r * 0.95;
+            ty = waiter.target.isStage
+              ? waiter.target.y
+              : waiter.target.y + waiter.target.r * 0.95;
           } else {
             tx = waiter.homeX;
             ty = waiter.homeY;
@@ -6244,6 +6983,11 @@
           tables = [];
           floats = [];
           walkers = [];
+          // The stage stands on, unnumbered and uncallable,
+          // until stations are dealt again.
+          stageStation.number = 0;
+          stageStation.show = null;
+          stageStation.flash = 0; stageStation.happyT = 0; stageStation.plateT = 0;
           clearEscorts(); // stands the host down too — he walks back to his post (see clearEscorts)
           if (waiter.state === "toTable" || waiter.state === "returning") waiter.state = "pass";
           ticketNum = null;
@@ -6337,6 +7081,16 @@
           var py = ev.clientY - rect.top;
           // The hall is perfectly still — no un-rolling: a
           // tap lands exactly where it falls.
+          // The stage is a tap target in its own right,
+          // judged exactly like a station tap (see
+          // tapTable): a tap on the stage, its act or its
+          // number stand serves the performer.
+          if (stageStation.number > 0 &&
+              px >= stageStation.cx - stageStation.w / 2 - 4 && px <= stageStation.cx + stageStation.w / 2 + 22 &&
+              py >= stageStation.topY - 4 && py <= stageStation.baseY + 16) {
+            tapTable(stageStation);
+            return;
+          }
           var bestT = null, bestD = Infinity;
           for (var i = 0; i < tables.length; i++) {
             var t = tables[i];
@@ -6390,6 +7144,13 @@
           seatRestDesc(); // the bar and the floor both moved — re-seat the bubble
         }
         window.addEventListener("resize", resize);
+        // The masthead's logo arriving grows the block to
+        // its real height: re-seat the stage against the
+        // block as it then stands (see stageClearTop).
+        var brandImgEl = brandLogoEl.querySelector("img");
+        if (brandImgEl && !brandImgEl.complete) {
+          brandImgEl.addEventListener("load", function () { layoutTables(); });
+        }
         if (window.visualViewport) {
           window.visualViewport.addEventListener("resize", resize);
           // A visual-viewport scroll shifts where the bar's
@@ -6545,6 +7306,21 @@
             if (t.plateT > 0) t.plateT = Math.max(0, t.plateT - dtMs / 1200);
             if (t.numPop > 0) t.numPop = Math.max(0, t.numPop - dtMs / 500);
           }
+          // The stage's own beats decay on the same
+          // real-elapsed-time step as every table's.
+          if (stageStation.flash > 0) stageStation.flash = Math.max(0, stageStation.flash - dtMs / 600);
+          if (stageStation.shakeT > 0) stageStation.shakeT = Math.max(0, stageStation.shakeT - dtMs / 450);
+          if (stageStation.happyT > 0) stageStation.happyT = Math.max(0, stageStation.happyT - dtMs / 700);
+          if (stageStation.plateT > 0) stageStation.plateT = Math.max(0, stageStation.plateT - dtMs / 1200);
+          if (stageStation.numPop > 0) stageStation.numPop = Math.max(0, stageStation.numPop - dtMs / 500);
+          // The rotation's turnover beat decays on the same
+          // real-elapsed step: a swap takes its real seconds
+          // at any presented rate, then the stage is simply
+          // the incoming act's.
+          if (stageStation.swapT > 0) {
+            stageStation.swapT = Math.max(0, stageStation.swapT - dtMs / 650);
+            if (stageStation.swapT === 0) stageStation.prevActId = null;
+          }
 
           // The last call (see FINAL_CALL_MS): once the
           // shift enters its final five seconds, a waiter
@@ -6668,6 +7444,7 @@
           // them, trailing out the door at the upper right.
           // The floor's front edge — under the control
           // bar's reach — carries no scene at all.
+          drawStage(nowMs);
           drawEntrance(nowMs);
           drawWaiter(nowMs);
           drawFloats(nowMs);
@@ -6739,6 +7516,11 @@
             numbers: tables.map(function (t) { return t.number; }),
             tableCount: tables.length,
             tableKinds: tables.map(function (t) { return t.kind || "table"; }),
+            stageAct: STAGE_ACT_ID,
+            stagePrevAct: stageStation.prevActId,
+            stageSwap: Math.round(stageStation.swapT * 100) / 100,
+            stageNumber: stageStation.number,
+            stagePos: { x: Math.round(stageStation.cx), y: Math.round(stageStation.baseY), top: Math.round(stageStation.topY), w: Math.round(stageStation.w) },
             tableStates: tables.map(function (t) { return t.state; }),
             walkers: walkers.length,
             arrivals: arrivals.length,
