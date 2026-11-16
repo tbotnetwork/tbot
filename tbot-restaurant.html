@@ -3021,18 +3021,31 @@
         // the kitchen pass's before the fixture swap —
         // John's ruling, 2026-11-16: the bar takes the
         // upper left, and an open kitchen takes the lower
-        // floor the bar vacated.)
-        function kitchenH() { return clamp(H * 0.17, 96, 150); }
+        // floor the bar vacated.) The bar runs LARGER now
+        // (John's ruling, 2026-11-16: "Make the Bar larger"):
+        // a deeper footprint — this band steps up from
+        // 0.17·H / 150 max to 0.20·H / 178 max — and the
+        // bottle shelves, laid out as fractions of this
+        // band in paintRoom, scale up with it. The floor
+        // guarantee in hallDims still compresses the band
+        // (glass first, then this band) when a full house
+        // needs the room, so the tables keep their fit.
+        function kitchenH() { return clamp(H * 0.20, 112, 178); }
 
         // The bar stands at the UPPER LEFT of the room: its
         // counter runs along the back edge of the floor for
-        // this width from the left wall — wide enough to
-        // hold the back-bar shelves, the counter and the bar
-        // stations lined along it as its seats, and no
-        // wider. The rest of the back edge is the room's own
+        // this width from the left wall — a LONGER run than
+        // it first took (0.54·W / 580 max, up from 0.38·W /
+        // 360), wide enough to hold the back-bar shelves,
+        // the counter and the bar stations lined along it
+        // as its seats with their numbers readable, the
+        // TBAR plaque centred on the run (see drawBarSign).
+        // The rest of the back edge is the room's own
         // glass, and the entrance stands at the back edge's
-        // right end (see layoutEntrance).
-        function passWidth() { return clamp(W * 0.38, 190, 360); }
+        // right end (see layoutEntrance — its scene steps
+        // its figures down when the wider bar leaves it
+        // less of the edge, as it always has).
+        function passWidth() { return clamp(W * 0.54, 240, 580); }
 
         // How many of the floor's stations are bar seats:
         // the last run of the deal (see stationKindAt) —
@@ -3053,8 +3066,26 @@
         // fully visible at phone widths, clear of the
         // header at the top and the control bar at the
         // bottom. The dealt grid ends above its top edge
-        // (see layoutTables).
-        function openKitchenH() { return clamp(H * 0.13, 88, 124); }
+        // (see layoutTables). The set now sits LOWER and
+        // DEEPER (John's ruling, 2026-11-16: "Make the
+        // kitchen longer and lower in the screen"): its
+        // band steps up from 0.13·H / 124 max to 0.185·H /
+        // 172 max — a taller, deeper kitchen filling the
+        // lower floor, its bottom still on the ground line
+        // (clear of the phone's control bar, whose reserve
+        // the ground line already carries) and its top edge
+        // reaching further up the lower floor, the grid's
+        // bottom boundary moving up with it (see
+        // layoutTables) and the floor guarantee in hallDims
+        // counting the taller band in its need. The chefs,
+        // pots and pans spread wider along the longer-
+        // reading run (see openKitchenPotXs and
+        // drawOpenKitchen), and the set's fittings — steel
+        // counter, burners, grill, pots, pans, steam —
+        // scale up with the band in paintRoom and
+        // drawOpenKitchen, so the bigger kitchen reads as a
+        // working kitchen, not a stretched strip.
+        function openKitchenH() { return clamp(H * 0.185, 120, 172); }
         function openKitchenRect() {
           var x0 = stageReserveW();
           var gy = groundY();
@@ -3067,10 +3098,13 @@
         // The two pots on the open kitchen's counter, one in
         // front of each chef — shared by the cached room
         // painting (which draws the pots) and the live steam
-        // over them (see drawOpenKitchen).
+        // over them (see drawOpenKitchen). Their spread
+        // matches the chefs' own (see drawOpenKitchen), so
+        // each pot stands in front of its chef along the
+        // run, the pair riding wide on the longer run.
         function openKitchenPotXs() {
           var r = openKitchenRect();
-          var off = clamp((r.x1 - r.x0) * 0.20, 48, 190);
+          var off = clamp((r.x1 - r.x0) * 0.30, 48, 240);
           return [r.cx - off, r.cx + off];
         }
 
@@ -3483,7 +3517,16 @@
           var arches = W >= 620 ? 5 : 3;
           var pierW = clamp(W * 0.02, 11, 20);
           var paneW = ((winX1 - winX0) - pierW * (arches - 1)) / arches;
-          var winH = clamp(paneW * 1.02, 118, 300);
+          // The glass gives up a step of its height to the
+          // enlarged fixtures (the deeper bar band above
+          // the floor line, the deeper open kitchen below
+          // it — 2026-11-16): the pane measure steps down
+          // from 1.02 to 0.90 of the pane width, so the
+          // floor line — and the tables on the floor —
+          // barely move while both fixtures grow. (The
+          // glass is the room photograph now; this measure
+          // only sets where its floor line lands.)
+          var winH = clamp(paneW * 0.90, 118, 270);
           if (tables.length > 8) winH -= Math.min(38, winH * 0.16);
           // The floor line is where it always was: it is
           // measured down the room's full stack — ceiling
@@ -3792,10 +3835,10 @@
           var railY = okR.top + okR.h * 0.31;
           ctx.fillStyle = "#8d9aa1";
           ctx.fillRect(okR.x0 + 6, railY, okW - 12, 3);
-          var panFr = [0.14, 0.33, 0.67, 0.86];
+          var panFr = [0.08, 0.30, 0.70, 0.92];
           for (var pni = 0; pni < panFr.length; pni++) {
             var panX = okR.x0 + panFr[pni] * okW;
-            var panR = clamp(okR.h * 0.085, 7, 11);
+            var panR = clamp(okR.h * 0.10, 8, 16);
             ctx.strokeStyle = "#8d9aa1";
             ctx.lineWidth = 1.6;
             ctx.beginPath(); ctx.moveTo(panX, railY + 2); ctx.lineTo(panX, railY + 8); ctx.stroke();
@@ -3816,54 +3859,63 @@
           // The steel counter along the set's front: the
           // old pass's steel, at the open kitchen's own
           // front — brushed top, hard highlight, dark foot.
-          var okSteel = ctx.createLinearGradient(0, okR.bottom - 26, 0, okR.bottom);
+          // Its depth scales with the set's taller band
+          // (okCounterH), and the burners, grill, pots and
+          // plates on it scale with it, so the deeper
+          // kitchen's fittings read at the bigger size.
+          var okCounterH = clamp(okR.h * 0.20, 26, 40);
+          var okSteel = ctx.createLinearGradient(0, okR.bottom - okCounterH, 0, okR.bottom);
           okSteel.addColorStop(0, "#eef2f4");
           okSteel.addColorStop(0.35, "#c3ced4");
           okSteel.addColorStop(0.75, "#9fadb5");
           okSteel.addColorStop(1, "#7f8f98");
           ctx.fillStyle = okSteel;
-          ctx.fillRect(okR.x0, okR.bottom - 26, okW, 26);
+          ctx.fillRect(okR.x0, okR.bottom - okCounterH, okW, okCounterH);
           ctx.fillStyle = "rgba(255,255,255,0.5)";
-          ctx.fillRect(okR.x0, okR.bottom - 26, okW, 1.4);
+          ctx.fillRect(okR.x0, okR.bottom - okCounterH, okW, 1.4);
           for (var obi = 0; obi < 5; obi++) {
             ctx.fillStyle = obi % 2 ? "rgba(40,55,62,0.10)" : "rgba(255,255,255,0.16)";
-            ctx.fillRect(okR.x0, okR.bottom - 21 + obi * 4.4, okW, 1);
+            ctx.fillRect(okR.x0, okR.bottom - okCounterH + 5 + obi * (okCounterH - 8) / 5, okW, 1);
           }
           ctx.fillStyle = "rgba(20, 30, 34, 0.55)";
           ctx.fillRect(okR.x0, okR.bottom - 3, okW, 3);
           // Burners at the counter's left end, one lit.
+          var okBurnR = clamp(okR.h * 0.075, 9, 14);
           for (var obn = 0; obn < 2; obn++) {
-            var obx = okR.x0 + 22 + obn * 24;
+            var obx = okR.x0 + 26 + obn * (okBurnR * 2 + 8);
             ctx.fillStyle = "#26262b";
-            ctx.beginPath(); ctx.ellipse(obx, okR.bottom - 27, 9, 2.8, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(obx, okR.bottom - okCounterH - 1, okBurnR, okBurnR * 0.31, 0, 0, Math.PI * 2); ctx.fill();
             if (obn === 0) {
               ctx.fillStyle = "rgba(255, 120, 50, 0.85)";
-              ctx.beginPath(); ctx.ellipse(obx, okR.bottom - 27, 4, 1.3, 0, 0, Math.PI * 2); ctx.fill();
+              ctx.beginPath(); ctx.ellipse(obx, okR.bottom - okCounterH - 1, okBurnR * 0.44, okBurnR * 0.14, 0, 0, Math.PI * 2); ctx.fill();
             }
           }
           // The grill at the counter's right end: a dark
           // grate with a warm glow between its bars.
+          var okGrillW = clamp(okR.h * 0.42, 52, 72);
           ctx.fillStyle = "#1d1c22";
-          ctx.fillRect(okR.x1 - 66, okR.bottom - 30, 52, 5);
+          ctx.fillRect(okR.x1 - okGrillW - 14, okR.bottom - okCounterH - 5, okGrillW, 6);
           ctx.fillStyle = "rgba(255, 120, 50, 0.55)";
-          for (var ogi = 0; ogi < 5; ogi++) ctx.fillRect(okR.x1 - 62 + ogi * 10, okR.bottom - 29, 4, 3);
+          for (var ogi = 0; ogi < 5; ogi++) ctx.fillRect(okR.x1 - okGrillW - 10 + ogi * (okGrillW - 8) / 5, okR.bottom - okCounterH - 4, 4, 4);
           // The pots on the counter, one in front of each
           // chef (their spots are shared with the live
           // steam — see openKitchenPotXs).
           var okPots = openKitchenPotXs();
+          var okPotW = clamp(okR.h * 0.17, 22, 32), okPotH = clamp(okR.h * 0.095, 12, 18);
+          var okPotTop = okR.bottom - okCounterH - okPotH + 2;
           for (var opi = 0; opi < okPots.length; opi++) {
             var opx = okPots[opi];
             ctx.fillStyle = "#3a3f46";
-            ctx.fillRect(opx - 11, okR.bottom - 38, 22, 12);
+            ctx.fillRect(opx - okPotW / 2, okPotTop, okPotW, okPotH);
             ctx.fillStyle = "#565d66";
-            ctx.beginPath(); ctx.ellipse(opx, okR.bottom - 38, 11, 3.4, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(opx, okPotTop, okPotW / 2, okPotW * 0.155, 0, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = "#26262b";
-            ctx.beginPath(); ctx.arc(opx, okR.bottom - 40, 2.2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(opx, okPotTop - 2, 2.6, 0, Math.PI * 2); ctx.fill();
             ctx.strokeStyle = "#26262b";
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(opx - 14, okR.bottom - 33); ctx.lineTo(opx - 11, okR.bottom - 33);
-            ctx.moveTo(opx + 11, okR.bottom - 33); ctx.lineTo(opx + 14, okR.bottom - 33);
+            ctx.moveTo(opx - okPotW / 2 - 3, okPotTop + okPotH * 0.45); ctx.lineTo(opx - okPotW / 2, okPotTop + okPotH * 0.45);
+            ctx.moveTo(opx + okPotW / 2, okPotTop + okPotH * 0.45); ctx.lineTo(opx + okPotW / 2 + 3, okPotTop + okPotH * 0.45);
             ctx.stroke();
           }
           // Plates stacked on the counter near its centre,
@@ -3871,8 +3923,8 @@
           // of the waiter's post.
           ctx.fillStyle = "#f4f7f8";
           for (var ppi = 0; ppi < 3; ppi++) {
-            ctx.beginPath(); ctx.ellipse(okR.cx - 46 + ppi * 13, okR.bottom - 28, 10, 3.2, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(okR.cx + 46 - ppi * 13, okR.bottom - 28, 10, 3.2, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(okR.cx - 52 + ppi * 15, okR.bottom - okCounterH - 2, 12, 3.8, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(okR.cx + 52 - ppi * 15, okR.bottom - okCounterH - 2, 12, 3.8, 0, 0, Math.PI * 2); ctx.fill();
           }
           ctx.restore();
           // The open kitchen's left edge: a dark cheek with
@@ -5079,22 +5131,30 @@
         }
         function drawOpenKitchen(nowMs) {
           var okR = openKitchenRect();
-          var s = bodySize() * 0.98;
-          var off = clamp((okR.x1 - okR.x0) * 0.30, 56, 170);
+          // The chefs scale up with the set's deeper band
+          // (up to 1.4× their first size) and spread wider
+          // along its longer run — the same spread the pots
+          // take (see openKitchenPotXs), so each chef works
+          // behind his own pot, either side of the waiter's
+          // post at the run's centre.
+          var okScale = clamp(okR.h / 124, 1, 1.4);
+          var s = bodySize() * 0.98 * okScale;
+          var off = clamp((okR.x1 - okR.x0) * 0.30, 56, 240);
           drawChefFigure(okR.cx - off, okR.bottom - 14, s, kitchenChefs[0], nowMs);
           drawChefFigure(okR.cx + off, okR.bottom - 14, s, kitchenChefs[1], nowMs);
           // Steam off the pots, rising and thinning on
-          // the frame's own clock.
+          // the frame's own clock — its rise and wisps
+          // scale with the set, off the bigger pots.
           var pots = openKitchenPotXs();
           for (var cpi = 0; cpi < pots.length; cpi++) {
             for (var csi = 0; csi < 3; csi++) {
               var cph = ((nowMs / 1100) + cpi * 0.37 + csi / 3) % 1;
-              var csx = pots[cpi] + Math.sin(cph * 5 + cpi * 2 + csi) * 3;
-              var csy = okR.bottom - 44 - cph * 24;
+              var csx = pots[cpi] + Math.sin(cph * 5 + cpi * 2 + csi) * 3 * okScale;
+              var csy = okR.bottom - (40 + clamp(okR.h * 0.095, 12, 18)) * okScale - cph * 26 * okScale;
               ctx.save();
               ctx.globalAlpha = (1 - cph) * 0.30;
               ctx.fillStyle = "#ffffff";
-              ctx.beginPath(); ctx.arc(csx, csy, 2.5 + cph * 3.5, 0, Math.PI * 2); ctx.fill();
+              ctx.beginPath(); ctx.arc(csx, csy, (2.5 + cph * 3.5) * okScale, 0, Math.PI * 2); ctx.fill();
               ctx.restore();
             }
           }
