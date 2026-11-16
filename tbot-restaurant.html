@@ -2921,8 +2921,18 @@
         // platform itself plus the number stand on its
         // room-facing edge and a breathing margin, so the
         // nearest station's widest silhouette still clears
-        // the stand.
-        function stageWidth() { return clamp(W * 0.34, 118, 240); }
+        // the stand. The stage runs SHORTER than it first
+        // did (John's ruling, 2026-11-16: "Make the stage
+        // shorter") — about 28% off its length along the
+        // left wall: this width steps down by that share,
+        // the act's scale steps down with it in
+        // layoutStage (so the stage's top-to-bottom extent
+        // shortens by the same share, the DJ table's long
+        // vertical run included), and the reserved band
+        // shrinks with it, so the dealt stations take the
+        // freed floor. It stays vertically centred
+        // mid-left, below the kitchen pass.
+        function stageWidth() { return clamp(W * 0.245, 86, 172); }
         function stageReserveW() { return Math.round(stageWidth() + 26); }
 
         // The top edge the stage must clear, MEASURED from
@@ -2954,7 +2964,17 @@
           var r0 = tables.length ? tables[0].r : 44;
           var w = stageWidth();
           var platH = clamp(r0 * 0.36, 10, 18);
-          var u = clamp(w * 0.30, 26, 46);
+          // The act's scale follows the shorter stage:
+          // capped at 34 (was 46), so the stage's
+          // top-to-bottom extent — curtain, act and the
+          // DJ table's long run, all measured in u —
+          // shortens by the same share as its width,
+          // while every act still fits the platform
+          // (the widest, the piano at ±1.56u, stays
+          // inside the half width wherever the floor
+          // clamp holds u, and the cap only widens the
+          // stage for the same u).
+          var u = clamp(w * 0.30, 26, 34);
           var actH = u * 2.02;
           // Against the left wall, vertically centred on
           // the floor band — below the pass, above the
@@ -2976,7 +2996,7 @@
           }
           if (baseY > groundY() - 24) {
             var avail = (groundY() - 24) - clearTop;
-            u = clamp((avail - platH) / 2.02, 16, 46);
+            u = clamp((avail - platH) / 2.02, 16, 34);
             actH = u * 2.02;
             cy = clearTop + (actH + platH) / 2;
             baseY = cy + (actH + platH) / 2;
