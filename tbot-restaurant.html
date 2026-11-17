@@ -3186,8 +3186,13 @@
         // head close under the bar counter at the back
         // edge (a small gap below the counter, clear of
         // the bar seats' labels), running down the wall
-        // from there, past the open kitchen's top edge in
-        // the strip west of the kitchen. It leaves its old
+        // from there — SHORTENED at the foot by John's
+        // ruling, 2026-11-17 ("Make this stage shorter"):
+        // about two-fifths of its length is cut from the
+        // FOOT end, so it now ends on the dining floor
+        // clear above the open kitchen's top edge and the
+        // freed stretch of wall-side floor returns to the
+        // room. It leaves its old
         // centred spot entirely:
         // that floor returns to the dining grid, which now
         // starts right of the runway's narrower reserved
@@ -3263,7 +3268,8 @@
         // depth off the wall (0.245·W, capped 172) to
         // 0.105·W, capped at 88 — and LONG instead:
         // layoutStage runs it from just under the bar down
-        // the wall, past the open kitchen's top edge, and
+        // the wall (shortened at the foot — see
+        // layoutStage), and
         // the reserved band shrinks with the width, so the
         // dealt stations take the freed floor along the
         // whole wall, the old stage spot included.
@@ -3327,17 +3333,26 @@
           // counter, the stool bases and the labels alike,
           // at the opening floor and the full house.
           var headY = d.floorTop + 22;
-          // The foot runs down the wall PAST the open
-          // kitchen's top edge, in the strip west of the
-          // kitchen (the kitchen itself starts at the
-          // reserved band, so the runway never touches
-          // it) — the length that makes it a runway, not
-          // a strip. Its only neighbour down there is the
-          // waiter's post west of the pickup leg: the
-          // post's own guard in layoutTables steps him
-          // down the leg's outside just enough to clear
-          // the platform, as it always has.
-          var footY = Math.min(groundY() - 24 - platH, groundY() - openKitchenH() + 30);
+          // The foot: the runway's FULL reach would run
+          // down the wall past the open kitchen's top
+          // edge, in the strip west of the kitchen — but
+          // the runway is SHORTENED (John's ruling,
+          // 2026-11-17: "Make this stage shorter to get
+          // some space in the restaurant"): the head
+          // stays tucked close under the bar and the foot
+          // is cut back to three-fifths of the full reach
+          // — roughly two-fifths of the length taken from
+          // the FOOT end — so the deck now ends on the
+          // dining floor clear above the kitchen's top
+          // edge, still clearly longer than it is wide,
+          // and the freed stretch below it is dining
+          // floor again. Its old neighbour down there,
+          // the waiter's post west of the pickup leg,
+          // keeps its own guard in layoutTables, which
+          // now simply finds the platform already clear
+          // of him.
+          var fullFootY = Math.min(groundY() - 24 - platH, groundY() - openKitchenH() + 30);
+          var footY = headY + (fullFootY - headY) * 0.60;
           var len = Math.max(footY - headY, 0);
           // On a very short floor the act steps down
           // until it fits the runway's length with its
@@ -3845,8 +3860,9 @@
           var rows = Math.max(1, Math.ceil(Math.max(nonBar, 1) / cols));
           // The runway's footprint is carved out of the
           // floor: the runway runs along the LEFT wall
-          // from under the bar down to the kitchen's top
-          // edge (see layoutStage), so the station grid
+          // from under the bar down the wall, ending
+          // clear above the kitchen's top edge since the
+          // shortening (see layoutStage), so the station grid
           // starts right of the runway's reserved band at
           // every floor size — no dealt station ever sits
           // under or behind the runway.
@@ -3928,6 +3944,69 @@
           var topExt = DINER_TOP_R * tableR + 2;
           var botExt = Math.max(0.92 * tableR + 19, 1.09 * Math.min(tableR * 1.9, Math.min(cellW, cellH) / 2));
           var slotOffY = topExt + (cellH - topExt - botExt) / 2;
+          // THE FREED-STRIP RE-CARVE (with the runway
+          // shortening, John's ruling, 2026-11-17): the
+          // cut-back foot frees the wall-side strip below
+          // it, and the grid re-carves into that space
+          // ROW BY ROW. A row that REACHES the freed
+          // strip — its cell running down past the
+          // platform's foot — takes the FULL room width:
+          // laid out from a 10px left margin at the wider
+          // cell, its radius refitted to that cell and its
+          // slot re-centred on that radius — only when its
+          // stations' widest silhouettes (the DINER_SPAN_R
+          // envelope at the fitted radius, rug included)
+          // still clear the runway as drawn: either the
+          // row's leftmost envelope edge clears the
+          // runway's drawn right edge (its curtain, or
+          // its enlarged number stand, whichever reaches
+          // further) by a margin, or the row's silhouette
+          // top clears the platform's foot outright — and
+          // its rightmost envelope stays inside the room.
+          // A row that cannot clear the runway keeps the
+          // reserved layout exactly as built, so no
+          // station ever touches the deck, the curtain,
+          // the stand or a role plate at the opening six
+          // or the full sixteen, on desktop or phone. The
+          // runway is laid out here, before the loop (its
+          // one call in this pass), so the foot the rows
+          // are judged against is the foot as drawn.
+          layoutStage();
+          var rowX0 = [], rowCellW = [], rowR = [], rowRBase = [], rowOffY = [];
+          var standRight = stageStation.cx + stageStation.w / 2 + 2 +
+            Math.max(stageStation.r, 26) * 1.68 / 2;
+          var runRight = Math.max(stageStation.w + 16, standRight) + 3;
+          for (var rr3 = 0; rr3 < rows; rr3++) {
+            rowX0.push(gridX0); rowCellW.push(cellW); rowR.push(tableR); rowRBase.push(tableRBase); rowOffY.push(slotOffY);
+            var firstGi = rr3 * cols;
+            if (firstGi >= Math.max(nonBar, 0)) continue;
+            var fCellW = (W - 10) / cols;
+            var fBase = clamp(Math.min(fCellW * 0.245, (cellH - 21) / (DINER_TOP_R + 0.92), (cellH - 2) / (DINER_TOP_R + 1.09 * 1.9)), 5, 60);
+            var fR = clamp(Math.min(fCellW * 0.34, (cellH - 21) / (DINER_TOP_R + 0.92) * 1.18, (cellH - 2) / (DINER_TOP_R + 1.09 * 1.9) * 1.18), 5, 82);
+            var fTop = DINER_TOP_R * fR + 2;
+            var fBot = Math.max(0.92 * fR + 19, 1.09 * Math.min(fR * 1.9, Math.min(fCellW, cellH) / 2));
+            var fOff = fTop + (cellH - fTop - fBot) / 2;
+            // The row's first-slot station binds the
+            // leftward reach: the non-bar stations deal
+            // in table order, so its kind (table or
+            // booth) sets the radius its envelope is
+            // measured with, exactly as the loop deals
+            // it; later columns only reach further right.
+            var bindR = stationKindAt(firstGi, count) === "table" ? fR : fBase;
+            var leftEdge = 10 + fCellW * 0.5 - DINER_SPAN_R * bindR;
+            var rightEdge = 10 + fCellW * (cols - 0.5) + DINER_SPAN_R * fR;
+            var topClear = (gridTop + cellH * rr3 + fOff - fTop) >= stageStation.baseY + 4;
+            // Only a row that REACHES the freed strip —
+            // its cell running down past the platform's
+            // foot — re-carves into it; a row higher up
+            // the floor keeps the reserved layout, and a
+            // row clearing the foot outright (topClear)
+            // reaches it by definition.
+            var reaches = (gridTop + cellH * (rr3 + 1)) > stageStation.baseY;
+            if (((leftEdge >= runRight && reaches) || topClear) && rightEdge <= W - 2) {
+              rowX0[rr3] = 10; rowCellW[rr3] = fCellW; rowR[rr3] = fR; rowRBase[rr3] = fBase; rowOffY[rr3] = fOff;
+            }
+          }
           var gi = 0, bi = 0;
           var barSegW = barCount ? passWidth() / barCount : 0;
           for (var i = 0; i < tables.length; i++) {
@@ -3937,6 +4016,7 @@
             // Pack 'em moves the layout itself.
             if (tables[i].slot < 0) tables[i].slot = i;
             tables[i].kind = stationKindAt(i, count);
+            var slotRow = -1; // the grid row a non-bar station stands in (see the re-carve above); bar seats stand in no row
             if (tables[i].kind === "bar") {
               // A bar station lines the bar counter at the
               // upper left: its seat stands behind the
@@ -3952,10 +4032,11 @@
               bi++;
             } else {
               var c = gi % cols, r = Math.floor(gi / cols);
-              tables[i].slotX = gridX0 + cellW * (c + 0.5);
-              tables[i].slotY = gridTop + cellH * r + slotOffY;
-              tables[i].cellW = cellW;
-              tables[i].halfPitch = Math.min(cellW, cellH) / 2;
+              slotRow = r;
+              tables[i].slotX = rowX0[r] + rowCellW[r] * (c + 0.5);
+              tables[i].slotY = gridTop + cellH * r + rowOffY[r];
+              tables[i].cellW = rowCellW[r];
+              tables[i].halfPitch = Math.min(rowCellW[r], cellH) / 2;
               gi++;
             }
             if (!tables[i].placed) {
@@ -3967,7 +4048,13 @@
             // radius (and their carpets, drawn at 1.9r, with
             // them); booths and bar seats keep the unscaled
             // radius, so their furniture holds its size.
-            tables[i].r = tables[i].kind === "table" ? tableR : tableRBase;
+            // A station in a re-carved row takes that
+            // row's refitted radius (see the re-carve
+            // above); every other station keeps the
+            // floor's fitted radius as always.
+            tables[i].r = tables[i].kind === "table"
+              ? (slotRow >= 0 ? rowR[slotRow] : tableR)
+              : (slotRow >= 0 ? rowRBase[slotRow] : tableRBase);
           }
           // The maître d's post is his desk at the
           // entrance: layoutEntrance places the desk, the
@@ -3976,12 +4063,11 @@
           // clear of every station, and
           // seats the host at the desk — the post every
           // escort starts from and returns to (see
-          // spawnArrivals). The stage is laid out here
-          // too, before the waiter's post below is set,
-          // because that post is measured clear of the
-          // stage's platform.
+          // spawnArrivals). The stage was laid out
+          // above, before the station loop (see the
+          // re-carve), and the waiter's post below is
+          // measured clear of its platform as it stands.
           layoutEntrance();
-          layoutStage();
           if (host.state === "pass") { host.x = host.homeX; host.y = host.homeY; }
           // Home is OUTSIDE the kitchen (John's ruling,
           // 2026-11-16: "The waiter should be on the
@@ -4008,13 +4094,20 @@
           // boundary at the counter's height, west of the
           // kitchen — clear of every station's full
           // footprint, rug included, at the opening six
-          // and the full sixteen alike. One guard: the
-          // runway's foot runs down the wall toward his
-          // post (see layoutStage) — if his sprite would
-          // touch the platform, the post steps down the
-          // leg's outside just enough to clear it, never
-          // more than the step that keeps his feet on
-          // the floor at the leg.
+          // and the full sixteen alike. (John's ruling,
+          // 2026-11-17, with the runway shortening: "The
+          // server should be outside the kitchen on the
+          // left" — this post is that seat: outside the
+          // kitchen entirely, on its left, west of the
+          // leg, the two chefs alone inside it.) One
+          // guard stands from when the runway ran long:
+          // if his sprite would touch the platform, the
+          // post steps down the leg's outside just enough
+          // to clear it — with the foot cut back, the
+          // platform now ends well above his post at
+          // every room size, so the guard finds it
+          // already clear and he keeps his counter-height
+          // seat on open floor, never under the runway.
           var pbRect = pickupBarRect();
           var pbLeg = pickupLegRect();
           var wS = bodySize() * 1.12;
@@ -8061,13 +8154,33 @@
           var headY = st.headY, footY = st.footY, u = st.u;
           var len = Math.max(footY - headY, 0);
           if (actId === "dj-decks") {
-            return headY + clamp(Math.max(u * 2.08, len * 0.30), 0, Math.max(len * 0.46, 0));
+            // The DJ stays at the HEAD by the bar: his
+            // point is measured down from the deck's head
+            // by his unit's own height (2.08u), so the
+            // whole act — decks and head — stands on the
+            // shortened boards below the valance; the old
+            // cap at 0.46 of the length would push him up
+            // off the head of the shorter deck.
+            return headY + clamp(Math.max(u * 2.08, len * 0.30), 0, Math.max(len * 0.72, 0));
           }
-          if (actId === "pj-morton-piano") return headY + len * 0.56;
-          if (actId === "tbot-band") return headY + len * 0.66;
-          var mid = headY + len * 0.58;
-          var amp = Math.min(len * 0.20, mid - (headY + u * 2.15), (footY - 8) - mid);
-          if (amp < 0) amp = 0;
+          // The piano and the band sit along the boards
+          // at their fractions of the shortened length,
+          // stepped down the deck whenever their own
+          // height needs the room, so no head ever rises
+          // above the deck's head.
+          if (actId === "pj-morton-piano") return Math.max(headY + len * 0.56, Math.min(headY + u * 2.20, footY - 6));
+          if (actId === "tbot-band") return Math.max(headY + len * 0.66, Math.min(headY + u * 1.85, footY - 6));
+          // The microphone acts pace the shortened
+          // length: their stretch is the part of the deck
+          // a standing figure fits — feet low enough that
+          // the head clears the deck's head, high enough
+          // that the role plate at the feet stays on the
+          // boards above the foot — and they traverse its
+          // centre, turning at its ends.
+          var paceLo = headY + u * 2.28, paceHi = footY - 26;
+          if (paceHi < paceLo) paceHi = paceLo;
+          var mid = (paceLo + paceHi) / 2;
+          var amp = Math.min(len * 0.20, (paceHi - paceLo) / 2);
           return mid + Math.sin(nowMs / 3400) * amp;
         }
 
