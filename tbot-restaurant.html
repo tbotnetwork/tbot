@@ -3129,6 +3129,58 @@
           var w = openKitchenPotGeom().w;
           return [r.x0 + w / 2 + 5, r.x1 - w / 2 - 5];
         }
+        // The kitchen's SIDE BAR — the pickup bar (John's
+        // ruling, 2026-11-16: "Add a side Bar to the kitchen
+        // where waiter picks up order to table. Number on
+        // top of that Bar"): a pickup counter attached to
+        // the open kitchen on its floor-facing side — the
+        // pass — sitting in the kitchen's top-edge zone,
+        // centred on the kitchen's run. The waiter posts
+        // at it (see layoutTables), plates are picked up
+        // from it, the final-five-seconds hold stands at
+        // it, and the CALLED NUMBER stands on top of it on
+        // its own stand (see drawPickupBar), updating with
+        // every ticket. The whole unit — bar, stand and
+        // number plaque — sits INSIDE the kitchen's
+        // footprint: the stand's top stays below the dealt
+        // grid's bottom boundary (the kitchen's top edge
+        // less 8 — see layoutTables), so the grid's
+        // clearance needs no change and no table drawing
+        // ever touches it, the same full-footprint rule
+        // the kitchen band itself keeps. Centred on the
+        // run, it stands clear of the stage's band on the
+        // left, and it never reaches the chefs, the
+        // cooktop, the grill or the pots, which all work
+        // the steel counter at the set's foot.
+        function pickupBarRect() {
+          var ok = openKitchenRect();
+          var w = clamp((ok.x1 - ok.x0) * 0.44, 180, 500);
+          w = Math.min(w, (ok.x1 - ok.x0) - 24);
+          var surfOff = clamp(ok.h * 0.26, 34, 46);
+          return {
+            x0: ok.cx - w / 2, x1: ok.cx + w / 2, cx: ok.cx, w: w,
+            surfY: ok.top + surfOff, surfOff: surfOff,
+            top: ok.top, bottom: ok.top + surfOff + 24
+          };
+        }
+        // The called number's stand on top of the pickup
+        // bar: one measure shared by the cached room
+        // painting (which lays the pickup plates either
+        // side of it) and the live stand itself, so the
+        // two never drift. The plaque is BIG — its digits
+        // run larger than any table tent's — and readable
+        // at desktop and phone widths alike.
+        function pickupStandGeom() {
+          var pb = pickupBarRect();
+          var w = clamp(pb.w * 0.36, 66, 86);
+          var h = w * 0.55;
+          return {
+            x: pb.cx, w: w, h: h,
+            baseY: pb.surfY + 2,
+            cy: pb.surfY + 2 - h / 2,
+            top: pb.surfY + 2 - h
+          };
+        }
         // The kitchen figures' measures, for placing the
         // counter's fittings around them (see paintRoom's
         // grill): the chefs' size and spread — the same
@@ -3405,14 +3457,21 @@
             }
             tables[i].r = tableR;
           }
-          // Home is the OPEN KITCHEN on the lower floor:
-          // the waiter waits at its counter, at the centre
-          // of the kitchen's run, between the chefs — the
-          // post the kitchen's tickets print from, plates
-          // are picked up from, and the final-five-seconds
-          // hold stands at (see FINAL_CALL_MS).
-          waiter.homeX = okRect.cx;
-          waiter.homeY = okRect.bottom - 14;
+          // Home is the open kitchen's SIDE BAR — the
+          // pickup bar in the kitchen's top-edge zone, on
+          // its floor-facing side (see pickupBarRect): the
+          // waiter posts at the pickup bar, at the centre
+          // of the kitchen's run — the post the kitchen's
+          // tickets print from, plates are picked up from,
+          // and the final-five-seconds hold stands at (see
+          // FINAL_CALL_MS). His anchor stands a figure's
+          // depth inside the kitchen behind the pickup
+          // counter, so his whole sprite stays inside the
+          // kitchen's footprint, clear of the dealt grid
+          // above the kitchen's top edge.
+          var pbRect = pickupBarRect();
+          waiter.homeX = pbRect.cx;
+          waiter.homeY = okRect.top + pbRect.surfOff + 36;
           if (waiter.state === "pass") { waiter.x = waiter.homeX; waiter.y = waiter.homeY; }
           // The maître d's post is his desk at the
           // entrance: layoutEntrance places the desk, the
@@ -4077,6 +4136,66 @@
           for (var ppi = 0; ppi < 3; ppi++) {
             ctx.beginPath(); ctx.ellipse(okR.cx - 52 + ppi * 15, okR.bottom - okCounterH - 2, 12, 3.8, 0, 0, Math.PI * 2); ctx.fill();
             ctx.beginPath(); ctx.ellipse(okR.cx + 52 - ppi * 15, okR.bottom - okCounterH - 2, 12, 3.8, 0, 0, Math.PI * 2); ctx.fill();
+          }
+          // The SIDE BAR — the pickup bar (see
+          // pickupBarRect): a pickup counter attached to
+          // the kitchen's top edge, on its floor-facing
+          // side — two dark end supports dropping from the
+          // set's top zone, a polished dark-wood counter
+          // slab across them with its brass trim, a
+          // panelled front face under it with a brass foot
+          // rail, and PICK-UP lettered in gold on the face's
+          // left stretch, clear of the waiter at his post
+          // at the bar's centre. The called number's stand
+          // rides on top of the slab at its centre (painted
+          // live — see drawPickupBar — so the number can
+          // change with every ticket), and the pickup
+          // plates wait on the slab either side of it.
+          var pbR = pickupBarRect();
+          var pbStand = pickupStandGeom();
+          ctx.fillStyle = "rgba(10, 12, 14, 0.35)";
+          ctx.beginPath(); ctx.ellipse(pbR.cx, pbR.surfY + 26, pbR.w * 0.52, 5, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#1c1108";
+          ctx.fillRect(pbR.x0 + 5, okR.top + 6, 13, pbR.surfY + 20 - (okR.top + 6));
+          ctx.fillRect(pbR.x1 - 18, okR.top + 6, 13, pbR.surfY + 20 - (okR.top + 6));
+          ctx.fillStyle = "rgba(201,162,39,0.65)";
+          ctx.fillRect(pbR.x0 + 5, okR.top + 6, 1.4, pbR.surfY + 20 - (okR.top + 6));
+          ctx.fillRect(pbR.x1 - 6.4, okR.top + 6, 1.4, pbR.surfY + 20 - (okR.top + 6));
+          var pbFace = ctx.createLinearGradient(0, pbR.surfY + 7, 0, pbR.surfY + 24);
+          pbFace.addColorStop(0, "#3c2412");
+          pbFace.addColorStop(1, "#241204");
+          ctx.fillStyle = pbFace;
+          ctx.fillRect(pbR.x0, pbR.surfY + 7, pbR.w, 17);
+          ctx.strokeStyle = "rgba(0, 0, 0, 0.4)";
+          ctx.lineWidth = 1;
+          for (var pbsx = pbR.x0 + 30; pbsx < pbR.x1 - 6; pbsx += 30) {
+            ctx.beginPath(); ctx.moveTo(pbsx, pbR.surfY + 9); ctx.lineTo(pbsx, pbR.surfY + 22); ctx.stroke();
+          }
+          var pbTopG = ctx.createLinearGradient(0, pbR.surfY - 1, 0, pbR.surfY + 7);
+          pbTopG.addColorStop(0, "#7a4e2a");
+          pbTopG.addColorStop(1, "#4a2c17");
+          ctx.fillStyle = pbTopG;
+          ctx.fillRect(pbR.x0, pbR.surfY - 1, pbR.w, 8);
+          ctx.fillStyle = "rgba(255, 226, 180, 0.22)";
+          ctx.fillRect(pbR.x0, pbR.surfY, pbR.w, 1.4);
+          ctx.fillStyle = "#c9a227";
+          ctx.fillRect(pbR.x0, pbR.surfY + 6.4, pbR.w, 1.6);
+          ctx.fillStyle = "#e3c268";
+          ctx.fillRect(pbR.x0, pbR.surfY + 17.5, pbR.w, 2.2);
+          ctx.font = "800 10.5px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+          ctx.fillStyle = "#ffbe1a";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("PICK-UP", pbR.x0 + pbR.w * 0.24, pbR.surfY + 15.5);
+          ctx.textBaseline = "alphabetic";
+          // Pickup plates on the slab, either side of the
+          // number stand's seat.
+          ctx.fillStyle = "#f4f7f8";
+          for (var pbpi = 0; pbpi < 2; pbpi++) {
+            var pbPlateX = pbStand.x + (pbpi === 0 ? -1 : 1) * (pbStand.w / 2 + 24);
+            for (var pbpj = 0; pbpj < 2; pbpj++) {
+              ctx.beginPath(); ctx.ellipse(pbPlateX + (pbpi === 0 ? -1 : 1) * pbpj * 9, pbR.surfY - 2, 11, 3.4, 0, 0, Math.PI * 2); ctx.fill();
+            }
           }
           ctx.restore();
           // The open kitchen's left edge: a dark cheek with
@@ -5133,20 +5252,30 @@
           // The number stand on the counter, beside the
           // guest: a brass base and the plaque, painted last
           // so the number is always fully readable.
-          var standX = cx + Math.min(cw - r * 0.62, r * 1.42);
-          ctx.fillStyle = "#8a6a2f";
-          ctx.beginPath(); ctx.ellipse(standX, cy + r * 0.31, r * 0.17, r * 0.05, 0, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = "#e3c268";
-          ctx.beginPath(); ctx.ellipse(standX, cy + r * 0.295, r * 0.13, r * 0.038, 0, 0, Math.PI * 2); ctx.fill();
           var pop = 1 + (t.numPop > 0 ? Math.sin(t.numPop * Math.PI) * 0.22 : 0);
           var tentR = Math.max(r, 26);
-          // The stand's plaque, grown by the same
-          // proportion as the table tent (digits now
-          // about 0.54 of the floored radius) and seated
-          // a touch higher on the counter so the brass
-          // base still peeks out below it; standX already
-          // keeps the whole plaque inside the counter run.
-          drawPlaque(standX, cy - r * 0.08, tentR * 1.16 * pop, tentR * 0.76 * pop, t.number);
+          // The bar numbers, BIGGER (John's ruling,
+          // 2026-11-16: "Make the bar numbers bigger"): the
+          // stand's plaque grows again — from 1.16 × 0.76
+          // of the floored radius to 1.68 × 1.10 — so its
+          // digits (about 0.71 of the plaque's height, see
+          // drawPlaque) run roughly half again as tall as
+          // they did, readable at a glance at desktop and
+          // phone widths. The stand steps further along
+          // the counter by the same growth, so the plaque's
+          // left edge keeps its old clearance from the
+          // seated guest at the spot, and standX still
+          // clamps the whole plaque inside the counter
+          // run — clear of the TBAR plaque on the counter
+          // front, whose own fit reads this same geometry
+          // (see drawBarSign).
+          var barPlaqueW = tentR * 1.68, barPlaqueH = tentR * 1.10;
+          var standX = cx + Math.min(cw - barPlaqueW / 2 - 2, r * 1.68);
+          ctx.fillStyle = "#8a6a2f";
+          ctx.beginPath(); ctx.ellipse(standX, cy + r * 0.42, r * 0.17, r * 0.05, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#e3c268";
+          ctx.beginPath(); ctx.ellipse(standX, cy + r * 0.405, r * 0.13, r * 0.038, 0, 0, Math.PI * 2); ctx.fill();
+          drawPlaque(standX, cy - r * 0.16, barPlaqueW * pop, barPlaqueH * pop, t.number);
 
           if (t.show) drawLabel(t.show.name, cx, cy + r * 0.92, r * 1.9);
         }
@@ -5364,28 +5493,60 @@
           }
         }
 
+        // ---------- The pickup bar's number stand ----------
+        // The CALLED NUMBER stands ON TOP of the kitchen's
+        // side bar (see pickupBarRect): a brass stand on
+        // the pickup counter's slab, carrying a big plaque
+        // with the number the kitchen is calling — the
+        // order's pickup marker at the kitchen. It is
+        // painted live, after the waiter at his post at
+        // the bar, so it updates the moment a new ticket
+        // prints (newTicket stamps lastTicketAt, and the
+        // stand pops on that stamp, like the ticket chip),
+        // and nothing ever covers it. In the lobby, with
+        // no ticket called, the stand carries the same
+        // dash the ticket chip shows. The plaque's digits
+        // run at about 0.71 of its height — larger than
+        // any table tent's — readable at a glance at
+        // desktop and phone widths.
+        function drawPickupBar(nowMs) {
+          var sg = pickupStandGeom();
+          // The stand's brass base, seated on the slab.
+          ctx.fillStyle = "#8a6a2f";
+          ctx.beginPath(); ctx.ellipse(sg.x, sg.baseY + 2.5, sg.w * 0.20, sg.w * 0.055, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#e3c268";
+          ctx.beginPath(); ctx.ellipse(sg.x, sg.baseY + 1, sg.w * 0.155, sg.w * 0.042, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#8a6a2f";
+          ctx.fillRect(sg.x - 1.6, sg.baseY - sg.h * 0.16, 3.2, sg.h * 0.16);
+          var pop = 1;
+          if (gameOn && ticketNum != null && lastTicketAt) {
+            var age = clamp((nowMs - lastTicketAt) / 450, 0, 1);
+            pop = 1 + Math.sin(age * Math.PI) * 0.10;
+          }
+          drawPlaque(sg.x, sg.cy, sg.w * pop, sg.h * pop, ticketNum == null ? "–" : ticketNum);
+        }
+
         // ---------- The KITCHEN sign ----------
-        // The sign is the waiter's station marker, drawn
+        // The sign is the open kitchen's own marker, drawn
         // live — after the room, the tables, the waiter and
         // the floats, so nothing ever covers it — centred
-        // directly over the waiter TBOT wherever he stands
-        // at the OPEN KITCHEN on the lower floor: his post
-        // at the kitchen's counter, at the centre of its
-        // run between the chefs, which is also his lobby
-        // spot. Its lower edge rides a few pixels above
-        // the top of his sprite (same idle bob as his
-        // figure, so the gap never breathes), clear of his
-        // head and of the ticket card in his left hand.
-        // While he is out on the floor serving, the sign
-        // stays over his home spot at the open kitchen,
-        // marking the station he returns to — it never
-        // wanders over a table or a tent, and it no longer
-        // stands at the upper left: the bar stands there
-        // now, under its own TBAR plaque.
+        // over the kitchen's steel counter at the centre
+        // of its run between the chefs, in the seat it has
+        // always held over that counter. (It used to ride
+        // over the waiter, whose post stood at that
+        // counter; his post now stands at the pickup side
+        // bar in the kitchen's top-edge zone — see
+        // pickupBarRect — under the called number's own
+        // stand, and the sign stays with the kitchen set
+        // it names, clear of the pickup bar and its stand
+        // up at the top edge.) It never wanders over a
+        // table or a tent, and it no longer stands at the
+        // upper left: the bar stands there now, under its
+        // own TBAR plaque.
         function drawKitchenSign(nowMs) {
-          var atPass = waiter.state === "pass";
-          var ax = atPass ? waiter.x : waiter.homeX;
-          var ay = atPass ? waiter.y : waiter.homeY;
+          var okSign = openKitchenRect();
+          var ax = okSign.cx;
+          var ay = okSign.bottom - 14;
           var bobY = Math.sin(nowMs / 700) * 1.2;
           var s = bodySize() * 1.12;
           var sh = (s / SPRITE_BODY_FRAC) * SPRITE_ASPECT;
@@ -5520,12 +5681,12 @@
           for (var ni = 0; ni < run.length; ni++) {
             var nt = run[ni];
             var ncw = Math.max((nt.cellW || 0) / 2 * 0.995, nt.r * 1.3);
-            var standX = nt.x + Math.min(ncw - nt.r * 0.62, nt.r * 1.42);
             var tentR = Math.max(nt.r, 26);
+            var standX = nt.x + Math.min(ncw - tentR * 1.68 / 2 - 2, nt.r * 1.68);
             stands.push({
-              l: standX - tentR * 1.16 / 2 - 2, r: standX + tentR * 1.16 / 2 + 2,
-              t: nt.y - nt.r * 0.08 - tentR * 0.76 / 2 - 1,
-              b: nt.y - nt.r * 0.08 + tentR * 0.76 / 2 + 1
+              l: standX - tentR * 1.68 / 2 - 2, r: standX + tentR * 1.68 / 2 + 2,
+              t: nt.y - nt.r * 0.16 - tentR * 1.10 / 2 - 1,
+              b: nt.y - nt.r * 0.16 + tentR * 1.10 / 2 + 1
             });
           }
           // Every show label's pill box in the run too,
@@ -8219,6 +8380,7 @@
           drawEntrance(nowMs);
           drawOpenKitchen(nowMs);
           drawWaiter(nowMs);
+          drawPickupBar(nowMs);
           drawFloats(nowMs);
           drawKitchenSign(nowMs);
           drawBarSign();
@@ -8296,6 +8458,8 @@
             stagePos: { x: Math.round(stageStation.cx), y: Math.round(stageStation.baseY), top: Math.round(stageStation.topY), w: Math.round(stageStation.w) },
             barPos: { x: 0, y: Math.round(hallDims().floorTop - kitchenH()), w: Math.round(passWidth()), h: Math.round(kitchenH()) },
             kitchenPos: { x: Math.round(openKitchenRect().x0), y: Math.round(openKitchenRect().top), w: Math.round(openKitchenRect().x1 - openKitchenRect().x0), h: Math.round(openKitchenRect().h) },
+            pickupBarPos: { x: Math.round(pickupBarRect().x0), y: Math.round(pickupBarRect().top), w: Math.round(pickupBarRect().w), h: Math.round(pickupBarRect().bottom - pickupBarRect().top), surfY: Math.round(pickupBarRect().surfY) },
+            pickupStand: { x: Math.round(pickupStandGeom().x), top: Math.round(pickupStandGeom().top), w: Math.round(pickupStandGeom().w), h: Math.round(pickupStandGeom().h), number: ticketNum },
             waiterHome: { x: Math.round(waiter.homeX), y: Math.round(waiter.homeY) },
             tableStates: tables.map(function (t) { return t.state; }),
             walkers: walkers.length,
