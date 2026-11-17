@@ -3243,12 +3243,18 @@
         // head close under the bar counter at the back
         // edge (a small gap below the counter, clear of
         // the bar seats' labels), running down the wall
-        // from there — SHORTENED at the foot by John's
-        // ruling, 2026-11-17 ("Make this stage shorter"):
-        // about two-fifths of its length is cut from the
-        // FOOT end, so it now ends on the dining floor
-        // clear above the open kitchen's top edge and the
-        // freed stretch of wall-side floor returns to the
+        // from there — shortened at the foot by John's
+        // ruling, 2026-11-17 ("Make this stage shorter"),
+        // then ENLARGED by his later ruling the same day
+        // ("Make the stage with the performers larger"):
+        // wider out from the wall and longer down it than
+        // the shortened cut — the deck, the curtain, the
+        // footlights, the role plates and the five acts
+        // on it all grow together as one unit (see
+        // stageWidth and layoutStage) — while the foot
+        // still ends on the dining floor clear above the
+        // open kitchen's top edge and the freed stretch
+        // of wall-side floor below it stays with the
         // room. It leaves its old
         // centred spot entirely:
         // that floor returns to the dining grid, which now
@@ -3324,17 +3330,23 @@
         // platform itself plus the number stand on its
         // room-facing edge and a breathing margin, so the
         // nearest station's widest silhouette still clears
-        // the stand. The runway is NARROW — a catwalk, not
-        // a platform: a clear step in from the old stage's
-        // depth off the wall (0.245·W, capped 172) to
-        // 0.105·W, capped at 88 — and LONG instead:
+        // the stand. The runway is a catwalk, not a
+        // platform — but it GROWS (John's ruling,
+        // 2026-11-17: "Make the stage with the performers
+        // larger"): its depth off the wall steps up from
+        // 0.105·W, capped at 88, floor 52, to 0.15·W,
+        // capped at 124, floor 74 — and LONGER too:
         // layoutStage runs it from just under the bar down
-        // the wall (shortened at the foot — see
-        // layoutStage), and
-        // the reserved band shrinks with the width, so the
-        // dealt stations take the freed floor along the
-        // whole wall, the old stage spot included.
-        function stageWidth() { return clamp(W * 0.105, 52, 88); }
+        // the wall, its foot now reaching further down
+        // the wall than the shortened cut (see
+        // layoutStage). The reserved band grows by the
+        // same step as the width, so every clearance the
+        // floor grid, the kitchen and the waiter's post
+        // keep against the runway — the stand's right
+        // edge inside the band, the nearest station's
+        // widest silhouette clear of it — is preserved
+        // exactly, shifted right with the band.
+        function stageWidth() { return clamp(W * 0.15, 74, 124); }
         function stageReserveW() { return Math.round(stageWidth() + 26); }
 
         // The top edge the stage must clear, MEASURED from
@@ -3386,7 +3398,7 @@
           // inside the band the curtain and deck dress
           // (w + 16 across, centred on the band), so the
           // cap is that half width over the piano's reach.
-          var u = clamp(w * 0.30 * PEOPLE_SCALE, 20, Math.min(38, (w + 16) / 3.12));
+          var u = clamp(w * 0.30 * PEOPLE_SCALE, 20, Math.min(46, (w + 16) / 3.30));
           // The head sits CLOSE UNDER THE BAR: the bar
           // counter's base stands on the floor line
           // itself, and the bar seats' labels reach a step
@@ -3397,22 +3409,30 @@
           var headY = d.floorTop + 22;
           // The foot: the runway's FULL reach would run
           // down the wall past the open kitchen's top
-          // edge, in the strip west of the kitchen — but
-          // the runway is SHORTENED (John's ruling,
+          // edge, in the strip west of the kitchen. The
+          // runway was SHORTENED (John's ruling,
           // 2026-11-17: "Make this stage shorter to get
-          // some space in the restaurant"): the head
-          // stays tucked close under the bar and the foot
-          // is cut back to three-fifths of the full reach
-          // — roughly two-fifths of the length taken from
-          // the FOOT end — so the deck now ends on the
-          // dining floor clear above the kitchen's top
-          // edge, still clearly longer than it is wide,
-          // and the freed stretch below it is dining
-          // floor again. Its old neighbour down there,
-          // the waiter's post west of the pickup leg,
-          // keeps its own guard in layoutTables, which
-          // now simply finds the platform already clear
-          // of him.
+          // some space in the restaurant") to three-fifths
+          // of that reach — and now it GROWS back (John's
+          // ruling, 2026-11-17: "Make the stage with the
+          // performers larger"): the head stays tucked
+          // close under the bar and the foot reaches to
+          // just over three-quarters of the full reach,
+          // so the deck is longer down the wall than the
+          // shortened cut, still clearly longer than it
+          // is wide, and still ends on the dining floor
+          // clear above the kitchen's top edge — its base
+          // keeps a clear margin over that edge at
+          // desktop and phone sizes alike, so the deck
+          // never reaches the KITCHEN sign's band or the
+          // kitchen set below it. The stretch below the
+          // foot stays dining floor, re-carved row by row
+          // as before (see layoutTables). Its old
+          // neighbour down there, the waiter's post west
+          // of the pickup leg, keeps its own guard in
+          // layoutTables, which still finds the platform
+          // already clear of him: his crown stands below
+          // the enlarged foot with room to spare.
           // (The kitchen term reads the band's PRE-step
           // height — openKitchenH stepped back up by
           // KITCHEN_SCALE — so the kitchen's step-down
@@ -3420,7 +3440,7 @@
           // where it stands; the freed floor goes to the
           // dining grid, not to the deck.)
           var fullFootY = Math.min(groundY() - 24 - platH, groundY() - openKitchenH() / KITCHEN_SCALE + 30);
-          var footY = headY + (fullFootY - headY) * 0.60;
+          var footY = headY + (fullFootY - headY) * 0.76;
           var len = Math.max(footY - headY, 0);
           // On a very short floor the act steps down
           // until it fits the runway's length with its
@@ -8283,7 +8303,7 @@
           // full, read from HOUSE_SONG, the game's one
           // song credit, so the display can never carry
           // another song's name.
-          var songFontPx = clamp(Math.round(u * 0.34), 11, 12);
+          var songFontPx = clamp(Math.round(u * 0.34), 11, 14);
           ctx.font = "800 " + songFontPx + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
           var songLine1 = HOUSE_SONG.title;
           var songLine2 = "by " + HOUSE_SONG.artist;
@@ -8481,7 +8501,7 @@
         // as well as on desktop.
         function drawStageRolePlate(role, cx, platTop, u) {
           if (!role) return;
-          var fontPx = clamp(Math.round(u * 0.34), 11, 12);
+          var fontPx = clamp(Math.round(u * 0.34), 11, 14);
           ctx.font = "800 " + fontPx + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
           var plaqueW = ctx.measureText(role).width + 22;
           var plaqueH = Math.round(fontPx * 1.66);
