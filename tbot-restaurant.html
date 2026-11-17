@@ -4238,24 +4238,36 @@
           ctx.fillRect(0, kt + 5, pwEnd, 1.2);
           // The bottle shelves: two dark boards with brass
           // fronts, real liquor bottles standing on them —
-          // tall clear spirit bottles, shorter amber
-          // whiskey bottles, green wine-style bottles and
-          // a few square decanters, each with glass shading
-          // and a highlight, liquid in its true colour at
-          // its own fill level, a neck, a cap or cork, and
-          // a clean label band (cream, gold or dark — bands
-          // and shapes only, no lettering). Deterministic
-          // in the room's own hash so the back bar never
-          // flickers. A warm wash of light falls under
-          // each shelf onto the bottles below it.
+          // BIG bottles that fill their shelf: a wide body,
+          // a curved shoulder, and a neck a third of the
+          // body's width on every silhouette — tall clear
+          // spirit bottles, shorter amber whiskey bottles,
+          // green wine bottles with long foil-wrapped
+          // necks, and broad square decanters. The liquid
+          // in each one stops below the shoulder at its
+          // own level, under a bright liquid line; above
+          // the line the glass stands empty and pale. A
+          // highlight streak runs down body and neck, the
+          // far edge sits darker, and each bottle lands on
+          // a soft shadow where it meets the shelf.
+          // Closures are drawn at full size: ridged screw
+          // caps, a pale cork sitting in the whiskey's
+          // neck under its wax dip, wine foil, and faceted
+          // glass stoppers on the decanters. Labels are
+          // clean bands — cream, gold or dark, no
+          // lettering. Deterministic in the room's own
+          // hash so the back bar never flickers. A warm
+          // wash of light falls under each shelf onto the
+          // bottles below it.
           var shelfYs = [kt + kh * 0.36, kt + kh * 0.68];
           // One real bottle: bx is its left edge, shy the
           // shelf top it stands on, bw / bh its body width
           // and total height, seed its hash seed. The
-          // outline (body, shoulder, neck) is built once as
-          // a path; the liquid is clipped inside it, glass
-          // shading and a specular streak go over the top,
-          // then the label band and the cap or cork.
+          // outline (body, shoulder, neck) is built once
+          // as a path; the liquid is clipped inside it and
+          // stops below the shoulder, glass shading and a
+          // specular streak go over the top, then the
+          // label band and the closure.
           function drawBarBottle(bx, shy, bw, bh, seed) {
             var h1 = roomHash(seed * 3.13 + 11);
             var h2 = roomHash(seed * 5.71 + 23);
@@ -4264,63 +4276,88 @@
             // Silhouette: 0 tall spirit, 1 whiskey,
             // 2 wine, 3 square decanter.
             var type = Math.floor(h1 * 4) % 4;
-            var bodyFrac = [0.60, 0.70, 0.52, 0.58][type];
-            var neckFrac = [0.30, 0.36, 0.30, 0.44][type];
-            var glassCol = ["rgba(206,222,214,0.34)", "rgba(150,86,26,0.50)", "#2c4f31", "rgba(224,204,164,0.30)"][type];
-            var liquidCol = ["#e6d194", "#c4741a", "#47794e", "#d99a26"][type];
-            var fill = 0.52 + h2 * 0.45; // each bottle poured to its own level
+            // The anatomy, as fractions of the height: a
+            // body, a shoulder above it, then a straight
+            // neck — the wine's shoulder slopes longest
+            // and its neck stands tallest of the three.
+            var bodyFrac = [0.58, 0.62, 0.50, 0.60][type];
+            var shFrac = [0.14, 0.13, 0.20, 0.10][type];
+            // The neck is about a third of the body width
+            // on every bottle (the decanter's is broader).
+            var neckFrac = [0.34, 0.38, 0.34, 0.46][type];
+            // Empty glass reads pale and translucent; the
+            // liquid below its line is deeper and denser,
+            // so the empty neck shows against it.
+            var glassCol = ["rgba(208,224,214,0.32)", "rgba(198,132,54,0.30)", "rgba(58,102,64,0.50)", "rgba(226,208,168,0.30)"][type];
+            var liquidCol = ["#e3c878", "#c06a16", "#40231c", "#cf8a22"][type];
+            // Poured to its own level — always well below
+            // the shoulder, never filled to the top.
+            var fill = 0.45 + h2 * 0.32;
+            var topY = shy - bh;
             var bodyH = bh * bodyFrac;
             var bodyTop = shy - bodyH;
+            var shoulderH = bh * shFrac;
+            var shoulderTop = bodyTop - shoulderH;
             var neckW = bw * neckFrac;
             var neckL = bx + (bw - neckW) / 2;
-            var neckTop = shy - bh + bh * 0.10; // the cap / cork / stopper crowns the top tenth
+            var capH = Math.max(4.5, bh * 0.11);
+            // The glass lip reaches up into the closure.
+            var lipY = topY + capH * 0.5;
             var cx = bx + bw / 2;
             ctx.save();
-            // The bottle's soft shadow on the shelf board.
-            ctx.fillStyle = "rgba(0,0,0,0.35)";
-            ctx.beginPath(); ctx.ellipse(cx, shy - 0.5, bw * 0.52, 1.6, 0, 0, Math.PI * 2); ctx.fill();
+            // The bottle's soft shadow on the shelf board,
+            // where the glass meets the wood.
+            ctx.fillStyle = "rgba(0,0,0,0.40)";
+            ctx.beginPath(); ctx.ellipse(cx, shy - 0.5, bw * 0.54, 1.8, 0, 0, Math.PI * 2); ctx.fill();
             // The outline path.
             ctx.beginPath();
             if (type === 3) {
               // Square decanter: a broad squared body with
               // lightly rounded corners, a short wide neck.
-              var rad = Math.min(2.2, bw * 0.14);
+              var rad = Math.min(2.4, bw * 0.12);
               ctx.moveTo(bx + rad, shy);
               ctx.lineTo(bx, shy - rad); ctx.lineTo(bx, bodyTop + rad);
               ctx.quadraticCurveTo(bx, bodyTop, bx + rad, bodyTop);
-              ctx.lineTo(neckL, bodyTop);
-              ctx.lineTo(neckL, neckTop);
-              ctx.lineTo(neckL + neckW, neckTop);
-              ctx.lineTo(neckL + neckW, bodyTop);
+              ctx.lineTo(neckL, shoulderTop);
+              ctx.lineTo(neckL, lipY);
+              ctx.lineTo(neckL + neckW, lipY);
+              ctx.lineTo(neckL + neckW, shoulderTop);
               ctx.lineTo(bx + bw - rad, bodyTop);
               ctx.quadraticCurveTo(bx + bw, bodyTop, bx + bw, bodyTop + rad);
               ctx.lineTo(bx + bw, shy - rad); ctx.lineTo(bx + bw - rad, shy);
               ctx.closePath();
             } else {
-              // Round bottles: straight body, a shoulder
-              // curving up to the neck — a long wine slope,
-              // a squarer spirit / whiskey shoulder.
-              var shCtl = type === 2 ? neckTop : bodyTop + (neckTop - bodyTop) * 0.35;
+              // Round bottles: a straight wide body, a
+              // shoulder curving up and in, then a straight
+              // neck a third of the body's width, standing
+              // clear above the shoulder.
               ctx.moveTo(bx + 1, shy);
               ctx.lineTo(bx, shy - 1); ctx.lineTo(bx, bodyTop);
-              ctx.quadraticCurveTo(bx, shCtl, neckL, neckTop);
-              ctx.lineTo(neckL + neckW, neckTop);
-              ctx.quadraticCurveTo(bx + bw, shCtl, bx + bw, bodyTop);
+              ctx.quadraticCurveTo(bx, shoulderTop + shoulderH * 0.30, neckL, shoulderTop);
+              ctx.lineTo(neckL, lipY);
+              ctx.lineTo(neckL + neckW, lipY);
+              ctx.lineTo(neckL + neckW, shoulderTop);
+              ctx.quadraticCurveTo(bx + bw, shoulderTop + shoulderH * 0.30, bx + bw, bodyTop);
               ctx.lineTo(bx + bw, shy - 1); ctx.lineTo(bx + bw - 1, shy);
               ctx.closePath();
             }
-            // Glass base.
+            // Empty glass first, over the whole bottle.
             ctx.fillStyle = glassCol;
             ctx.fill();
-            // The liquid, clipped inside the glass, up to
-            // its fill level, with a lighter meniscus line.
             ctx.save();
             ctx.clip();
+            // The liquid, poured only up to its own line
+            // inside the body — the shoulder and the neck
+            // above it stay empty glass.
             var liqTop = shy - bodyH * fill;
             ctx.fillStyle = liquidCol;
             ctx.fillRect(bx - 1, liqTop, bw + 2, shy - liqTop + 1);
-            ctx.fillStyle = "rgba(255,244,214,0.5)";
-            ctx.fillRect(bx - 1, liqTop, bw + 2, 1.1);
+            // The liquid line: a bright meniscus with a
+            // darker seam just under it.
+            ctx.fillStyle = "rgba(255,246,218,0.65)";
+            ctx.fillRect(bx - 1, liqTop, bw + 2, 1.5);
+            ctx.fillStyle = "rgba(0,0,0,0.20)";
+            ctx.fillRect(bx - 1, liqTop + 1.5, bw + 2, 0.9);
             // Glass shading: dark at the edges, a lit band
             // left of centre, so the bottle reads round.
             var shade = ctx.createLinearGradient(bx, 0, bx + bw, 0);
@@ -4332,68 +4369,97 @@
             ctx.fillStyle = shade;
             ctx.fillRect(bx - 1, shy - bh, bw + 2, bh + 1);
             ctx.restore();
-            // The glass outline.
+            // The glass outline, and a darker edge down
+            // the bottle's right side, body and neck.
             ctx.strokeStyle = "rgba(10,6,2,0.55)";
             ctx.lineWidth = 0.7;
             ctx.stroke();
-            // The specular streak down the body's left.
-            ctx.fillStyle = "rgba(255,255,255,0.38)";
-            ctx.fillRect(bx + bw * 0.16, bodyTop + 2.5, Math.max(1, bw * 0.10), Math.max(3, bodyH - 6));
-            ctx.fillRect(neckL + neckW * 0.18, neckTop + 1.5, Math.max(0.7, neckW * 0.16), Math.max(2, (bodyTop - neckTop) * 0.55));
+            ctx.fillStyle = "rgba(0,0,0,0.30)";
+            ctx.fillRect(bx + bw - 1.5, bodyTop + 2, 1.1, bodyH - 3);
+            ctx.fillRect(neckL + neckW - 1.1, lipY + 1, 0.8, Math.max(1, shoulderTop - lipY - 1));
+            // The specular streak: one shine running down
+            // the neck and on down the body, left of
+            // centre, so the glass reads as glass.
+            ctx.fillStyle = "rgba(255,255,255,0.42)";
+            ctx.fillRect(bx + bw * 0.17, bodyTop + 2.5, Math.max(1.3, bw * 0.10), Math.max(3, bodyH - 6));
+            ctx.fillRect(neckL + neckW * 0.20, lipY + 1.5, Math.max(0.9, neckW * 0.20), Math.max(2, shoulderTop - lipY - 2));
             // The label band: cream, gold or dark by hash,
-            // a clean band with fine edge lines, no words.
+            // a clean band with fine edge lines, no words,
+            // sized to the bigger bottle.
             var labelCols = ["#eadfc2", "#c9a227", "#2a1a10", "#f2ead6"];
             var lc = labelCols[Math.floor(h3 * 4) % 4];
             var labW = bw * (type === 3 ? 0.56 : 0.80);
-            var labH = Math.max(3, bodyH * 0.32);
-            var labY = shy - bodyH * (type === 3 ? 0.34 : 0.46);
+            var labH = Math.max(4.5, bodyH * 0.34);
+            var labY = shy - bodyH * (type === 3 ? 0.36 : 0.48);
             ctx.fillStyle = lc;
             ctx.fillRect(cx - labW / 2, labY, labW, labH);
             ctx.fillStyle = lc === "#2a1a10" ? "rgba(240,200,110,0.85)" : "rgba(90,60,20,0.55)";
             ctx.fillRect(cx - labW / 2, labY + 0.7, labW, 0.7);
             ctx.fillRect(cx - labW / 2, labY + labH - 1.4, labW, 0.7);
-            // Wine wears a foil over its neck; the others
-            // show bare glass up to the closure.
+            // Wine wears a foil capsule over its whole
+            // neck, from the lip down onto the shoulder —
+            // the foil IS its closure, drawn over the top.
             if (type === 2) {
-              ctx.fillStyle = h4 > 0.5 ? "#6d1420" : "#8a6a1c";
-              ctx.fillRect(neckL - 0.4, neckTop, neckW + 0.8, (bodyTop - neckTop) * 0.62);
-              ctx.fillStyle = "rgba(255,255,255,0.25)";
-              ctx.fillRect(neckL + neckW * 0.16, neckTop + 1, Math.max(0.7, neckW * 0.16), (bodyTop - neckTop) * 0.5);
+              ctx.fillStyle = ["#6d1420", "#8a6a1c", "#1c1a17", "#1e3d24"][Math.floor(h4 * 4) % 4];
+              ctx.fillRect(neckL - 0.9, topY, neckW + 1.8, shoulderTop + shoulderH * 0.30 - topY);
+              ctx.fillStyle = "rgba(255,255,255,0.28)";
+              ctx.fillRect(neckL - 0.9, topY, neckW + 1.8, 1.3);
+              ctx.fillRect(neckL + neckW * 0.16, topY + 2, Math.max(0.8, neckW * 0.16), Math.max(2, shoulderTop - topY - 2));
             }
-            // The closure: a dark or gold screw cap, a
-            // cork, or the decanter's faceted stopper.
-            var capH = bh * 0.10;
+            // The closure, drawn at full size — never a
+            // dot or a tab.
             if (type === 3) {
-              ctx.fillStyle = "rgba(230,214,170,0.85)";
+              // The decanter's faceted glass stopper: a
+              // broad knob with cut facets and a bright
+              // face, seated on a gold neck ring.
+              var sw = neckW * 0.88, stopH = Math.max(6, bh * 0.17);
+              ctx.fillStyle = "rgba(232,216,172,0.92)";
               ctx.beginPath();
-              ctx.moveTo(cx, neckTop - capH * 0.9);
-              ctx.lineTo(cx + neckW * 0.52, neckTop - capH * 0.35);
-              ctx.lineTo(cx + neckW * 0.30, neckTop + 0.5);
-              ctx.lineTo(cx - neckW * 0.30, neckTop + 0.5);
-              ctx.lineTo(cx - neckW * 0.52, neckTop - capH * 0.35);
+              ctx.moveTo(cx, topY - stopH * 0.28);
+              ctx.lineTo(cx + sw, topY + stopH * 0.30);
+              ctx.lineTo(cx + sw * 0.42, topY + stopH * 0.92);
+              ctx.lineTo(cx - sw * 0.42, topY + stopH * 0.92);
+              ctx.lineTo(cx - sw, topY + stopH * 0.30);
               ctx.closePath(); ctx.fill();
+              ctx.strokeStyle = "rgba(120,90,30,0.5)";
+              ctx.lineWidth = 0.6;
+              ctx.beginPath();
+              ctx.moveTo(cx, topY - stopH * 0.28); ctx.lineTo(cx, topY + stopH * 0.92);
+              ctx.moveTo(cx - sw, topY + stopH * 0.30); ctx.lineTo(cx + sw, topY + stopH * 0.30);
+              ctx.stroke();
               ctx.fillStyle = "rgba(255,255,255,0.55)";
-              ctx.fillRect(cx - neckW * 0.10, neckTop - capH * 0.75, neckW * 0.14, capH * 0.6);
+              ctx.fillRect(cx - sw * 0.45, topY + stopH * 0.05, sw * 0.3, stopH * 0.5);
               ctx.fillStyle = "#8a6a1c";
-              ctx.fillRect(neckL - 0.5, neckTop - 0.5, neckW + 1, 1.6);
-            } else if (type === 1 || type === 2) {
-              // Cork: a tan stopper, slightly proud of the neck.
+              ctx.fillRect(neckL - 0.6, lipY - 1.2, neckW + 1.2, 2);
+            } else if (type === 1) {
+              // Cork: a pale cylinder sitting in the
+              // neck top, its head a touch wider than
+              // its stem — and over it the whiskey's wax
+              // dip, sealing the cork's head and the neck
+              // top, with one drip running down the glass.
               ctx.fillStyle = "#c9a468";
-              ctx.fillRect(cx - neckW * 0.34, neckTop - capH * 0.55, neckW * 0.68, capH * 0.62);
-              ctx.fillStyle = "rgba(120,84,40,0.7)";
-              ctx.fillRect(cx - neckW * 0.34, neckTop - capH * 0.55, neckW * 0.68, 0.8);
-              if (type === 1) { // whiskey's wax dip over the cork
-                ctx.fillStyle = "#5d1420";
-                ctx.fillRect(neckL - 0.4, neckTop - 0.5, neckW + 0.8, (bodyTop - neckTop) * 0.30);
-              }
-            } else {
-              // Screw cap: dark or gold, with fine ridges.
+              ctx.fillRect(cx - neckW * 0.36, topY + capH * 0.28, neckW * 0.72, capH * 0.75);
+              ctx.fillStyle = "#dcbc82";
+              ctx.fillRect(cx - neckW * 0.46, topY, neckW * 0.92, capH * 0.34);
+              ctx.fillStyle = "rgba(120,84,40,0.65)";
+              ctx.fillRect(cx - neckW * 0.46, topY, neckW * 0.92, 0.9);
+              ctx.fillStyle = "#5d1420";
+              ctx.fillRect(neckL - 0.8, topY - 0.6, neckW + 1.6, capH * 0.62);
+              ctx.fillRect(neckL - 0.8, topY - 0.6 + capH * 0.62, 1.7, capH * 0.55);
+              ctx.fillStyle = "rgba(255,255,255,0.22)";
+              ctx.fillRect(neckL + neckW * 0.18, topY, Math.max(0.7, neckW * 0.14), capH * 0.5);
+            } else if (type === 0) {
+              // Screw cap: a ridged metal cylinder, a
+              // touch wider than the neck it closes, its
+              // ridges drawn as fine dark lines.
               ctx.fillStyle = h4 > 0.45 ? "#1d1d22" : "#a87f1e";
-              ctx.fillRect(neckL - 0.5, neckTop - capH * 0.7, neckW + 1, capH * 0.78);
-              ctx.fillStyle = "rgba(255,255,255,0.30)";
-              for (var rg = 0; rg < 3; rg++) {
-                ctx.fillRect(neckL + 0.4 + rg * (neckW / 3), neckTop - capH * 0.7, 0.6, capH * 0.78);
+              ctx.fillRect(neckL - 0.8, topY, neckW + 1.6, capH);
+              ctx.fillStyle = "rgba(0,0,0,0.35)";
+              for (var rg = 0; rg < 4; rg++) {
+                ctx.fillRect(neckL - 0.2 + rg * (neckW / 3.2), topY + 0.6, 0.7, capH - 1.2);
               }
+              ctx.fillStyle = "rgba(255,255,255,0.35)";
+              ctx.fillRect(neckL - 0.8, topY, neckW + 1.6, 1);
             }
             ctx.restore();
           }
@@ -4411,21 +4477,30 @@
             var shy = shelfYs[shi];
             ctx.fillStyle = "rgba(255, 196, 86, 0.10)";
             ctx.fillRect(0, shy + 3, pwEnd, kh * 0.15);
-            var bx = 7 + roomHash(shi * 31.7 + 1) * 6;
+            // The headroom this shelf offers its bottles:
+            // the top shelf rises to the masthead
+            // clearance line, the lower shelf to the
+            // underside of the board above it. The bottles
+            // fill that height — big bottles, and fewer
+            // of them on each shelf.
+            var headroom = shi === 0 ? shy - barClearY : shy - shelfYs[0] - 6;
+            headroom = Math.max(15, headroom);
+            var bx = 8 + roomHash(shi * 31.7 + 1) * 8;
             var bidx = shi * 7 + 1;
-            while (bx < pwEnd - 13) {
+            while (bx < pwEnd - 14) {
               var bType = Math.floor(roomHash(bidx * 3.13 + 11) * 4) % 4;
-              var bw2 = 7 + roomHash(bidx * 3.1 + 1) * 5;
-              var bh2 = kh * (0.16 + roomHash(bidx * 5.7 + 2) * 0.07);
+              var bh2 = headroom * (0.84 + roomHash(bidx * 5.7 + 2) * 0.16);
               // Each silhouette keeps its own proportions:
-              // whiskey stands shorter, wine a touch
-              // taller, the decanter shorter and broader.
-              if (bType === 1) bh2 *= 0.84;
-              else if (bType === 2) bh2 *= 1.06;
-              else if (bType === 3) { bh2 *= 0.72; bw2 *= 1.3; }
-              if (shi === 0) bh2 = Math.min(bh2, Math.max(12, shy - barClearY));
+              // whiskey stands a little shorter, the
+              // decanter shorter and much broader, the
+              // wine bottle the tallest on the shelf.
+              if (bType === 1) bh2 *= 0.90;
+              else if (bType === 3) bh2 *= 0.80;
+              else if (bType === 0) bh2 *= 0.97;
+              var bw2 = bh2 * [0.33, 0.37, 0.30, 0.52][bType] * (0.92 + roomHash(bidx * 3.1 + 1) * 0.16);
+              if (bx + bw2 > pwEnd - 4) break;
               drawBarBottle(bx, shy, bw2, bh2, bidx);
-              bx += bw2 + 5 + roomHash(bidx * 7.3 + 3) * 7;
+              bx += bw2 + 5 + roomHash(bidx * 7.3 + 3) * 6;
               bidx++;
             }
             ctx.fillStyle = "#120a04";
