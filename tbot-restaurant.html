@@ -732,7 +732,7 @@
     </style>
   </head>
   <body>
-    <canvas id="stage" aria-label="A grand dining room at sunset, its photograph combined from the world's great three-star restaurants: a coffered wood ceiling with lantern pendants, portraits and a great wave canvas on the walls, a glass wall over a harbour at sunset, a bar at the upper left of the room, an open kitchen on the lower floor, a maître d's desk at the upper right with a couple checking in and a line waiting behind them, men's and women's restroom doors beside the stage on the left wall, and numbered tables, booths and bar seats of TBOT guests. You are the waiter — tap the station wearing the number the kitchen calls. When a party leaves, the numbers change."></canvas>
+    <canvas id="stage" aria-label="A grand dining room at sunset, its photograph combined from the world's great three-star restaurants: a coffered wood ceiling with lantern pendants, portraits and a great wave canvas on the walls, a glass wall over a harbour at sunset, a bar at the upper left of the room, an open kitchen on the lower floor, a maître d's desk at the upper right with a couple checking in and a line waiting behind them, numbered tables, booths and bar seats of TBOT guests. You are the waiter — tap the station wearing the number the kitchen calls. When a party leaves, the numbers change."></canvas>
 
     <!-- Background music: the last 17 seconds of "Velvet Rot" by
          Kimo (the series track), looped behind the game. Sound
@@ -1908,7 +1908,53 @@
           ctx.closePath();
         }
 
-        function bodySize() { return clamp(W * 0.115, 40, 56); }
+        // THE PEOPLE SCALE (John's ruling, 2026-11-16:
+        // "make everything look more realistic, and the
+        // people bigger"): every person in the room —
+        // seated guests, the two chefs, the waiter, the
+        // host, the entrance couple and line, the walkers
+        // and arrivals, and the stage acts — renders this
+        // much larger than the size the room was first
+        // tuned at. It is applied at the figure draws
+        // themselves (drawPhotoPerson / drawPlasticPerson
+        // for the TBOT people, bodySize for the mascot
+        // staff, layoutStage for the acts), so every figure
+        // grows from its own anchor — seat line, stool,
+        // floor line, platform — upward and outward,
+        // exactly as a bigger figure at the same seat
+        // does, and every clearance measured from those
+        // same measures (the kitchen's figure geometry,
+        // the pot seats, the KITCHEN sign's head
+        // clearance) grows with it. The designs do not
+        // change at all: the same glossy black-vinyl TBOT
+        // people, the same faces, the same proportions
+        // between figures — only the scale, and the richer
+        // light and shadow of the realism pass.
+        var PEOPLE_SCALE = 1.15;
+        function bodySize() { return clamp(W * 0.115, 40, 56) * PEOPLE_SCALE; }
+
+        // A soft contact shadow: a radial-gradient pool,
+        // dark at its heart and feathering to nothing at
+        // its rim — the realism pass's ground shadow for
+        // figures and furniture alike, replacing the flat
+        // alpha ellipses the room was first drawn with, so
+        // everything sits IN the photograph's warm light
+        // instead of floating on a hard-edged disc.
+        // (cx, cy) is the pool's centre, rx / ry its radii,
+        // alpha its heart's strength.
+        function softShadow(cx, cy, rx, ry, alpha) {
+          if (rx <= 0 || ry <= 0) return;
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.scale(rx, ry);
+          var sg = ctx.createRadialGradient(0, 0, 0.08, 0, 0, 1);
+          sg.addColorStop(0, "rgba(14, 6, 2, " + alpha.toFixed(3) + ")");
+          sg.addColorStop(0.55, "rgba(14, 6, 2, " + (alpha * 0.55).toFixed(3) + ")");
+          sg.addColorStop(1, "rgba(14, 6, 2, 0)");
+          ctx.fillStyle = sg;
+          ctx.beginPath(); ctx.arc(0, 0, 1, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        }
 
         // The rod-tip blink for the real sprite: Ref 1's rods
         // and red balls are IN the sprite, so code draws no
@@ -1987,15 +2033,24 @@
           if (tbotReady) {
             var sw = s / SPRITE_BODY_FRAC;
             var sh = sw * SPRITE_ASPECT;
-            // A soft contact shadow under the figure, so the
-            // vinyl body rests in the scene's light.
-            ctx.fillStyle = "rgba(12,6,3,0.20)";
-            ctx.beginPath(); ctx.ellipse(0, sh * (1 - SPRITE_BODY_CY) + s * 0.015, s * 0.47, s * 0.075, 0, 0, Math.PI * 2); ctx.fill();
+            // A soft feathered contact shadow under the
+            // figure, so the vinyl body rests grounded in
+            // the scene's light.
+            softShadow(0, sh * (1 - SPRITE_BODY_CY) + s * 0.015, s * 0.54, s * 0.09, 0.34);
             ctx.drawImage(tbotImg, -sw / 2, -sh * SPRITE_BODY_CY, sw, sh);
             // The standing rod-tip blink: a glow over the
             // sprite's own rod-tip balls — overlay only, the
             // rods themselves are never redrawn.
             drawRodTipBlink(sw, sh);
+            // The room's warm light wrapped over the vinyl:
+            // a soft glow falling from the upper left, the
+            // way the lantern light lands on everyone in
+            // the photograph.
+            var figWrap = ctx.createRadialGradient(-s * 0.22, -s * 0.30, s * 0.05, -s * 0.08, -s * 0.02, s * 0.9);
+            figWrap.addColorStop(0, "rgba(255, 205, 140, 0.13)");
+            figWrap.addColorStop(1, "rgba(255, 205, 140, 0)");
+            ctx.fillStyle = figWrap;
+            ctx.beginPath(); ctx.ellipse(0, 0, s * 0.54, s * 0.60, 0, 0, Math.PI * 2); ctx.fill();
             if (lid > 0) {
               // Blinking, exactly as game #1 does it: lids the
               // colour of the body slide down over his red
@@ -2145,16 +2200,35 @@
         function drawPhotoPerson(build, pose, cx, anchorY, u, squash, rock, shadow) {
           var rec = peopleImgs[pose + "-" + build];
           if (!rec || !rec.ready) return false;
+          // The people scale (see PEOPLE_SCALE): the
+          // figure grows from its anchor — the seat line
+          // or the floor at its feet — upward and outward,
+          // its design and proportions untouched.
+          u = u * PEOPLE_SCALE;
           var dh = PEOPLE_HEAD_U * u / rec.head;
           var dw = dh * rec.w / rec.h;
           ctx.save();
           ctx.translate(cx, anchorY);
           if (rock) ctx.rotate(rock);
           if (shadow) {
-            ctx.fillStyle = "rgba(12, 6, 3, 0.28)";
-            ctx.beginPath(); ctx.ellipse(0, u * 0.012, dw * 0.30, u * 0.07, 0, 0, Math.PI * 2); ctx.fill();
+            // A feathered contact pool at the anchor, with
+            // a firmer heart where the figure's weight
+            // lands — the person sits IN the room's light.
+            softShadow(0, u * 0.012, dw * 0.36, u * 0.08, 0.30);
+            softShadow(0, u * 0.010, dw * 0.20, u * 0.045, 0.22);
           }
           ctx.drawImage(rec.img, -dw / 2, -rec.seat * dh * squash, dw, dh * squash);
+          // The room's warm light laid over the cut-out:
+          // a soft glow falling from the upper left across
+          // the head and shoulders, feathering out before
+          // it can reach the figure's edges, so the
+          // photographed person takes the dining room's
+          // own light like everyone in the backdrop.
+          var wrapG = ctx.createRadialGradient(-dw * 0.16, -dh * squash * 0.60, dw * 0.04, -dw * 0.04, -dh * squash * 0.32, dh * 0.78);
+          wrapG.addColorStop(0, "rgba(255, 208, 145, 0.12)");
+          wrapG.addColorStop(1, "rgba(255, 208, 145, 0)");
+          ctx.fillStyle = wrapG;
+          ctx.fillRect(-dw / 2, -rec.seat * dh * squash, dw, dh * squash);
           ctx.restore();
           return true;
         }
@@ -2168,11 +2242,12 @@
         // is the walk cycle's leg swing; (lid) the blink.
         function drawPlasticPerson(sex, cx, bottomY, u, stand, swing, lid, shadow) {
           var female = sex === "f";
+          u = u * PEOPLE_SCALE; // the people scale — see drawPhotoPerson
           ctx.save();
           ctx.translate(cx, bottomY);
           if (shadow) {
-            ctx.fillStyle = "rgba(12, 6, 3, 0.28)";
-            ctx.beginPath(); ctx.ellipse(0, u * 0.012, u * 0.34, u * 0.07, 0, 0, Math.PI * 2); ctx.fill();
+            softShadow(0, u * 0.012, u * 0.40, u * 0.08, 0.32);
+            softShadow(0, u * 0.010, u * 0.22, u * 0.045, 0.20);
           }
           var hipH = u * (0.28 + 0.24 * stand);   // the hips' height over the anchor
           var shH = u * (0.57 + 0.27 * stand);    // the shoulders' height
@@ -2466,6 +2541,13 @@
           var pw = tw + 12, ph = size + 7;
           var px = clamp(cx - pw / 2, 3, W - pw - 3);
           var py = topY;
+          // A soft drop under the pill, so the label rests
+          // on the room instead of floating over it.
+          ctx.fillStyle = "rgba(16, 7, 2, 0.22)";
+          ctx.beginPath();
+          if (ctx.roundRect) ctx.roundRect(px + 1, py + 2, pw, ph, ph / 2);
+          else ctx.rect(px + 1, py + 2, pw, ph);
+          ctx.fill();
           ctx.fillStyle = "rgba(255,255,255,0.94)";
           ctx.beginPath();
           if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, ph / 2);
@@ -2909,9 +2991,9 @@
           var cx = entrance.deskX, base = entrance.deskY;
           var pw = u * 0.68, ph = u * 1.04;
           var top = base - ph;
-          // Its contact shadow on the floor.
-          ctx.fillStyle = "rgba(12, 6, 3, 0.30)";
-          ctx.beginPath(); ctx.ellipse(cx, base + u * 0.02, pw * 0.58, u * 0.07, 0, 0, Math.PI * 2); ctx.fill();
+          // Its contact shadow on the floor: a feathered
+          // pool under the podium.
+          softShadow(cx, base + u * 0.02, pw * 0.64, u * 0.085, 0.38);
           // The front panel: dark wood, lit down its face.
           var pGrad = ctx.createLinearGradient(0, top, 0, base);
           pGrad.addColorStop(0, "#5a3a1e");
@@ -3126,7 +3208,15 @@
           // inside the half width wherever the floor
           // clamp holds u, and the cap only widens the
           // stage for the same u).
-          var u = clamp(w * 0.30, 26, 34);
+          // The acts take the people scale too (see
+          // PEOPLE_SCALE): the unit steps up by that share,
+          // its cap widened to hold it — and the fit below
+          // still steps the unit back down on any screen
+          // whose floor band cannot hold the bigger act
+          // between the header clearance and the ground
+          // line, so every act keeps the stage at every
+          // width.
+          var u = clamp(w * 0.30 * PEOPLE_SCALE, 26, Math.min(40, w * 0.36));
           var actH = u * 2.02;
           // Against the left wall, vertically centred on
           // the floor band — below the pass, above the
@@ -3148,7 +3238,7 @@
           }
           if (baseY > groundY() - 24) {
             var avail = (groundY() - 24) - clearTop;
-            u = clamp((avail - platH) / 2.02, 16, 34);
+            u = clamp((avail - platH) / 2.02, 16, 40);
             actH = u * 2.02;
             cy = clearTop + (actH + platH) / 2;
             baseY = cy + (actH + platH) / 2;
@@ -3163,179 +3253,6 @@
           stageStation.u = u;
           stageStation.topY = baseY - platH - actH;
           stageStation.r = Math.max(r0, 24);
-        }
-
-        // The RESTROOMS beside the stage (John's ruling,
-        // 2026-11-16: men's and women's bathrooms next to
-        // the stage — "The bathrooms should be against
-        // the wall like against the stage wall"): two
-        // doors set INTO the stage wall itself — the LEFT
-        // WALL the stage stands on, whose line is the
-        // room's left edge (x = 0, the stage platform's
-        // own left edge) — BELOW the stage platform along
-        // that same wall: MEN on the left, WOMEN on the
-        // right, each signed on a gold-on-dark plate in
-        // the room's signage family (see drawBathrooms).
-        // They sit FLUSH against that wall: the first
-        // door's frame stands on the wall line itself
-        // (x0 = 0, no inset from the left edge), and the
-        // doors run the full stretch from just under the
-        // stage's base down to the ground line, their
-        // bottoms ON that line — no floor gap in front of
-        // them and no gap at their feet — so they read as
-        // doors in the wall next to the stage, never as
-        // furniture standing in the band. They are set
-        // dressing only: not stations, unnumbered, never
-        // called by the kitchen, never tapped. Because
-        // they live inside the reserved band the station
-        // grid already starts right of (see layoutTables)
-        // and their right frame keeps its clearance from
-        // that band's edge, no station drawing's full
-        // footprint — rug included — can ever touch them
-        // at the 6-station opening or the 16-station full
-        // house, on desktop or phone widths, and no band
-        // extension is needed. Their tops keep a margin
-        // below the stage's base, so they clear the act
-        // and its number stand on the stage's room-facing
-        // edge; the bar stands far above them over the
-        // back edge, and the open kitchen stands to their
-        // right (its run starts at the band's edge), never
-        // below them. Only on a stage too short to hold
-        // them below the platform do they take the wall
-        // stretch above the stage instead, between the
-        // floor line and the curtain — flush to the same
-        // wall line there too.
-        function bathroomGeom() {
-          var resW = stageReserveW();
-          var topLim = (stageStation.baseY || 0) + 8;
-          // The doors' bottoms stand ON the ground line
-          // at the foot of the left wall — the room's own
-          // seat line, H less the phone-chrome reserve,
-          // the same line the open kitchen's floor apron
-          // seats on (see paintRoom). NOT groundY(): that
-          // line is raised by the whole toolbar inset, and
-          // doors ending there stopped some 90–110px above
-          // the bottom of the room with a dark floor strip
-          // showing beneath them (repair pass, 2026-11-16).
-          var botLim = H - chromeReserve;
-          var avail = botLim - topLim;
-          if (avail < 64) {
-            var aTop = hallDims().floorTop + 6;
-            var aBot = (stageStation.topY || 0) - 8;
-            if (aBot - aTop > avail) { topLim = aTop; botLim = aBot; avail = aBot - aTop; }
-          }
-          // Full-height in their stretch: the doors run
-          // the WHOLE stretch from just under the stage's
-          // base down to the ground line at the foot of
-          // the wall — no height cap — so their bottoms
-          // stand on that line with no floor strip or
-          // shadow panel beneath them.
-          var doorH = avail;
-          var doorY = botLim - doorH;
-          // Flush to the wall: the pair starts ON the
-          // wall line (x = 0); the width fit leaves the
-          // second door's frame (3px) plus a 3px breathing
-          // margin inside the reserved band's right edge.
-          var gap = 6;
-          var doorW = Math.min((resW - gap - 6) / 2, 80);
-          var x0 = 0;
-          return {
-            doors: [
-              { label: "MEN", x: x0, y: doorY, w: doorW, h: doorH },
-              { label: "WOMEN", x: x0 + doorW + gap, y: doorY, w: doorW, h: doorH }
-            ]
-          };
-        }
-
-        // The restroom doors themselves, painted with the
-        // room (see paintRoom): each a dark-wood door in a
-        // dark frame with a brass line — the room's own
-        // materials — two inset panels worked into its
-        // face, a brass knob at its meeting side, and its
-        // sign plate near the top: MEN / WOMEN in gold on
-        // a deep-brown plaque with a fine gold trim, the
-        // stage role plates' own treatment, its lettering
-        // stepped down only until it sits inside the
-        // door's pitch, never below 9px, so both signs
-        // read at desktop and phone widths alike.
-        function drawBathrooms() {
-          var bg = bathroomGeom();
-          // The wall they are set into: a dark wall panel
-          // flush with the room's left edge, running from
-          // just above the doors' tops to the ground line
-          // their bottoms stand on, its brass line down
-          // its right edge — the doors read as openings in
-          // the stage wall itself, hugging it with no
-          // floor gap in front of them (no contact shadow:
-          // they do not stand on the floor, they are IN
-          // the wall).
-          if (bg.doors.length) {
-            var wallR = bg.doors[bg.doors.length - 1];
-            var wallX1 = wallR.x + wallR.w + 3;
-            var wallTop = bg.doors[0].y - 6;
-            var wallBot = bg.doors[0].y + bg.doors[0].h;
-            ctx.fillStyle = "#17100a";
-            ctx.fillRect(0, wallTop, wallX1, wallBot - wallTop);
-            ctx.fillStyle = "rgba(201,162,39,0.65)";
-            ctx.fillRect(wallX1 - 1.2, wallTop, 1.2, wallBot - wallTop);
-          }
-          for (var di = 0; di < bg.doors.length; di++) {
-            var dr = bg.doors[di];
-            // The frame: a dark surround with its brass
-            // line — the first door's frame starts ON the
-            // wall line (x = 0), never inset from it.
-            var frX = Math.max(0, dr.x - 3);
-            ctx.fillStyle = "#1c1108";
-            ctx.fillRect(frX, dr.y - 3, dr.x + dr.w + 3 - frX, dr.h + 3);
-            ctx.fillStyle = "rgba(201,162,39,0.65)";
-            ctx.fillRect(frX, dr.y - 3, dr.x + dr.w + 3 - frX, 1.4);
-            // The door leaf: dark wood, lit down its face.
-            var drGrad = ctx.createLinearGradient(0, dr.y, 0, dr.y + dr.h);
-            drGrad.addColorStop(0, "#5a3a1e");
-            drGrad.addColorStop(0.55, "#402712");
-            drGrad.addColorStop(1, "#2c1a0c");
-            ctx.fillStyle = drGrad;
-            ctx.fillRect(dr.x, dr.y, dr.w, dr.h);
-            // Two inset panels worked into the face.
-            ctx.strokeStyle = "rgba(227, 194, 104, 0.38)";
-            ctx.lineWidth = 1.1;
-            if (ctx.roundRect) {
-              ctx.beginPath(); ctx.roundRect(dr.x + 6, dr.y + dr.h * 0.34, dr.w - 12, dr.h * 0.26, 3); ctx.stroke();
-              ctx.beginPath(); ctx.roundRect(dr.x + 6, dr.y + dr.h * 0.68, dr.w - 12, dr.h * 0.24, 3); ctx.stroke();
-            } else {
-              ctx.strokeRect(dr.x + 6, dr.y + dr.h * 0.34, dr.w - 12, dr.h * 0.26);
-              ctx.strokeRect(dr.x + 6, dr.y + dr.h * 0.68, dr.w - 12, dr.h * 0.24);
-            }
-            // The sign plate: gold on dark, the room's
-            // signage family, near the door's top.
-            var sFont = 12.5;
-            ctx.font = "800 " + sFont + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
-            while (sFont > 9 && ctx.measureText(dr.label).width > dr.w - 16) {
-              sFont -= 0.5;
-              ctx.font = "800 " + sFont + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
-            }
-            var sW = ctx.measureText(dr.label).width + 16, sH = Math.round(sFont * 1.7);
-            var sX = dr.x + dr.w / 2 - sW / 2, sY = dr.y + 9;
-            ctx.fillStyle = "#2a1a0c";
-            ctx.beginPath();
-            if (ctx.roundRect) ctx.roundRect(sX, sY, sW, sH, Math.min(5, sH * 0.28));
-            else ctx.rect(sX, sY, sW, sH);
-            ctx.fill();
-            ctx.strokeStyle = "rgba(201, 162, 77, 0.85)";
-            ctx.lineWidth = 1.2;
-            ctx.stroke();
-            ctx.fillStyle = "#ffbe1a";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(dr.label, dr.x + dr.w / 2, sY + sH / 2 + Math.max(0.5, sFont * 0.05));
-            ctx.textBaseline = "alphabetic";
-            // The brass knob, at the meeting side.
-            var knobX = di === 0 ? dr.x + dr.w - 7 : dr.x + 7;
-            ctx.fillStyle = "#e3c268";
-            ctx.beginPath(); ctx.arc(knobX, dr.y + dr.h * 0.52, 2.4, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = "rgba(255,255,255,0.55)";
-            ctx.beginPath(); ctx.arc(knobX - 0.8, dr.y + dr.h * 0.52 - 0.8, 0.9, 0, Math.PI * 2); ctx.fill();
-          }
         }
 
         // The BAR's band height: the bar stands at the back
@@ -3428,8 +3345,8 @@
         // line (groundY, raised by the toolbar inset).
         // The interior runs on DOWN to the room's seat
         // line (H less the phone-chrome reserve — the
-        // same line the bathroom doors stand on and the
-        // pickup leg panel reaches): the dark apron band
+        // same line the pickup leg panel reaches): the
+        // dark apron band
         // that used to run dead from the counter's foot
         // to the page foot is kitchen now — a deep
         // counter frontage with ovens and cabinet detail
@@ -3500,7 +3417,7 @@
           var r = openKitchenRect();
           var w = openKitchenPotGeom().w;
           var pb = pickupBarRect();
-          var legR = pb.x0 + clamp(pb.w * 0.16, 46, 76);
+          var legR = pickupLegRect().x1;
           var fig = kitchenFigureGeom();
           var waiterR = legR + 38 + (bodySize() * 1.12 / SPRITE_BODY_FRAC) / 2;
           var chefL = r.cx - fig.chefOff - (fig.chefS / SPRITE_BODY_FRAC) / 2;
@@ -3521,18 +3438,15 @@
         // pass — sitting in the kitchen's top-edge zone.
         // The waiter pickup is the SHORT SIDE of the L
         // (John's ruling, 2026-11-16: "The waiter pick up
-        // is the short side of the L side, in front of the
-        // bathroom"): the main run SHIFTS LEFT so its LEFT
-        // end meets the kitchen's own left end — the end
-        // nearest the stage and the restrooms flush
-        // against the stage wall — and at that left end
-        // the bar TURNS 90 degrees and runs DOWN into the
-        // kitchen: the short leg of the L, down along the
-        // kitchen's left side toward the bottom of the
-        // screen (see pickupLegRect), standing in front
-        // of the bathrooms, whose doors face into the
-        // room from the stage wall just west of the
-        // kitchen's left cheek. (The leg first stood at
+        // is the short side of the L side"): the main run
+        // SHIFTS LEFT so its LEFT end meets the kitchen's
+        // own left end — the end nearest the stage wall —
+        // and at that left end the bar TURNS 90 degrees
+        // and runs DOWN into the kitchen: the short leg
+        // of the L, down along the kitchen's left side
+        // toward the bottom of the screen (see
+        // pickupLegRect), standing by the stage wall just
+        // west of the kitchen's left cheek. (The leg first stood at
         // the run's right end; this ruling supersedes
         // that position.) The leg stays INSIDE the
         // kitchen's footprint, so the dealt grid and its
@@ -3570,23 +3484,20 @@
           };
         }
         // The L's leg: at the pickup bar's LEFT end —
-        // the kitchen's left end, in front of the
-        // bathrooms — the counter turns 90 degrees and
+        // the kitchen's left end — the counter turns 90 degrees and
         // runs DOWN the kitchen's left side as a
         // FULL-HEIGHT SIDE PANEL (John's ruling,
         // 2026-11-16, drawn in yellow on his own phone
         // screenshot of the room: two vertical strokes
         // descending from the big pickup number card at
         // the kitchen's top-left, down the kitchen's
-        // left side in front of the bathroom doors,
-        // continuing below the steel counter, down the
+        // left side, continuing below the steel counter, down the
         // deepened kitchen's lower band, and ending in a
         // horizontal base stroke near the room's foot):
         // from the number card's slab ALL THE WAY DOWN
         // TO THE GROUND LINE at the foot of the kitchen
         // — the seat line, H less the phone-chrome
-        // reserve, the same line the bathroom doors
-        // stand on — with its base/foot on that line.
+        // reserve — with its base/foot on that line.
         // A dark-wood panel with brass trim and PICK-UP
         // lettering on its upper face (see paintRoom),
         // the number stand on top of it, the waiter
@@ -3602,7 +3513,21 @@
         // descends its full height at every width.
         function pickupLegRect() {
           var pb = pickupBarRect();
-          var legW = clamp(pb.w * 0.16, 46, 76);
+          // The leg's WIDTH steps up (John's close-up
+          // ruling, 2026-11-16): at its first measure the
+          // panel read across the room as a narrow pale
+          // sliver — an edge strip, not a counter leg. It
+          // now carries close to a third of the main run's
+          // width: a broad dark-wood panel with the visual
+          // weight of the counter it turns off, wide enough
+          // for its brass trim and its own PICK-UP plaque
+          // to read at desktop and phone widths alike.
+          // Everything placed off the leg follows from
+          // this one measure: the number stand centres on
+          // it (pickupStandGeom), the waiter posts east of
+          // it (layoutTables), and the left-hand pot seats
+          // east of it (openKitchenPotXs).
+          var legW = clamp(pb.w * 0.30, 60, 120);
           var x0 = pb.x0, x1 = x0 + legW;
           var top = pb.surfY - 1;
           var bottom = H - chromeReserve;
@@ -3918,8 +3843,8 @@
           // pickup bar in the kitchen's top-edge zone, on
           // its floor-facing side (see pickupBarRect): the
           // waiter posts at the L's SHORT SIDE — just east
-          // of the downward leg at the bar's LEFT end, in
-          // front of the bathrooms, at the corner where
+          // of the downward leg at the bar's LEFT end, at
+          // the corner where
           // the leg turns down — the pickup point: the
           // post the kitchen's tickets print from, plates
           // are picked up from, and the final-five-seconds
@@ -4288,6 +4213,14 @@
           barBack.addColorStop(1, "#180b02");
           ctx.fillStyle = barBack;
           ctx.fillRect(0, kt, pwEnd, kh);
+          // The back bar's wood grain: fine horizontal
+          // streaks in the room's own hash, so the dark
+          // wood reads as timber, not a flat band.
+          for (var bgr = 0; bgr < 16; bgr++) {
+            var bgy = kt + 6 + roomHash(bgr * 3.7 + 5) * (kh - 12);
+            ctx.fillStyle = roomHash(bgr * 7.9 + 2) > 0.45 ? "rgba(0, 0, 0, 0.16)" : "rgba(255, 196, 130, 0.05)";
+            ctx.fillRect(0, bgy, pwEnd, 1.2);
+          }
           // The header beam: a dark soffit finishing the
           // top edge of the back bar, with its brass line.
           ctx.fillStyle = "#1c1108";
@@ -4705,8 +4638,8 @@
           // rail, and PICK-UP lettered in gold on the face's
           // east stretch — clear of the waiter's post at
           // the leg (see the lettering fix below). At the
-          // run's LEFT end — the kitchen's left end, in
-          // front of the bathrooms — the bar turns DOWN
+          // run's LEFT end — the kitchen's left end — the
+          // bar turns DOWN
           // into the kitchen as the L's short leg (see
           // pickupLegRect): the same slab, face, brass
           // trim and PICK-UP lettering carried onto the
@@ -4747,11 +4680,52 @@
           // foot. The slab over it is the main slab itself
           // (painted next, across the whole run including
           // the corner), so the turn reads as one counter.
+          // The leg's face, rendered as the solid counter
+          // panel it is (John's close-up ruling,
+          // 2026-11-16): broad dark wood in the counter's
+          // own tones — never a pale or steel strip — its
+          // grain running down the panel, a bevel of
+          // lantern light down its west edge and shade
+          // where it turns away at the east, and a soft
+          // contact shadow cast east onto the kitchen
+          // frontage it stands proud of, with a feathered
+          // pool at its foot — so from anywhere in the
+          // room it reads as a substantial counter leg.
           var pbLegFace = ctx.createLinearGradient(0, pbR.surfY + 7, 0, pbLeg.bottom);
-          pbLegFace.addColorStop(0, "#3c2412");
-          pbLegFace.addColorStop(1, "#1e0f04");
+          pbLegFace.addColorStop(0, "#4a2c17");
+          pbLegFace.addColorStop(0.35, "#3c2412");
+          pbLegFace.addColorStop(1, "#201105");
           ctx.fillStyle = pbLegFace;
           ctx.fillRect(pbLeg.x0, pbR.surfY + 7, pbLeg.w, pbLeg.bottom - (pbR.surfY + 7));
+          ctx.save();
+          ctx.beginPath(); ctx.rect(pbLeg.x0, pbR.surfY + 7, pbLeg.w, pbLeg.bottom - (pbR.surfY + 7)); ctx.clip();
+          // The wood grain, running down the panel:
+          // deterministic streaks in the room's own hash,
+          // dark and lit threads alternating.
+          for (var pbgx = pbLeg.x0 + 3; pbgx < pbLeg.x1 - 2; pbgx += 4) {
+            ctx.fillStyle = roomHash(pbgx * 1.37) > 0.5 ? "rgba(0, 0, 0, 0.13)" : "rgba(255, 205, 150, 0.05)";
+            ctx.fillRect(pbgx, pbR.surfY + 7, 1.3, pbLeg.bottom - (pbR.surfY + 7));
+          }
+          // The bevel: lantern light down the west edge,
+          // shade down the east where the panel turns away.
+          var pbLegBevel = ctx.createLinearGradient(pbLeg.x0, 0, pbLeg.x1, 0);
+          pbLegBevel.addColorStop(0, "rgba(255, 214, 160, 0.20)");
+          pbLegBevel.addColorStop(0.18, "rgba(255, 214, 160, 0)");
+          pbLegBevel.addColorStop(0.82, "rgba(0, 0, 0, 0)");
+          pbLegBevel.addColorStop(1, "rgba(0, 0, 0, 0.28)");
+          ctx.fillStyle = pbLegBevel;
+          ctx.fillRect(pbLeg.x0, pbR.surfY + 7, pbLeg.w, pbLeg.bottom - (pbR.surfY + 7));
+          ctx.restore();
+          // The contact shadow the panel casts east onto
+          // the frontage, and its foot shadow on the seat
+          // line — the panel stands proud of the kitchen's
+          // face, and the shadows say so.
+          var pbLegShade = ctx.createLinearGradient(pbLeg.x1, 0, pbLeg.x1 + 12, 0);
+          pbLegShade.addColorStop(0, "rgba(8, 4, 1, 0.34)");
+          pbLegShade.addColorStop(1, "rgba(8, 4, 1, 0)");
+          ctx.fillStyle = pbLegShade;
+          ctx.fillRect(pbLeg.x1, pbR.surfY + 7, 12, pbLeg.bottom - (pbR.surfY + 7));
+          softShadow(pbLeg.cx, pbLeg.bottom - 1, pbLeg.w * 0.62, 4.5, 0.40);
           ctx.strokeStyle = "rgba(0, 0, 0, 0.4)";
           ctx.lineWidth = 1;
           ctx.beginPath(); ctx.moveTo(pbLeg.cx, pbR.surfY + 26); ctx.lineTo(pbLeg.cx, pbLeg.bottom - 9); ctx.stroke();
@@ -4794,22 +4768,51 @@
           // whole word stands clear of his body and rod
           // and reads in full.
           ctx.fillStyle = "#c9a227";
+          ctx.fillRect(pbLeg.x0, pbR.surfY + 7, 1.6, pbLeg.bottom - (pbR.surfY + 7));
           ctx.fillRect(pbLeg.x1 - 1.6, pbR.surfY + 7, 1.6, pbLeg.bottom - (pbR.surfY + 7));
-          // The panel's lower face, below the steel
-          // counter's working line: an inset cabinet
-          // panel worked into the wood, matching the
-          // counter frontage it stands in front of, so
-          // the full-height panel reads as kitchen
-          // furniture all the way down — not a blank
-          // slab.
-          ctx.strokeStyle = "rgba(227, 194, 104, 0.38)";
-          ctx.lineWidth = 1.1;
-          if (pbLeg.bottom - okWorkY > 44) {
-            if (ctx.roundRect) {
-              ctx.beginPath(); ctx.roundRect(pbLeg.x0 + 7, okWorkY + 13, pbLeg.w - 14, pbLeg.bottom - okWorkY - 36, 3); ctx.stroke();
-            } else {
-              ctx.strokeRect(pbLeg.x0 + 7, okWorkY + 13, pbLeg.w - 14, pbLeg.bottom - okWorkY - 36);
+          // The leg's own PICK-UP plaque, mounted on the
+          // panel's lower face below the steel counter's
+          // working line (John's close-up ruling,
+          // 2026-11-16): a dark plaque with brass trim in
+          // the room's signage family — the KITCHEN sign's
+          // own treatment — carrying PICK-UP in gold,
+          // centred on the broadened panel, sized to the
+          // panel so it reads from across the room. It
+          // sits in the one stretch nothing ever crosses —
+          // no figure, no held ticket card, no counter
+          // fitting reaches the panel's lower face — so
+          // the word reads in full at every width, all
+          // shift long. Where a very short room leaves
+          // that stretch too shallow for the plaque, the
+          // word falls back to the panel's upper face
+          // instead (see the lettering below).
+          var pbLegSignRoom = (pbLeg.bottom - 16) - (okWorkY + 12);
+          if (pbLegSignRoom >= 30) {
+            var pbPlaqueX = pbLeg.x0 + 7, pbPlaqueW = pbLeg.w - 14;
+            var pbPlaqueY = okWorkY + 12, pbPlaqueH = Math.min(34, pbLegSignRoom);
+            ctx.save();
+            ctx.shadowColor = "rgba(10, 4, 1, 0.4)";
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetY = 1.5;
+            ctx.fillStyle = "#2a1a0c";
+            rrPath(pbPlaqueX, pbPlaqueY, pbPlaqueW, pbPlaqueH, 5);
+            ctx.fill();
+            ctx.restore();
+            ctx.strokeStyle = "rgba(201, 162, 39, 0.9)";
+            ctx.lineWidth = 1.2;
+            rrPath(pbPlaqueX, pbPlaqueY, pbPlaqueW, pbPlaqueH, 5);
+            ctx.stroke();
+            var pbPlaqueFont = clamp(pbPlaqueH * 0.44, 8, 15);
+            ctx.font = "800 " + pbPlaqueFont + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+            while (pbPlaqueFont > 7 && ctx.measureText("PICK-UP").width > pbPlaqueW - 10) {
+              pbPlaqueFont -= 0.5;
+              ctx.font = "800 " + pbPlaqueFont + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
             }
+            ctx.fillStyle = "#ffbe1a";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("PICK-UP", pbLeg.cx, pbPlaqueY + pbPlaqueH / 2 + 0.5);
+            ctx.textBaseline = "alphabetic";
           }
           // The panel's base/foot ON the ground line
           // (John's drawing ends the leg in a horizontal
@@ -4825,27 +4828,29 @@
           ctx.fillRect(pbLeg.x0 - 2.5, pbLeg.bottom - 11, pbLeg.w + 5, 1.2);
           ctx.fillStyle = "#120a04";
           ctx.fillRect(pbLeg.x0, pbLeg.bottom - 2, pbLeg.w, 2);
-          // The lettering sits on the panel's UPPER
-          // face, in the stretch below the main face
-          // where it has always read — the panel's
-          // descent to the foot does not drag it down:
-          // its size and seat are measured on that upper
-          // stretch (the old short leg's face), not on
-          // the full height.
-          var pbLegFaceBot = Math.min(pbLeg.bottom, pbR.surfY + 47);
-          var pbLegFont = clamp((pbLegFaceBot - (pbR.surfY + 24)) * 0.62, 7, 10.5);
-          ctx.font = "800 " + pbLegFont + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
-          ctx.fillStyle = "#ffbe1a";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          var pbLegTextW = ctx.measureText("PICK-UP").width;
-          ctx.fillText("PICK-UP", pbLeg.x0 + 3 + pbLegTextW / 2, (pbR.surfY + 24 + pbLegFaceBot) / 2 - 3);
-          ctx.textBaseline = "alphabetic";
+          // The lettering's fallback seat: only where the
+          // room is too short for the panel's PICK-UP
+          // plaque (above) does the word take the panel's
+          // UPPER face instead, in the stretch below the
+          // main face where it has always read, hugged to
+          // the face's west side so the waiter's post at
+          // the leg's east edge never covers it.
+          if (pbLegSignRoom < 30) {
+            var pbLegFaceBot = Math.min(pbLeg.bottom, pbR.surfY + 47);
+            var pbLegFont = clamp((pbLegFaceBot - (pbR.surfY + 24)) * 0.62, 7, 10.5);
+            ctx.font = "800 " + pbLegFont + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+            ctx.fillStyle = "#ffbe1a";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            var pbLegTextW = ctx.measureText("PICK-UP").width;
+            ctx.fillText("PICK-UP", pbLeg.x0 + 3 + pbLegTextW / 2, (pbR.surfY + 24 + pbLegFaceBot) / 2 - 3);
+            ctx.textBaseline = "alphabetic";
+          }
           // Pickup plates on the slab, east of the number
           // stand's seat at the leg, along the main run —
           // the stand stands at the bar's left end now, on
-          // the leg in front of the bathrooms, so both
-          // stacks sit on the run to its east, by the leg.
+          // the leg, so both stacks sit on the run to its
+          // east, by the leg.
           ctx.fillStyle = "#f4f7f8";
           for (var pbpi = 0; pbpi < 2; pbpi++) {
             var pbPlateX = pbStand.x + (pbStand.w / 2 + 24) + pbpi * 38;
@@ -4862,6 +4867,33 @@
           ctx.fillRect(okR.x0 - 3, okR.top, 3, okR.h);
           ctx.fillStyle = "rgba(201,162,39,0.65)";
           ctx.fillRect(okR.x0 - 3, okR.top, 1.2, okR.h);
+          // THE REALISM GRADE (2026-11-16): one warm wash
+          // of the photograph's own lantern light laid over
+          // the whole cached room — photograph and drawn
+          // fixtures together — so the fixtures take the
+          // room's light instead of sitting pasted on it:
+          // a broad warm pool over the room's heart, a soft
+          // sheen raking the floor band, and a gentle
+          // falloff toward the corners. All feathered
+          // gradients at low strength: the photograph
+          // itself is never redrawn, only lit with.
+          var gradePool = ctx.createRadialGradient(W * 0.46, floorTop * 0.52, 10, W * 0.46, floorTop * 0.52, Math.max(W, H) * 0.72);
+          gradePool.addColorStop(0, "rgba(255, 196, 118, 0.10)");
+          gradePool.addColorStop(0.55, "rgba(255, 178, 100, 0.04)");
+          gradePool.addColorStop(1, "rgba(255, 178, 100, 0)");
+          ctx.fillStyle = gradePool;
+          ctx.fillRect(0, 0, W, H);
+          var gradeSheen = ctx.createLinearGradient(0, floorTop, 0, gy);
+          gradeSheen.addColorStop(0, "rgba(255, 205, 150, 0.05)");
+          gradeSheen.addColorStop(0.4, "rgba(255, 205, 150, 0.015)");
+          gradeSheen.addColorStop(1, "rgba(20, 8, 2, 0.07)");
+          ctx.fillStyle = gradeSheen;
+          ctx.fillRect(0, floorTop, W, Math.max(0, gy - floorTop));
+          var gradeVig = ctx.createRadialGradient(W / 2, H * 0.46, Math.min(W, H) * 0.42, W / 2, H * 0.46, Math.max(W, H) * 0.78);
+          gradeVig.addColorStop(0, "rgba(16, 6, 2, 0)");
+          gradeVig.addColorStop(1, "rgba(16, 6, 2, 0.15)");
+          ctx.fillStyle = gradeVig;
+          ctx.fillRect(0, 0, W, H);
           // (The kitchen's old floor apron is gone: the
           // set itself now runs down to the seat line —
           // its deepened interior and counter frontage
@@ -4872,15 +4904,6 @@
           // photograph ever shows under it. The control
           // bar floats over the kitchen's foot as it
           // floats over the room.)
-
-          // The restrooms beside the stage: two signed
-          // doors set flush into the stage wall — the
-          // left wall — below the stage platform (see
-          // bathroomGeom / drawBathrooms) — set dressing
-          // painted with the room, clear of the stage
-          // above them, the bar over the back edge, and
-          // the open kitchen to their right.
-          drawBathrooms();
 
         }
         // The rug's weave: a small tile of carpet pile,
@@ -5121,12 +5144,11 @@
             ctx.lineWidth = Math.max(1, r * 0.02);
             ctx.beginPath(); ctx.arc(rx, ry, rugR * 0.8, 0, Math.PI * 2); ctx.stroke();
           }
-          // Shadow: a soft pool under the table, darker at
-          // its heart — the table rests on the boards.
-          ctx.fillStyle = "rgba(20, 10, 4, 0.16)";
-          ctx.beginPath(); ctx.ellipse(cx, cy + r * 0.82, r * 1.18, r * 0.26, 0, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = "rgba(20, 10, 4, 0.26)";
-          ctx.beginPath(); ctx.ellipse(cx, cy + r * 0.78, r * 1.02, r * 0.19, 0, 0, Math.PI * 2); ctx.fill();
+          // Shadow: a soft feathered pool under the table,
+          // darker at its heart — the table rests grounded
+          // on the boards, in the room's light.
+          softShadow(cx, cy + r * 0.82, r * 1.30, r * 0.30, 0.30);
+          softShadow(cx, cy + r * 0.78, r * 1.02, r * 0.20, 0.22);
 
           // Guests: two TBOT people seated behind the table —
           // the real people, photographed (see
@@ -5618,9 +5640,9 @@
           var r = t.r;
           var halfW = r * 1.14;
           var backTop = cy - r * 2.5, backBot = cy - r * 0.38;
-          // Contact shadow on the gloss.
-          ctx.fillStyle = "rgba(20, 10, 4, 0.3)";
-          ctx.beginPath(); ctx.ellipse(cx, cy + r * 0.84, halfW * 1.03, r * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+          // Contact shadow on the gloss: a feathered pool
+          // grounding the unit in the floor's light.
+          softShadow(cx, cy + r * 0.84, halfW * 1.12, r * 0.24, 0.38);
           // The back bench's high back: deep-red upholstery
           // with channel tufting and a lit rolled top.
           var bGrad = ctx.createLinearGradient(0, backTop, 0, backBot);
@@ -5805,9 +5827,9 @@
           var cx = t.x + shakeX, cy = t.y;
           var r = t.r;
           var cw = Math.max((t.cellW || 0) / 2 * 0.995, r * 1.3);
-          // Contact shadow under the counter run.
-          ctx.fillStyle = "rgba(20, 10, 4, 0.3)";
-          ctx.beginPath(); ctx.ellipse(cx, cy + r * 0.82, cw * 0.97, r * 0.17, 0, 0, Math.PI * 2); ctx.fill();
+          // Contact shadow under the counter run: a
+          // feathered pool along the run's foot.
+          softShadow(cx, cy + r * 0.82, cw * 1.04, r * 0.21, 0.38);
           // The stool's round red-leather seat, brass-rimmed.
           ctx.fillStyle = "#8f1d26";
           ctx.beginPath(); ctx.ellipse(cx, cy + r * 0.05, r * 0.98, r * 0.21, 0, 0, Math.PI * 2); ctx.fill();
@@ -5931,10 +5953,10 @@
           var s = bodySize() * 1.12;
           var moving = waiter.state !== "pass";
           var bobY = moving ? Math.abs(Math.sin(waiter.stepPh)) * 3 : Math.sin(nowMs / 700) * 1.2;
-          // Shadow, resting at the sprite's own bottom edge.
+          // Shadow, resting at the sprite's own bottom
+          // edge: a feathered pool grounding him.
           var waiterSh = (s / SPRITE_BODY_FRAC) * SPRITE_ASPECT;
-          ctx.fillStyle = "rgba(20, 10, 4, 0.3)";
-          ctx.beginPath(); ctx.ellipse(waiter.x, waiter.y + waiterSh * (1 - SPRITE_BODY_CY) + s * 0.02, s * 0.5, s * 0.1, 0, 0, Math.PI * 2); ctx.fill();
+          softShadow(waiter.x, waiter.y + waiterSh * (1 - SPRITE_BODY_CY) + s * 0.02, s * 0.56, s * 0.11, 0.38);
           drawTBOTFigure(waiter.x, waiter.y - bobY, s, blinkLid(waiter, nowMs), 0);
           // The waiter's white apron, over the lower body.
           // Its vertical measure follows Ref 1's real body
@@ -5943,7 +5965,14 @@
           ctx.save();
           ctx.translate(waiter.x, waiter.y - bobY);
           ctx.scale(1, (SPRITE_BODY_H_FRAC * SPRITE_ASPECT / SPRITE_BODY_FRAC) / 1.1);
-          ctx.fillStyle = "rgba(253, 250, 243, 0.96)";
+          // The apron's cloth shading: lit at its top,
+          // falling into soft shade at its hem, so the
+          // white reads as cloth in the room's light.
+          var apronG = ctx.createLinearGradient(0, s * 0.08, 0, s * 0.48);
+          apronG.addColorStop(0, "rgba(255, 253, 247, 0.97)");
+          apronG.addColorStop(0.55, "rgba(250, 244, 231, 0.96)");
+          apronG.addColorStop(1, "rgba(224, 210, 184, 0.96)");
+          ctx.fillStyle = apronG;
           ctx.beginPath();
           ctx.moveTo(-s * 0.21, s * 0.10);
           ctx.lineTo(s * 0.21, s * 0.10);
@@ -6063,7 +6092,11 @@
           ctx.save();
           ctx.translate(x, anchorY + bobY * 0.4);
           ctx.scale(1, (SPRITE_BODY_H_FRAC * SPRITE_ASPECT / SPRITE_BODY_FRAC) / 1.1);
-          ctx.fillStyle = "rgba(253, 250, 243, 0.96)";
+          var chefApronG = ctx.createLinearGradient(0, s * 0.08, 0, s * 0.48);
+          chefApronG.addColorStop(0, "rgba(255, 253, 247, 0.97)");
+          chefApronG.addColorStop(0.55, "rgba(250, 244, 231, 0.96)");
+          chefApronG.addColorStop(1, "rgba(224, 210, 184, 0.96)");
+          ctx.fillStyle = chefApronG;
           ctx.beginPath();
           ctx.moveTo(-s * 0.21, s * 0.10);
           ctx.lineTo(s * 0.21, s * 0.10);
@@ -6079,7 +6112,13 @@
           // own top runs.
           var sh = (s / SPRITE_BODY_FRAC) * SPRITE_ASPECT;
           var topY = anchorY + bobY * 0.4 - sh * SPRITE_BODY_CY;
-          ctx.fillStyle = "#fdfaf3";
+          // The puff's cloth shading: brightest at its
+          // heart, soft shade at its edges.
+          var toqueG = ctx.createLinearGradient(x - s * 0.3, 0, x + s * 0.3, 0);
+          toqueG.addColorStop(0, "#ece2cf");
+          toqueG.addColorStop(0.45, "#fffdf6");
+          toqueG.addColorStop(1, "#ddd0b6");
+          ctx.fillStyle = toqueG;
           ctx.beginPath(); ctx.ellipse(x, topY + sh * 0.075, s * 0.30, s * 0.115, 0, 0, Math.PI * 2); ctx.fill();
           ctx.fillRect(x - s * 0.27, topY + sh * 0.07, s * 0.54, s * 0.13);
           ctx.fillStyle = "rgba(120,90,60,0.20)";
@@ -6207,11 +6246,16 @@
           var signW = ctx.measureText("KITCHEN").width + 22;
           var signH = 21, signGap = 6;
           var sx = ax - signW / 2, sy = headTop - signGap - signH;
+          ctx.save();
+          ctx.shadowColor = "rgba(12, 5, 1, 0.45)";
+          ctx.shadowBlur = 5;
+          ctx.shadowOffsetY = 2;
           ctx.fillStyle = "#2a1a0c";
           ctx.beginPath();
           if (ctx.roundRect) ctx.roundRect(sx, sy, signW, signH, 6);
           else ctx.rect(sx, sy, signW, signH);
           ctx.fill();
+          ctx.restore();
           ctx.strokeStyle = "rgba(201,162,77,0.75)";
           ctx.lineWidth = 1.2;
           ctx.stroke();
@@ -7282,10 +7326,10 @@
           ctx.lineWidth = Math.max(1.2, st.u * 0.03);
           rrPath(curX, curTop, curW, curBot - curTop, 6);
           ctx.stroke();
-          // The platform: a contact shadow, a lit wood
-          // top, and a dark front face with gold trim.
-          ctx.fillStyle = "rgba(12, 6, 3, 0.30)";
-          ctx.beginPath(); ctx.ellipse(cx, baseY + 3, st.w * 0.56, Math.max(3, st.u * 0.10), 0, 0, Math.PI * 2); ctx.fill();
+          // The platform: a feathered contact shadow, a
+          // lit wood top, and a dark front face with gold
+          // trim.
+          softShadow(cx, baseY + 3, st.w * 0.62, Math.max(3.5, st.u * 0.12), 0.40);
           var topGrad = ctx.createLinearGradient(0, platTop - 3, 0, platTop + 2);
           topGrad.addColorStop(0, "#7a4e2a");
           topGrad.addColorStop(1, "#4a2c17");
@@ -7298,6 +7342,35 @@
           ctx.fillRect(cx - st.w / 2, platTop + 2, st.w, baseY - platTop - 2);
           ctx.fillStyle = "#c9a227";
           ctx.fillRect(cx - st.w / 2, platTop + 2, st.w, Math.max(1.6, st.u * 0.05));
+          // The stage light: two soft beams falling from
+          // the curtain's top corners onto the platform,
+          // and the pool of light they leave on the boards
+          // — in the room's warm tone, so the act stands
+          // in real light, grounded on the platform, not
+          // pasted on a flat board.
+          ctx.save();
+          var beamG = ctx.createLinearGradient(0, curTop, 0, platTop);
+          beamG.addColorStop(0, "rgba(255, 216, 150, 0.13)");
+          beamG.addColorStop(1, "rgba(255, 216, 150, 0.03)");
+          ctx.fillStyle = beamG;
+          ctx.beginPath();
+          ctx.moveTo(curX + curW * 0.16, curTop + 2);
+          ctx.lineTo(curX + curW * 0.34, curTop + 2);
+          ctx.lineTo(cx + st.w * 0.30, platTop);
+          ctx.lineTo(cx - st.w * 0.06, platTop);
+          ctx.closePath(); ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(curX + curW * 0.66, curTop + 2);
+          ctx.lineTo(curX + curW * 0.84, curTop + 2);
+          ctx.lineTo(cx + st.w * 0.06, platTop);
+          ctx.lineTo(cx - st.w * 0.30, platTop);
+          ctx.closePath(); ctx.fill();
+          ctx.restore();
+          var poolG = ctx.createRadialGradient(cx, platTop - 2, 2, cx, platTop - 2, st.w * 0.42);
+          poolG.addColorStop(0, "rgba(255, 220, 160, 0.17)");
+          poolG.addColorStop(1, "rgba(255, 220, 160, 0)");
+          ctx.fillStyle = poolG;
+          ctx.beginPath(); ctx.ellipse(cx, platTop - 2, st.w * 0.42, Math.max(3, st.u * 0.13), 0, 0, Math.PI * 2); ctx.fill();
           // The act. Mid-rotation (a re-deal just turned
           // the stage over), the outgoing act leaves into
           // the wing as the incoming act takes the stage:
@@ -9118,7 +9191,6 @@
             kitchenPos: { x: Math.round(openKitchenRect().x0), y: Math.round(openKitchenRect().top), w: Math.round(openKitchenRect().x1 - openKitchenRect().x0), h: Math.round(openKitchenRect().h) },
             pickupBarPos: { x: Math.round(pickupBarRect().x0), y: Math.round(pickupBarRect().top), w: Math.round(pickupBarRect().w), h: Math.round(pickupBarRect().bottom - pickupBarRect().top), surfY: Math.round(pickupBarRect().surfY) },
             pickupLegPos: { x: Math.round(pickupLegRect().x0), y: Math.round(pickupLegRect().top), w: Math.round(pickupLegRect().w), h: Math.round(pickupLegRect().h), bottom: Math.round(pickupLegRect().bottom) },
-            bathrooms: bathroomGeom().doors.map(function (dr) { return { label: dr.label, x: Math.round(dr.x), y: Math.round(dr.y), w: Math.round(dr.w), h: Math.round(dr.h) }; }),
             pickupStand: { x: Math.round(pickupStandGeom().x), top: Math.round(pickupStandGeom().top), w: Math.round(pickupStandGeom().w), h: Math.round(pickupStandGeom().h), number: ticketNum },
             waiterHome: { x: Math.round(waiter.homeX), y: Math.round(waiter.homeY) },
             tableStates: tables.map(function (t) { return t.state; }),
