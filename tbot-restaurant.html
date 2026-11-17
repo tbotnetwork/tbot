@@ -3524,8 +3524,9 @@
           // to read at desktop and phone widths alike.
           // Everything placed off the leg follows from
           // this one measure: the number stand centres on
-          // it (pickupStandGeom), the waiter posts east of
-          // it (layoutTables), and the left-hand pot seats
+          // it (pickupStandGeom), the waiter posts west
+          // of it, outside the kitchen (layoutTables),
+          // and the left-hand pot seats
           // east of it (openKitchenPotXs).
           var legW = clamp(pb.w * 0.30, 60, 120);
           var x0 = pb.x0, x1 = x0 + legW;
@@ -3839,36 +3840,6 @@
             }
             tables[i].r = tableR;
           }
-          // Home is the open kitchen's SIDE BAR — the
-          // pickup bar in the kitchen's top-edge zone, on
-          // its floor-facing side (see pickupBarRect): the
-          // waiter posts at the L's SHORT SIDE — just east
-          // of the downward leg at the bar's LEFT end, at
-          // the corner where
-          // the leg turns down — the pickup point: the
-          // post the kitchen's tickets print from, plates
-          // are picked up from, and the final-five-seconds
-          // hold stands at (see FINAL_CALL_MS). His anchor
-          // stands a figure's depth inside the kitchen
-          // behind the pickup counter, so his whole sprite
-          // stays inside the kitchen's footprint, clear of
-          // the dealt grid above the kitchen's top edge,
-          // and his post east of the leg keeps his body
-          // clear of the left-hand chef working the run.
-          // The post steps further east than the corner's
-          // first seat (live-check fix, 2026-11-16,
-          // mirrored to the leg's new end): at the old
-          // seat his body and side rod covered the first
-          // letters of the leg's PICK-UP lettering — now
-          // his body stands clear of the leg's face and
-          // only his rod tip reaches the corner, and the
-          // lettering itself sits to the leg face's west
-          // side (see paintRoom), so it reads in full.
-          var pbRect = pickupBarRect();
-          var pbLeg = pickupLegRect();
-          waiter.homeX = pbLeg.x1 + 38;
-          waiter.homeY = okRect.top + pbRect.surfOff + 36;
-          if (waiter.state === "pass") { waiter.x = waiter.homeX; waiter.y = waiter.homeY; }
           // The maître d's post is his desk at the
           // entrance: layoutEntrance places the desk, the
           // couple at it and the line behind them at the
@@ -3876,10 +3847,59 @@
           // clear of every station, and
           // seats the host at the desk — the post every
           // escort starts from and returns to (see
-          // spawnArrivals).
+          // spawnArrivals). The stage is laid out here
+          // too, before the waiter's post below is set,
+          // because that post is measured clear of the
+          // stage's platform.
           layoutEntrance();
           layoutStage();
           if (host.state === "pass") { host.x = host.homeX; host.y = host.homeY; }
+          // Home is OUTSIDE the kitchen (John's ruling,
+          // 2026-11-16: "The waiter should be on the
+          // outside of the kitchen"): a waiter works the
+          // pass from the floor side, so his post leaves
+          // the kitchen band entirely — he no longer
+          // stands inside it at the pickup leg among the
+          // chefs, who now work the kitchen alone. His
+          // post stands in front of the L's leg panel, on
+          // its OUTSIDE — the leg's west face, the
+          // kitchen's own left cheek, west of the
+          // kitchen's footprint altogether — at the
+          // pickup counter's height, so he picks up at
+          // the leg from the floor side: the post the
+          // kitchen's tickets print from, plates are
+          // picked up from, and the final-five-seconds
+          // hold stands at (see FINAL_CALL_MS), and every
+          // plate run starts and ends there, crossing the
+          // kitchen's top edge at the pass as serves
+          // always have. His whole sprite stands west of
+          // the leg, clear of the leg panel's face and
+          // its PICK UP plaque (see paintRoom), clear of
+          // the number stand on top of the leg, and —
+          // standing below the dealt grid's bottom
+          // boundary at the counter's height, west of the
+          // kitchen — clear of every station's full
+          // footprint, rug included, at the opening six
+          // and the full sixteen alike. One guard: on a
+          // short, wide room the stage's platform can
+          // reach down toward his post — if his sprite
+          // would touch the platform, the post steps
+          // down the leg's outside just enough to clear
+          // it, never more than a short step, staying at
+          // the leg.
+          var pbRect = pickupBarRect();
+          var pbLeg = pickupLegRect();
+          var wS = bodySize() * 1.12;
+          var wSw = wS / SPRITE_BODY_FRAC;
+          var wSh = wSw * SPRITE_ASPECT;
+          waiter.homeX = Math.max(pbLeg.x0 - wSw / 2 - 4, wS * 1.29 + 2);
+          waiter.homeY = okRect.top + pbRect.surfOff + 36;
+          if (waiter.homeX - wSw / 2 < stageStation.w &&
+              waiter.homeY - wSh * SPRITE_BODY_CY < stageStation.baseY + 6) {
+            var wShift = stageStation.baseY + 6 - (waiter.homeY - wSh * SPRITE_BODY_CY);
+            if (wShift > 0) waiter.homeY += Math.min(wShift, 22);
+          }
+          if (waiter.state === "pass") { waiter.x = waiter.homeX; waiter.y = waiter.homeY; }
         }
 
         // A fresh Fisher–Yates shuffle of the full roster —
@@ -4647,8 +4667,9 @@
           // bar. The called number's stand rides on top of
           // the slab at the leg (painted live — see
           // drawPickupBar — so the number can change with
-          // every ticket), the waiter posts just east of
-          // the leg at that corner, and the pickup plates
+          // every ticket), the waiter posts just west of
+          // the leg at that corner — outside the kitchen,
+          // in front of the leg panel — and the pickup plates
           // wait on the slab east of the stand, by the
           // leg, along the main run.
           var pbR = pickupBarRect();
@@ -4752,21 +4773,18 @@
           ctx.fillText("PICK-UP", pbR.x1 - 6 - pbMainTextW / 2, pbR.surfY + 15.5);
           ctx.textBaseline = "alphabetic";
           // The leg's own brass and lettering, carried
-          // down the L: a brass line down the leg's east
-          // edge where it turns off the main run, a brass
-          // foot rail across its foot, a dark end line
-          // under the foot, and PICK-UP lettered in gold
-          // on the leg's face below the main face — sized
-          // to the leg's face so it reads at desktop and
-          // phone widths alike. The lettering hugs the
-          // face's WEST side (live-check fix, 2026-11-16,
-          // mirrored to the leg's new end): centred, its
-          // last letters ran under the waiter's post at
-          // the leg's east edge — set with its left edge
-          // inside the face's west trim, and with the post
-          // itself stepped east (see layoutTables), the
-          // whole word stands clear of his body and rod
-          // and reads in full.
+          // down the L: a brass line down each of the
+          // leg's edges where it turns off the main run,
+          // a brass foot rail across its foot, a dark end
+          // line under the foot, and the full words
+          // PICK UP lettered in gold on the leg's face
+          // below the main face — sized to the leg's face
+          // so they read at desktop and phone widths
+          // alike (see the plaque below). The waiter's
+          // post now stands west of the leg, outside the
+          // kitchen (see layoutTables), so his body and
+          // rod never reach the leg's face at all and the
+          // words stand clear of him entirely.
           ctx.fillStyle = "#c9a227";
           ctx.fillRect(pbLeg.x0, pbR.surfY + 7, 1.6, pbLeg.bottom - (pbR.surfY + 7));
           ctx.fillRect(pbLeg.x1 - 1.6, pbR.surfY + 7, 1.6, pbLeg.bottom - (pbR.surfY + 7));
@@ -4775,21 +4793,32 @@
           // working line (John's close-up ruling,
           // 2026-11-16): a dark plaque with brass trim in
           // the room's signage family — the KITCHEN sign's
-          // own treatment — carrying PICK-UP in gold,
-          // centred on the broadened panel, sized to the
-          // panel so it reads from across the room. It
-          // sits in the one stretch nothing ever crosses —
-          // no figure, no held ticket card, no counter
-          // fitting reaches the panel's lower face — so
-          // the word reads in full at every width, all
-          // shift long. Where a very short room leaves
-          // that stretch too shallow for the plaque, the
-          // word falls back to the panel's upper face
-          // instead (see the lettering below).
+          // own treatment — carrying the full words
+          // PICK UP in gold (John's ruling, 2026-11-16:
+          // "It should say pick up" — in his live
+          // close-up the leg's lettering read only as a
+          // cut-off "PIC"). The two words stack on two
+          // lines, PICK over UP, so the lettering runs
+          // LARGE — near the panel's full width on each
+          // line — and reads clearly at desktop and phone
+          // widths alike, never shrunk to fit one line
+          // across the narrow panel. It sits in the one
+          // stretch nothing ever crosses: the waiter now
+          // posts OUTSIDE the kitchen, west of the leg
+          // (see layoutTables), so neither his body at
+          // his post nor his sprite on any plate run —
+          // his runs never reach this low on the panel —
+          // nor any held ticket card or counter fitting
+          // ever reaches the panel's lower face, and the
+          // words read in full, all shift long. Where a
+          // very short room leaves that stretch too
+          // shallow for the plaque, the words fall back
+          // to the panel's upper face instead (see the
+          // lettering below).
           var pbLegSignRoom = (pbLeg.bottom - 16) - (okWorkY + 12);
-          if (pbLegSignRoom >= 30) {
+          if (pbLegSignRoom >= 44) {
             var pbPlaqueX = pbLeg.x0 + 7, pbPlaqueW = pbLeg.w - 14;
-            var pbPlaqueY = okWorkY + 12, pbPlaqueH = Math.min(34, pbLegSignRoom);
+            var pbPlaqueY = okWorkY + 12, pbPlaqueH = Math.min(58, pbLegSignRoom);
             ctx.save();
             ctx.shadowColor = "rgba(10, 4, 1, 0.4)";
             ctx.shadowBlur = 4;
@@ -4802,16 +4831,17 @@
             ctx.lineWidth = 1.2;
             rrPath(pbPlaqueX, pbPlaqueY, pbPlaqueW, pbPlaqueH, 5);
             ctx.stroke();
-            var pbPlaqueFont = clamp(pbPlaqueH * 0.44, 8, 15);
+            var pbPlaqueFont = clamp(pbPlaqueH * 0.36, 10, 21);
             ctx.font = "800 " + pbPlaqueFont + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
-            while (pbPlaqueFont > 7 && ctx.measureText("PICK-UP").width > pbPlaqueW - 10) {
+            while (pbPlaqueFont > 8 && ctx.measureText("PICK").width > pbPlaqueW - 10) {
               pbPlaqueFont -= 0.5;
               ctx.font = "800 " + pbPlaqueFont + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
             }
             ctx.fillStyle = "#ffbe1a";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillText("PICK-UP", pbLeg.cx, pbPlaqueY + pbPlaqueH / 2 + 0.5);
+            ctx.fillText("PICK", pbLeg.cx, pbPlaqueY + pbPlaqueH * 0.28);
+            ctx.fillText("UP", pbLeg.cx, pbPlaqueY + pbPlaqueH * 0.73);
             ctx.textBaseline = "alphabetic";
           }
           // The panel's base/foot ON the ground line
@@ -4829,21 +4859,22 @@
           ctx.fillStyle = "#120a04";
           ctx.fillRect(pbLeg.x0, pbLeg.bottom - 2, pbLeg.w, 2);
           // The lettering's fallback seat: only where the
-          // room is too short for the panel's PICK-UP
-          // plaque (above) does the word take the panel's
+          // room is too short for the panel's PICK UP
+          // plaque (above) do the words take the panel's
           // UPPER face instead, in the stretch below the
-          // main face where it has always read, hugged to
-          // the face's west side so the waiter's post at
-          // the leg's east edge never covers it.
-          if (pbLegSignRoom < 30) {
+          // main face where they have always read, hugged
+          // to the face's west side — the waiter's post
+          // now stands west of the leg altogether, outside
+          // the kitchen, so nothing of him covers them.
+          if (pbLegSignRoom < 44) {
             var pbLegFaceBot = Math.min(pbLeg.bottom, pbR.surfY + 47);
             var pbLegFont = clamp((pbLegFaceBot - (pbR.surfY + 24)) * 0.62, 7, 10.5);
             ctx.font = "800 " + pbLegFont + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
             ctx.fillStyle = "#ffbe1a";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            var pbLegTextW = ctx.measureText("PICK-UP").width;
-            ctx.fillText("PICK-UP", pbLeg.x0 + 3 + pbLegTextW / 2, (pbR.surfY + 24 + pbLegFaceBot) / 2 - 3);
+            var pbLegTextW = ctx.measureText("PICK UP").width;
+            ctx.fillText("PICK UP", pbLeg.x0 + 3 + pbLegTextW / 2, (pbR.surfY + 24 + pbLegFaceBot) / 2 - 3);
             ctx.textBaseline = "alphabetic";
           }
           // Pickup plates on the slab, east of the number
