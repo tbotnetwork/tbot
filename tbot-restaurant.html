@@ -4122,6 +4122,170 @@
         // leaving (see partyLeaves / finishLeave), which
         // re-deals them exactly as it always has.
 
+        // ---------- The white marble floor ----------
+        // The dining-room floor is WHITE MARBLE now
+        // (John's ruling, 2026-11-17: "Can we do White
+        // marble floor?" — replacing his 2026-11-14
+        // black-floor call): polished soft-white slabs
+        // with natural grey veining (a hint of gold in a
+        // few veins), large slab seams laid in the room's
+        // perspective, per-slab shading, and a glossy
+        // sheen carrying soft warm reflections of the
+        // glass and the lanterns — depth throughout,
+        // never a flat blown-out white. It is painted
+        // over the photograph's black gloss everywhere
+        // below the floor line (the dining area, the
+        // entrance / maître d' area, around the bar and
+        // up to the stage platform's edge); the bar, the
+        // open kitchen and the pickup bar are painted
+        // AFTER it in paintRoom, so the kitchen band —
+        // its counter frontage and its own tiled floor
+        // strip — keeps its own floor exactly as built,
+        // and everything that sits on the marble (rugs,
+        // tables, figures, the stage) is drawn over it
+        // with its contact shadows as always. Deterministic
+        // in the room's own hash, like every room dressing,
+        // so the veining never flickers between frames.
+        function paintMarbleFloor(floorTop) {
+          var fBot = H;
+          var fH = Math.max(1, fBot - floorTop);
+          var vpX = W * 0.52; // the seams' vanishing point, on the glass wall's centre
+          ctx.save();
+          ctx.beginPath(); ctx.rect(0, floorTop, W, fH); ctx.clip();
+          // The polished stone itself: soft white,
+          // deepening a step toward the viewer so the
+          // plane keeps its depth.
+          var mBase = ctx.createLinearGradient(0, floorTop, 0, fBot);
+          mBase.addColorStop(0, "#ece9e1");
+          mBase.addColorStop(0.35, "#f5f2ea");
+          mBase.addColorStop(0.75, "#eae6db");
+          mBase.addColorStop(1, "#ddd8ca");
+          ctx.fillStyle = mBase;
+          ctx.fillRect(0, floorTop, W, fH);
+          // The slab grid in perspective: five rows whose
+          // seams crowd toward the back edge, eight
+          // columns fanning out from the vanishing point.
+          var mRows = 5, mCols = 8;
+          function mRowY(i) { return floorTop + fH * Math.pow(i / mRows, 1.55); }
+          function mSeamHX(k) { return W * (0.06 + 0.88 * (k / mCols)); }
+          function mSeamBX(k) { var hx = mSeamHX(k); return vpX + (hx - vpX) * 2.35; }
+          function mXAt(k, y) {
+            var t = (y - floorTop) / fH;
+            return mSeamHX(k) + (mSeamBX(k) - mSeamHX(k)) * t;
+          }
+          function mCellPath(r, c) {
+            var y0 = mRowY(r), y1 = mRowY(r + 1);
+            ctx.beginPath();
+            ctx.moveTo(mXAt(c, y0), y0);
+            ctx.lineTo(mXAt(c + 1, y0), y0);
+            ctx.lineTo(mXAt(c + 1, y1), y1);
+            ctx.lineTo(mXAt(c, y1), y1);
+            ctx.closePath();
+          }
+          // Per-slab shading and veining, slab by slab.
+          for (var mr = 0; mr < mRows; mr++) {
+            for (var mc = 0; mc < mCols; mc++) {
+              var mSeed = mr * 31 + mc * 17 + 7;
+              var mTone = roomHash(mSeed * 1.31);
+              mCellPath(mr, mc);
+              ctx.fillStyle = mTone > 0.5
+                ? "rgba(255, 255, 255, " + (0.03 + mTone * 0.04).toFixed(3) + ")"
+                : "rgba(118, 116, 106, " + (0.03 + (1 - mTone) * 0.045).toFixed(3) + ")";
+              ctx.fill();
+              // The veins: one or two wandering grey
+              // threads across the slab, walked in the
+              // room's hash, with a finer branch — and
+              // now and then a thread of gold.
+              var mVeins = roomHash(mSeed * 2.17) > 0.42 ? 2 : 1;
+              for (var mv = 0; mv < mVeins; mv++) {
+                var mGold = roomHash(mSeed * 3.71 + mv * 13.7) > 0.8;
+                ctx.save();
+                mCellPath(mr, mc);
+                ctx.clip();
+                var mY0 = mRowY(mr), mY1 = mRowY(mr + 1);
+                var mPh = roomHash(mSeed * 5.13 + mv * 7.3);
+                ctx.beginPath();
+                var mSteps = 6;
+                for (var mSt = 0; mSt <= mSteps; mSt++) {
+                  var mSf = mSt / mSteps;
+                  var mVy = mY0 + (mY1 - mY0) * (0.16 + 0.62 * mPh) +
+                    Math.sin(mSf * 5.1 + mSeed) * (mY1 - mY0) * 0.10 * Math.sin(mSf * Math.PI);
+                  var mVx = mXAt(mc, mVy) + (mXAt(mc + 1, mVy) - mXAt(mc, mVy)) * mSf;
+                  if (mSt === 0) ctx.moveTo(mVx, mVy); else ctx.lineTo(mVx, mVy);
+                }
+                ctx.strokeStyle = mGold
+                  ? "rgba(176, 141, 87, 0.20)"
+                  : "rgba(110, 118, 128, " + (0.16 + roomHash(mSeed * 7.77 + mv) * 0.16).toFixed(3) + ")";
+                ctx.lineWidth = mGold ? 0.8 : 1.1;
+                ctx.stroke();
+                // The branch: a finer thread leaving the
+                // main vein partway across.
+                if (roomHash(mSeed * 9.31 + mv * 3.1) > 0.45) {
+                  ctx.beginPath();
+                  for (var mBs = 0; mBs <= 3; mBs++) {
+                    var mBf = mBs / 3;
+                    var mBy = mY0 + (mY1 - mY0) * (0.16 + 0.62 * mPh) + mBf * (mY1 - mY0) * 0.34;
+                    var mBx = mXAt(mc, mBy) + (mXAt(mc + 1, mBy) - mXAt(mc, mBy)) * (0.38 + mBf * 0.30);
+                    if (mBs === 0) ctx.moveTo(mBx, mBy); else ctx.lineTo(mBx, mBy);
+                  }
+                  ctx.strokeStyle = "rgba(110, 118, 128, 0.13)";
+                  ctx.lineWidth = 0.7;
+                  ctx.stroke();
+                }
+                ctx.restore();
+              }
+            }
+          }
+          // The slab seams themselves, over the stone.
+          ctx.strokeStyle = "rgba(104, 99, 90, 0.55)";
+          ctx.lineWidth = 1.2;
+          for (var mri = 1; mri < mRows; mri++) {
+            ctx.beginPath(); ctx.moveTo(0, mRowY(mri)); ctx.lineTo(W, mRowY(mri)); ctx.stroke();
+          }
+          for (var mci = 1; mci < mCols; mci++) {
+            ctx.beginPath(); ctx.moveTo(mSeamHX(mci), floorTop); ctx.lineTo(mSeamBX(mci), fBot); ctx.stroke();
+          }
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+          ctx.lineWidth = 0.7;
+          for (var mri2 = 1; mri2 < mRows; mri2++) {
+            ctx.beginPath(); ctx.moveTo(0, mRowY(mri2) + 1.4); ctx.lineTo(W, mRowY(mri2) + 1.4); ctx.stroke();
+          }
+          // The gloss: the glass wall's sunset light
+          // standing in soft bands on the polish, warm
+          // pools under the lanterns, and one broad sheen
+          // raking across the stone.
+          var mGlass = ctx.createLinearGradient(0, floorTop, 0, fBot);
+          mGlass.addColorStop(0, "rgba(255, 205, 150, 0.10)");
+          mGlass.addColorStop(0.5, "rgba(255, 205, 150, 0.045)");
+          mGlass.addColorStop(1, "rgba(255, 205, 150, 0)");
+          ctx.fillStyle = mGlass;
+          ctx.fillRect(W * 0.30, floorTop, W * 0.44, fH);
+          for (var mPool = 0; mPool < 4; mPool++) {
+            var mPx = W * (0.18 + mPool * 0.21), mPy = floorTop + fH * (0.30 + roomHash(mPool * 7.7 + 3) * 0.4);
+            var mPoolG = ctx.createRadialGradient(mPx, mPy, 2, mPx, mPy, W * 0.10);
+            mPoolG.addColorStop(0, "rgba(255, 214, 150, 0.07)");
+            mPoolG.addColorStop(1, "rgba(255, 214, 150, 0)");
+            ctx.fillStyle = mPoolG;
+            ctx.beginPath(); ctx.ellipse(mPx, mPy, W * 0.10, W * 0.10 * 0.36, 0, 0, Math.PI * 2); ctx.fill();
+          }
+          var mSheen = ctx.createLinearGradient(0, floorTop, W, fBot);
+          mSheen.addColorStop(0, "rgba(255, 255, 255, 0)");
+          mSheen.addColorStop(0.45, "rgba(255, 255, 255, 0.06)");
+          mSheen.addColorStop(0.62, "rgba(255, 255, 255, 0)");
+          mSheen.addColorStop(1, "rgba(255, 255, 255, 0)");
+          ctx.fillStyle = mSheen;
+          ctx.fillRect(0, floorTop, W, fH);
+          // Ambient occlusion where the floor meets the
+          // back wall and the fixtures, so the room's
+          // furniture keeps its grounding on the stone.
+          var mAO = ctx.createLinearGradient(0, floorTop, 0, floorTop + 16);
+          mAO.addColorStop(0, "rgba(30, 24, 18, 0.20)");
+          mAO.addColorStop(1, "rgba(30, 24, 18, 0)");
+          ctx.fillStyle = mAO;
+          ctx.fillRect(0, floorTop, W, 16);
+          ctx.restore();
+        }
+
         function paintRoom() {
           var d = hallDims();
           var gy = d.gy, kh = d.kh;
@@ -4191,6 +4355,16 @@
             ctx.fillStyle = "#241708";
             ctx.fillRect(0, 0, W, H);
           }
+
+          // The WHITE MARBLE FLOOR (see paintMarbleFloor):
+          // painted over the photograph's black gloss
+          // everywhere below the floor line, before the
+          // bar, the open kitchen and the pickup bar are
+          // painted over their own ground — so the marble
+          // runs through the dining area, the entrance and
+          // around the bar and the stage, while the
+          // kitchen band keeps its own floor untouched.
+          paintMarbleFloor(floorTop);
 
           // The BAR: a dark-wood bar standing at the back
           // edge of the floor's LEFT stretch — the upper
@@ -7662,13 +7836,19 @@
           var shakeX = st.shakeT > 0 ? Math.sin(nowMs / 22) * 4 * st.shakeT : 0;
           ctx.save();
           ctx.translate(shakeX, 0);
-          // The curtain backdrop.
+          // The curtain backdrop: real deep-red velvet
+          // (John's ruling, 2026-11-17: "Can we make the
+          // stage look real?") — a richer red falling into
+          // shadow at its foot, drape folds with a lit
+          // crest and a dark trough to each one, and the
+          // whole cloth shaded darker toward its wings so
+          // the centre of the stage takes the light.
           var curW = st.w + 16, curX = cx - curW / 2;
           var curTop = Math.max(st.topY - 8, 44), curBot = platTop + 3;
           var cGrad = ctx.createLinearGradient(0, curTop, 0, curBot);
-          cGrad.addColorStop(0, "#971e29");
-          cGrad.addColorStop(0.6, "#7e1822");
-          cGrad.addColorStop(1, "#5d0f18");
+          cGrad.addColorStop(0, "#a32433");
+          cGrad.addColorStop(0.55, "#831824");
+          cGrad.addColorStop(1, "#4d0c14");
           ctx.fillStyle = cGrad;
           rrPath(curX, curTop, curW, curBot - curTop, 6);
           ctx.fill();
@@ -7677,9 +7857,28 @@
           ctx.clip();
           var foldW = Math.max(9, curW / 9);
           for (var fi2 = 0; fi2 < 10; fi2++) {
-            ctx.fillStyle = fi2 % 2 ? "rgba(30, 2, 6, 0.20)" : "rgba(255, 205, 180, 0.07)";
+            ctx.fillStyle = fi2 % 2 ? "rgba(30, 2, 6, 0.26)" : "rgba(255, 205, 180, 0.10)";
             ctx.fillRect(curX + fi2 * foldW, curTop, foldW * 0.52, curBot - curTop);
+            // Each fold's lit crest: a narrow warm thread
+            // down its raised edge, the way velvet catches
+            // the stage light fold by fold.
+            ctx.fillStyle = "rgba(255, 170, 150, 0.08)";
+            ctx.fillRect(curX + fi2 * foldW + foldW * 0.52, curTop, Math.max(1.2, foldW * 0.10), curBot - curTop);
           }
+          // The wings fall away into shade; the centre
+          // of the cloth keeps a soft glow of its own.
+          var wingG = ctx.createLinearGradient(curX, 0, curX + curW, 0);
+          wingG.addColorStop(0, "rgba(16, 0, 3, 0.38)");
+          wingG.addColorStop(0.22, "rgba(16, 0, 3, 0)");
+          wingG.addColorStop(0.78, "rgba(16, 0, 3, 0)");
+          wingG.addColorStop(1, "rgba(16, 0, 3, 0.38)");
+          ctx.fillStyle = wingG;
+          ctx.fillRect(curX, curTop, curW, curBot - curTop);
+          var clothGlow = ctx.createRadialGradient(cx, curTop + (curBot - curTop) * 0.38, 4, cx, curTop + (curBot - curTop) * 0.38, curW * 0.52);
+          clothGlow.addColorStop(0, "rgba(255, 150, 130, 0.10)");
+          clothGlow.addColorStop(1, "rgba(255, 150, 130, 0)");
+          ctx.fillStyle = clothGlow;
+          ctx.fillRect(curX, curTop, curW, curBot - curTop);
           ctx.restore();
           // The gold valance across the curtain's top,
           // scalloped along its lower edge.
@@ -7697,32 +7896,94 @@
           ctx.lineWidth = Math.max(1.2, st.u * 0.03);
           rrPath(curX, curTop, curW, curBot - curTop, 6);
           ctx.stroke();
-          // The platform: a feathered contact shadow, a
-          // lit wood top, and a dark front face with gold
-          // trim.
+          // The platform: a real performance stage's
+          // raised deck (John's ruling, 2026-11-17) — a
+          // feathered contact shadow on the marble, a top
+          // of polished dark-wood BOARDS with their plank
+          // seams and a warm sheen along the grain, a
+          // lighter nosing on the platform's edge, and a
+          // front face of the same boards standing
+          // upright, with the gold trim line under the
+          // nosing and a row of small FOOTLIGHTS glowing
+          // along the front edge where the face is deep
+          // enough to carry them cleanly. The platform's
+          // footprint, top and base are exactly where
+          // layoutStage put them — only its surface is
+          // real now.
           softShadow(cx, baseY + 3, st.w * 0.62, Math.max(3.5, st.u * 0.12), 0.40);
-          var topGrad = ctx.createLinearGradient(0, platTop - 3, 0, platTop + 2);
-          topGrad.addColorStop(0, "#7a4e2a");
+          var topGrad = ctx.createLinearGradient(0, platTop - 4, 0, platTop + 2);
+          topGrad.addColorStop(0, "#8a5a30");
+          topGrad.addColorStop(0.55, "#6d4525");
           topGrad.addColorStop(1, "#4a2c17");
           ctx.fillStyle = topGrad;
-          ctx.fillRect(cx - st.w / 2, platTop - 3, st.w, 5);
+          ctx.fillRect(cx - st.w / 2, platTop - 4, st.w, 6);
+          // The boards' plank seams across the deck, and
+          // the sheen the spotlights leave on the polish.
+          ctx.strokeStyle = "rgba(20, 10, 3, 0.35)";
+          ctx.lineWidth = 1;
+          for (var pbx = cx - st.w / 2 + 13; pbx < cx + st.w / 2 - 4; pbx += 15) {
+            ctx.beginPath(); ctx.moveTo(pbx, platTop - 4); ctx.lineTo(pbx, platTop + 2); ctx.stroke();
+          }
+          ctx.fillStyle = "rgba(255, 222, 170, 0.30)";
+          ctx.fillRect(cx - st.w / 2, platTop - 4, st.w, 1.3);
+          ctx.fillStyle = "rgba(255, 222, 170, 0.10)";
+          ctx.fillRect(cx - st.w / 2, platTop - 1, st.w, 1);
           var faceGrad = ctx.createLinearGradient(0, platTop + 2, 0, baseY);
-          faceGrad.addColorStop(0, "#3c2412");
-          faceGrad.addColorStop(1, "#241204");
+          faceGrad.addColorStop(0, "#4a2e16");
+          faceGrad.addColorStop(1, "#2a1708");
           ctx.fillStyle = faceGrad;
           ctx.fillRect(cx - st.w / 2, platTop + 2, st.w, baseY - platTop - 2);
+          // The front face's upright boards: a seam every
+          // board's width, with a lit thread beside the
+          // darker ones, in the room's own hash.
+          for (var pfx = cx - st.w / 2 + 11; pfx < cx + st.w / 2 - 3; pfx += 13) {
+            ctx.fillStyle = "rgba(12, 6, 2, 0.32)";
+            ctx.fillRect(pfx, platTop + 2, 1.1, baseY - platTop - 2);
+            if (roomHash(pfx * 1.93) > 0.5) {
+              ctx.fillStyle = "rgba(255, 205, 150, 0.06)";
+              ctx.fillRect(pfx + 1.1, platTop + 2, 1.4, baseY - platTop - 2);
+            }
+          }
+          // The raised edge's trim: the gold line under
+          // the nosing, and a second slim line at the
+          // platform's foot.
           ctx.fillStyle = "#c9a227";
           ctx.fillRect(cx - st.w / 2, platTop + 2, st.w, Math.max(1.6, st.u * 0.05));
+          ctx.fillStyle = "rgba(201, 162, 39, 0.55)";
+          ctx.fillRect(cx - st.w / 2, baseY - 1.6, st.w, 1.6);
+          // The footlights: a row of small warm lamps
+          // along the platform's front edge, each a soft
+          // halo around a bright core — only where the
+          // face is deep enough to hold them clear of
+          // the trim and the foot line.
+          if (baseY - platTop >= 13) {
+            var flN = Math.max(3, Math.floor(st.w / 24));
+            for (var fli = 0; fli < flN; fli++) {
+              var flX = cx - st.w / 2 + (fli + 0.5) * (st.w / flN);
+              var flY = platTop + (baseY - platTop) * 0.58;
+              var flG = ctx.createRadialGradient(flX, flY, 0.4, flX, flY, 4.6);
+              flG.addColorStop(0, "rgba(255, 196, 100, 0.50)");
+              flG.addColorStop(1, "rgba(255, 196, 100, 0)");
+              ctx.fillStyle = flG;
+              ctx.beginPath(); ctx.arc(flX, flY, 4.6, 0, Math.PI * 2); ctx.fill();
+              ctx.fillStyle = "#ffd9a0";
+              ctx.beginPath(); ctx.arc(flX, flY, 1.5, 0, Math.PI * 2); ctx.fill();
+            }
+          }
           // The stage light: two soft beams falling from
           // the curtain's top corners onto the platform,
           // and the pool of light they leave on the boards
           // — in the room's warm tone, so the act stands
           // in real light, grounded on the platform, not
-          // pasted on a flat board.
+          // pasted on a flat board. The beams run DEEPER
+          // now (John's ruling, 2026-11-17, the real
+          // stage): stronger at their source, and the
+          // pool they pool on the boards brighter, so the
+          // light reads as spotlights, not a wash.
           ctx.save();
           var beamG = ctx.createLinearGradient(0, curTop, 0, platTop);
-          beamG.addColorStop(0, "rgba(255, 216, 150, 0.13)");
-          beamG.addColorStop(1, "rgba(255, 216, 150, 0.03)");
+          beamG.addColorStop(0, "rgba(255, 216, 150, 0.24)");
+          beamG.addColorStop(1, "rgba(255, 216, 150, 0.08)");
           ctx.fillStyle = beamG;
           ctx.beginPath();
           ctx.moveTo(curX + curW * 0.16, curTop + 2);
@@ -7738,7 +7999,7 @@
           ctx.closePath(); ctx.fill();
           ctx.restore();
           var poolG = ctx.createRadialGradient(cx, platTop - 2, 2, cx, platTop - 2, st.w * 0.42);
-          poolG.addColorStop(0, "rgba(255, 220, 160, 0.17)");
+          poolG.addColorStop(0, "rgba(255, 220, 160, 0.28)");
           poolG.addColorStop(1, "rgba(255, 220, 160, 0)");
           ctx.fillStyle = poolG;
           ctx.beginPath(); ctx.ellipse(cx, platTop - 2, st.w * 0.42, Math.max(3, st.u * 0.13), 0, 0, Math.PI * 2); ctx.fill();
