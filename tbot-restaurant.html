@@ -1944,7 +1944,15 @@
         // people, the same faces, the same proportions
         // between figures — only the scale, and the richer
         // light and shadow of the realism pass.
-        var PEOPLE_SCALE = 1.15;
+        // THE SCALE-UP (John's ruling, 2026-11-17: "Make
+        // the TBOT people, table And carpets larger"): the
+        // people step up AGAIN, by one clear step of about
+        // a sixth — 1.15 → 1.33 — and the round dining
+        // tables and their red carpets step up with them
+        // in layoutTables (see TABLE_SCALE there), keeping
+        // the proportions between figures, tables and
+        // carpets as they stand.
+        var PEOPLE_SCALE = 1.33;
         function bodySize() { return clamp(W * 0.115, 40, 56) * PEOPLE_SCALE; }
 
         // A soft contact shadow: a radial-gradient pool,
@@ -3218,9 +3226,18 @@
           return clear;
         }
 
+        // The floor's UNSCALED station radius (the fit
+        // layoutTables has always used), kept beside the
+        // scaled-up round-table radius: the booths, the bar
+        // seats and the stage's number stand keep this
+        // measure, so they hold their current size while
+        // the round tables and carpets grow (see
+        // layoutTables).
+        var layoutBaseR = 44;
+
         function layoutStage() {
           var d = hallDims();
-          var r0 = tables.length ? tables[0].r : 44;
+          var r0 = tables.length ? layoutBaseR : 44;
           var w = stageWidth();
           var platH = clamp(r0 * 0.36, 10, 18);
           // The act's scale follows the shorter stage:
@@ -3241,7 +3258,7 @@
           // between the header clearance and the ground
           // line, so every act keeps the stage at every
           // width.
-          var u = clamp(w * 0.30 * PEOPLE_SCALE, 26, Math.min(40, w * 0.36));
+          var u = clamp(w * 0.30 * PEOPLE_SCALE, 26, Math.min(46, w * 0.42));
           var actH = u * 2.02;
           // Against the left wall, vertically centred on
           // the floor band — below the pass, above the
@@ -3263,7 +3280,7 @@
           }
           if (baseY > groundY() - 24) {
             var avail = (groundY() - 24) - clearTop;
-            u = clamp((avail - platH) / 2.02, 16, 40);
+            u = clamp((avail - platH) / 2.02, 16, 46);
             actH = u * 2.02;
             cy = clearTop + (actH + platH) / 2;
             baseY = cy + (actH + platH) / 2;
@@ -3803,7 +3820,33 @@
           // (gridBottom, the kitchen's top edge less 8)
           // then clears the kitchen by the whole footprint,
           // rug and guests, not just the slot centre.
-          var tableR = clamp(Math.min(cellW * 0.245, (cellH - 21) / (DINER_TOP_R + 0.92), (cellH - 2) / (DINER_TOP_R + 1.09 * 1.9)), 5, 60);
+          var tableRBase = clamp(Math.min(cellW * 0.245, (cellH - 21) / (DINER_TOP_R + 0.92), (cellH - 2) / (DINER_TOP_R + 1.09 * 1.9)), 5, 60);
+          // THE TABLE + CARPET SCALE-UP (John's ruling,
+          // 2026-11-17, with the people scale above): the
+          // ROUND dining tables — and with them their red
+          // carpets, which run to 1.9r as they always have
+          // (see drawTable), so the carpet still extends
+          // past the table's edge by the same share — grow
+          // by one clear step. Where the cell's WIDTH or
+          // the radius cap binds, the step is the full
+          // ~17% (0.245 → 0.287 of the cell, cap 60 → 70);
+          // where the cell's HEIGHT binds (phone floors,
+          // a full house of 16), the step is a smaller
+          // ~10% — the largest that keeps every station's
+          // full footprint, rug halo included, inside its
+          // cell, so no figure, table or carpet reaches a
+          // neighbour's number, the kitchen's top edge, or
+          // another station's tap footprint. The booths
+          // and the bar seats keep the UNSCALED radius
+          // (tableRBase, also kept as layoutBaseR for the
+          // stage's number stand): their furniture holds
+          // its current size, and only their people grow,
+          // by the people scale. The slot centring below
+          // is measured on the SCALED radius, so the round
+          // tables' whole footprint — guests, cloth, rug —
+          // stays centred in its cell as it always was.
+          var tableR = clamp(Math.min(cellW * 0.287, (cellH - 21) / (DINER_TOP_R + 0.92) * 1.10, (cellH - 2) / (DINER_TOP_R + 1.09 * 1.9) * 1.10), 5, 70);
+          layoutBaseR = tableRBase;
           var topExt = DINER_TOP_R * tableR + 2;
           var botExt = Math.max(0.92 * tableR + 19, 1.09 * Math.min(tableR * 1.9, Math.min(cellW, cellH) / 2));
           var slotOffY = topExt + (cellH - topExt - botExt) / 2;
@@ -3825,7 +3868,7 @@
               // share of the bar's width, meeting its
               // neighbours edge to edge as one long bar.
               tables[i].slotX = barSegW * (bi + 0.5);
-              tables[i].slotY = top - tableR * 0.68;
+              tables[i].slotY = top - tableRBase * 0.68;
               tables[i].cellW = barSegW;
               tables[i].halfPitch = Math.min(barSegW, cellH) / 2;
               bi++;
@@ -3842,7 +3885,11 @@
               tables[i].y = tables[i].slotY;
               tables[i].placed = true;
             }
-            tables[i].r = tableR;
+            // Only the round dining tables take the scaled
+            // radius (and their carpets, drawn at 1.9r, with
+            // them); booths and bar seats keep the unscaled
+            // radius, so their furniture holds its size.
+            tables[i].r = tables[i].kind === "table" ? tableR : tableRBase;
           }
           // The maître d's post is his desk at the
           // entrance: layoutEntrance places the desk, the
