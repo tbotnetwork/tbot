@@ -2737,10 +2737,14 @@
         // The LINE MOVES (John's ruling, 2026-11-16:
         // "Make the line move in the back as they are
         // seated"): the line is a living queue, not a
-        // frozen row. Every time the host takes a party
-        // to seat them (startEscortGroup — the opening
-        // deal, Pack 'em adds, mid-shift re-deals, every
-        // seating trip), the party at the HEAD of the
+        // frozen row. Every time a party is seated —
+        // by the host's escort (finishEscortStop: the
+        // opening deal, Pack 'em adds, mid-shift
+        // re-deals, every seating trip, one advance per
+        // party seated) or directly (seatDirectly: the
+        // plate-run yield, the final-five-seconds
+        // set-down, the escort failsafes) — the party
+        // at the HEAD of the
         // line leaves it — walking up to the desk to be
         // seated — and every party behind them STEPS
         // FORWARD one place, walking to their new spot on
@@ -2911,22 +2915,29 @@
         }
 
         // The host takes the party at the head of the
-        // line (see startEscortGroup — every seating
-        // trip): the head party leaves the queue, walking
+        // line: the head party leaves the queue, walking
         // up to the desk to be seated; everyone behind
         // them steps forward one place; and a new party
         // joins at the back, walking in from the room's
         // right edge, so the line stays alive. Called
-        // once per seating trip, however many parties the
-        // trip seats — the line advances one place per
-        // trip, like a real host line.
+        // once per SEATING — from finishEscortStop for
+        // every escorted party the host sits (the
+        // opening deal, Pack 'em adds, mid-shift
+        // re-deals, full-house trips alike, one advance
+        // per party on the trip, not one per trip) and
+        // from seatDirectly for every seating that
+        // bypasses the escort (plate-run yields, the
+        // final-five-seconds set-down, the escort
+        // failsafes) — so no seating path in play can
+        // sit a party without moving the line.
+        var lineAdvanceCount = 0; // every advance ever fired — read back by the state probe, so a live check can read the advance directly even between walks
         function advanceEntranceLine() {
           if (!entrance.lineSpots.length) return;
           var head = null;
           for (var i = 0; i < entrance.line.length; i++) {
             if (!entrance.line[i].departing) { head = entrance.line[i]; break; }
           }
-          if (head) { head.departing = true; head.age = 0; }
+          if (head) { head.departing = true; head.age = 0; lineAdvanceCount++; }
           assignLineTargets();
           var waiting = 0;
           for (var wi = 0; wi < entrance.line.length; wi++) {
@@ -2936,7 +2947,7 @@
             var backSpot = entrance.lineSpots[entrance.lineSpots.length - 1];
             entrance.line.push({
               fig: newLineFig(performance.now()),
-              x: W + entrance.lineStepW * 0.7, y: backSpot.y,
+              x: W + entrance.lineStepW * 1.5, y: backSpot.y,
               tx: backSpot.x, ty: backSpot.y,
               departing: false, moving: false, stepPh: rand(0, Math.PI * 2), age: 0
             });
@@ -2956,7 +2967,7 @@
         // seating them); one somehow held up past a few
         // seconds leaves the same way, so the queue can
         // never jam.
-        var LINE_PACE = 0.22; // px per presented ms — a host line's shuffle forward
+        var LINE_PACE = 0.13; // px per presented ms — a host line's shuffle forward, slow enough that the step-forward and the back refill's walk in from the right edge are actually seen (at the old 0.22 the ~56px step finished in ~250ms, between any two live looks)
         function stepEntranceLine(dtMs) {
           for (var i = entrance.line.length - 1; i >= 0; i--) {
             var m = entrance.line[i];
@@ -4379,7 +4390,17 @@
           var railY = okR.top + okWorkH * 0.31;
           ctx.fillStyle = "#8d9aa1";
           ctx.fillRect(okR.x0 + 6, railY, okW - 12, 3);
-          var panFr = [0.08, 0.30, 0.70, 0.92];
+          // The leftmost pan (0.08) is GONE (John's
+          // ruling, 2026-11-16: "Behind the kitchen
+          // bubble, there's a bubble that you should
+          // delete"): at that fraction the disc stood
+          // in the pickup leg panel's span, its left
+          // half hidden behind the panel, so all that
+          // showed east of the leg was a dark semicircle
+          // peeking out below the PICK-UP shelf — a
+          // stray bubble, not a pan. The three fully
+          // visible pans stay, at their own fractions.
+          var panFr = [0.30, 0.70, 0.92];
           for (var pni = 0; pni < panFr.length; pni++) {
             var panX = okR.x0 + panFr[pni] * okW;
             var panR = clamp(okWorkH * 0.10, 8, 16);
@@ -4439,61 +4460,208 @@
           // frontage's left end (painted later, with the
           // pickup bar), and the chefs' working zone
           // above the counter is untouched.
-          var okBaseH = 9;
           var okFrontTop = okWorkY;
-          var okFrontBot = okR.bottom - okBaseH;
+          var okFloorH = clamp((okR.bottom - okFrontTop) * 0.16, 11, 18);
+          var okFrontBot = okR.bottom - okFloorH;
           if (okFrontBot > okFrontTop + 12) {
+            var okFrontH = okFrontBot - okFrontTop;
             var okFront = ctx.createLinearGradient(0, okFrontTop, 0, okFrontBot);
             okFront.addColorStop(0, "#4b5157");
             okFront.addColorStop(0.5, "#34393f");
             okFront.addColorStop(1, "#22252a");
             ctx.fillStyle = okFront;
-            ctx.fillRect(okR.x0, okFrontTop, okW, okFrontBot - okFrontTop);
+            ctx.fillRect(okR.x0, okFrontTop, okW, okFrontH);
             ctx.fillStyle = "rgba(201,162,39,0.5)";
             ctx.fillRect(okR.x0, okFrontTop, okW, 1.2);
-            // Cabinet panel seams down the frontage.
-            ctx.strokeStyle = "rgba(0, 0, 0, 0.38)";
-            ctx.lineWidth = 1;
-            for (var ofs = okR.x0 + 46; ofs < okR.x1 - 20; ofs += 92) {
-              ctx.beginPath(); ctx.moveTo(ofs, okFrontTop + 7); ctx.lineTo(ofs, okFrontBot - 7); ctx.stroke();
-            }
-            // The oven doors: steel-framed dark glass
-            // with a handle bar, under the working run's
-            // middle stretches — clear of the pickup
-            // leg's panel at the left end.
-            var okOvenW = clamp(Math.min(okW * 0.16, okW * 0.21), 54, 210);
-            var okOvenH = okFrontBot - okFrontTop - 24;
-            if (okOvenH > 26) {
-              var okOvenFr = [0.40, 0.64];
-              for (var ovi = 0; ovi < okOvenFr.length; ovi++) {
-                var okOvenCx = okR.x0 + okOvenFr[ovi] * okW;
-                var okOvenX = okOvenCx - okOvenW / 2, okOvenY = okFrontTop + 12;
+            // ROW A — the equipment fronts, bay by bay
+            // across the FULL kitchen width (repair pass,
+            // 2026-11-16): the first deepened frontage
+            // carried only two ovens in its middle, panel
+            // seams and a vent, so most of the band —
+            // every stretch the room actually shows,
+            // east of the control bar included — still
+            // read as plain dark panels. Now the whole
+            // width is fitted like the counter zone
+            // above it: oven / range fronts with a knob
+            // strip, a handle bar and a dark glass door,
+            // alternating with cabinet fronts that carry
+            // a drawer strip, an inset door panel and a
+            // steel handle — a bay every ~118px, at
+            // desktop and phone widths alike, so no
+            // visible stretch of the band is empty. The
+            // pickup leg's panel descends in front of
+            // the left end, as it always has.
+            var okRowAH = Math.round(okFrontH * 0.60);
+            var okRowAY = okFrontTop;
+            var okRowBY = okFrontTop + okRowAH;
+            var okRowBH = okFrontH - okRowAH;
+            var okBayN = Math.max(3, Math.round(okW / 118));
+            var okBayW = okW / okBayN;
+            var okOvenBays = {};
+            okOvenBays[Math.floor(okBayN * 0.42)] = true;
+            okOvenBays[Math.floor(okBayN * 0.66)] = true;
+            okOvenBays[okBayN - 1] = true;
+            for (var obay = 0; obay < okBayN; obay++) {
+              var obx0 = okR.x0 + obay * okBayW;
+              ctx.strokeStyle = "rgba(0, 0, 0, 0.42)";
+              ctx.lineWidth = 1;
+              ctx.beginPath(); ctx.moveTo(obx0 + 0.5, okRowAY + 5); ctx.lineTo(obx0 + 0.5, okRowBY - 5); ctx.stroke();
+              var oInX = obx0 + 7, oInW = okBayW - 14;
+              var oInY = okRowAY + 7, oInH = okRowAH - 14;
+              if (oInH < 18 || oInW < 30) continue;
+              if (okOvenBays[obay]) {
+                // An oven / range front: steel frame, a
+                // dark control strip with four knobs, a
+                // handle bar, and a dark glass door with
+                // the oven's warm glow at its foot and a
+                // sheen across its upper glass.
                 ctx.fillStyle = "#6a747b";
-                ctx.fillRect(okOvenX, okOvenY, okOvenW, okOvenH);
+                ctx.fillRect(oInX, oInY, oInW, oInH);
+                ctx.fillStyle = "#2c3136";
+                ctx.fillRect(oInX, oInY, oInW, 9);
+                for (var okn = 0; okn < 4; okn++) {
+                  var okkx = oInX + oInW * (0.2 + okn * 0.2);
+                  ctx.fillStyle = "#c8d1d6";
+                  ctx.beginPath(); ctx.arc(okkx, oInY + 4.5, 2.4, 0, Math.PI * 2); ctx.fill();
+                  ctx.fillStyle = "#17181d";
+                  ctx.beginPath(); ctx.arc(okkx, oInY + 4.5, 1.1, 0, Math.PI * 2); ctx.fill();
+                }
+                ctx.fillStyle = "#d7dee3";
+                ctx.fillRect(oInX + 5, oInY + 12, oInW - 10, 3);
+                ctx.fillStyle = "rgba(255,255,255,0.4)";
+                ctx.fillRect(oInX + 5, oInY + 12, oInW - 10, 1);
                 ctx.fillStyle = "#101216";
-                ctx.fillRect(okOvenX + 6, okOvenY + 10, okOvenW - 12, okOvenH - 16);
-                ctx.fillStyle = "rgba(255, 170, 90, 0.20)";
-                ctx.fillRect(okOvenX + 6, okOvenY + okOvenH - 22, okOvenW - 12, 8);
+                ctx.fillRect(oInX + 5, oInY + 18, oInW - 10, Math.max(4, oInH - 22));
+                ctx.fillStyle = "rgba(255, 170, 90, 0.22)";
+                ctx.fillRect(oInX + 5, oInY + oInH - 12, oInW - 10, 6);
+                ctx.fillStyle = "rgba(190, 215, 225, 0.14)";
+                ctx.fillRect(oInX + 8, oInY + 20, oInW * 0.3, 4);
+              } else {
+                // A cabinet front: a drawer strip with a
+                // centred pull over a door with an inset
+                // panel and a vertical steel handle.
+                ctx.fillStyle = "#454b51";
+                ctx.fillRect(oInX, oInY, oInW, oInH);
+                ctx.strokeStyle = "rgba(0, 0, 0, 0.35)";
+                ctx.strokeRect(oInX + 0.5, oInY + 0.5, oInW - 1, oInH - 1);
+                ctx.fillStyle = "#52585e";
+                ctx.fillRect(oInX + 4, oInY + 4, oInW - 8, 9);
                 ctx.fillStyle = "#c8d1d6";
-                ctx.fillRect(okOvenX + 8, okOvenY + 4, okOvenW - 16, 3);
-                ctx.fillStyle = "rgba(255,255,255,0.35)";
-                ctx.fillRect(okOvenX + 8, okOvenY + 4, okOvenW - 16, 1);
+                ctx.fillRect(oInX + oInW / 2 - 9, oInY + 7.5, 18, 2.2);
+                var oDoorY = oInY + 16, oDoorH = oInH - 19;
+                if (oDoorH > 8) {
+                  ctx.strokeStyle = "rgba(0, 0, 0, 0.38)";
+                  ctx.strokeRect(oInX + 5.5, oDoorY + 0.5, oInW - 11, oDoorH);
+                  ctx.strokeStyle = "rgba(255, 255, 255, 0.10)";
+                  ctx.strokeRect(oInX + 6.5, oDoorY + 1.5, oInW - 13, oDoorH - 2);
+                  ctx.fillStyle = "#d7dee3";
+                  ctx.fillRect(oInX + oInW - 10, oDoorY + 3, 2.4, Math.min(15, oDoorH - 5));
+                }
               }
             }
-            // The vent grille on the right stretch:
-            // three dark slits in the frontage's face.
-            ctx.fillStyle = "rgba(8, 9, 11, 0.65)";
-            var okVentX = okR.x0 + okW * 0.84, okVentW = Math.min(64, okW * 0.09);
-            for (var ovi2 = 0; ovi2 < 3; ovi2++) {
-              ctx.fillRect(okVentX, okFrontTop + 16 + ovi2 * 9, okVentW, 3.4);
+            // ROW B — a low open shelf run under the
+            // fronts, across the full width: a dark
+            // recess, a wooden shelf board, and the
+            // kitchen's pots and pans standing on it —
+            // lidded stock pots, a saucepan with its
+            // handle out, and stacks of pans, spaced
+            // along the whole run so the shelf reads as
+            // stocked kitchen storage in every stretch,
+            // with a vent grille worked into the recess
+            // at the right end.
+            ctx.fillStyle = "#17130e";
+            ctx.fillRect(okR.x0, okRowBY, okW, okRowBH);
+            ctx.fillStyle = "rgba(201,162,39,0.35)";
+            ctx.fillRect(okR.x0, okRowBY, okW, 1);
+            var okShelfBase = okFrontBot - 4;
+            var okItemMaxH = okRowBH - 9;
+            if (okItemMaxH > 11) {
+              var okItemPh = clamp(okItemMaxH * 0.92, 11, 24);
+              var okIx = okR.x0 + 16, okIi = 0;
+              while (okIx < okR.x1 - 22) {
+                var okKind = okIi % 3;
+                if (okKind === 0) {
+                  // A lidded stock pot.
+                  var okPw = clamp(okItemPh * 1.25, 20, 31);
+                  var okPotG2 = ctx.createLinearGradient(okIx, 0, okIx + okPw, 0);
+                  okPotG2.addColorStop(0, "#77828a");
+                  okPotG2.addColorStop(0.3, "#d9e1e5");
+                  okPotG2.addColorStop(1, "#5f6b72");
+                  ctx.fillStyle = okPotG2;
+                  ctx.fillRect(okIx, okShelfBase - okItemPh, okPw, okItemPh);
+                  ctx.fillStyle = "#e6ecef";
+                  ctx.beginPath(); ctx.ellipse(okIx + okPw / 2, okShelfBase - okItemPh, okPw / 2, 3, 0, 0, Math.PI * 2); ctx.fill();
+                  ctx.fillStyle = "#26262b";
+                  ctx.beginPath(); ctx.arc(okIx + okPw / 2, okShelfBase - okItemPh - 2.5, 2.2, 0, Math.PI * 2); ctx.fill();
+                  okIx += okPw;
+                } else if (okKind === 1) {
+                  // A saucepan, its long handle out to
+                  // the right.
+                  var okSw = clamp(okItemPh * 1.05, 17, 26);
+                  var okSh = okItemPh * 0.72;
+                  ctx.fillStyle = "#98a4ab";
+                  ctx.fillRect(okIx, okShelfBase - okSh, okSw, okSh);
+                  ctx.fillStyle = "#c3ced4";
+                  ctx.fillRect(okIx - 1, okShelfBase - okSh - 2, okSw + 2, 2.6);
+                  ctx.strokeStyle = "#454f56";
+                  ctx.lineWidth = 2.4;
+                  ctx.beginPath(); ctx.moveTo(okIx + okSw, okShelfBase - okSh + 2); ctx.lineTo(okIx + okSw + 13, okShelfBase - okSh); ctx.stroke();
+                  okIx += okSw + 13;
+                } else {
+                  // A stack of pans: dark ellipses with
+                  // steel rims, one handle out.
+                  var okTw = clamp(okItemPh * 1.2, 19, 29);
+                  for (var okSt = 0; okSt < 3; okSt++) {
+                    ctx.fillStyle = okSt % 2 ? "#26262b" : "#34373d";
+                    ctx.beginPath(); ctx.ellipse(okIx + okTw / 2, okShelfBase - 2.5 - okSt * 3.6, okTw / 2, 3.1, 0, 0, Math.PI * 2); ctx.fill();
+                    ctx.strokeStyle = "rgba(190,205,212,0.6)";
+                    ctx.lineWidth = 0.9;
+                    ctx.stroke();
+                  }
+                  ctx.strokeStyle = "#454f56";
+                  ctx.lineWidth = 2.2;
+                  ctx.beginPath(); ctx.moveTo(okIx + okTw - 2, okShelfBase - 9); ctx.lineTo(okIx + okTw + 10, okShelfBase - 11); ctx.stroke();
+                  okIx += okTw + 10;
+                }
+                okIx += 26 + roomHash(okIx * 0.37) * 12;
+                okIi++;
+              }
+              // The vent grille in the recess at the
+              // right end: three dark slits.
+              ctx.fillStyle = "rgba(190, 205, 212, 0.28)";
+              var okVentX2 = okR.x0 + okW * 0.90, okVentW2 = Math.min(46, okW * 0.07);
+              for (var ovi3 = 0; ovi3 < 3; ovi3++) {
+                ctx.fillRect(okVentX2, okRowBY + 5 + ovi3 * 5, okVentW2, 2.2);
+              }
             }
-            // The slim base trim at the foot: a dark
-            // kick with a brass line over it — the only
-            // band left at the kitchen's foot.
-            ctx.fillStyle = "#120a04";
-            ctx.fillRect(okR.x0, okR.bottom - okBaseH, okW, okBaseH);
+            // The shelf board itself, under the pots:
+            // a wooden plank with a brass edge, running
+            // the full width.
+            ctx.fillStyle = "#5a3a1e";
+            ctx.fillRect(okR.x0, okShelfBase, okW, 4);
+            ctx.fillStyle = "rgba(227, 194, 104, 0.6)";
+            ctx.fillRect(okR.x0, okShelfBase, okW, 1.1);
+            // The TILED KITCHEN FLOOR strip along the
+            // very bottom: stone tiles with grout lines
+            // and a soft sheen, under a brass kick line
+            // — the kitchen's own floor, ending the set
+            // at the seat line.
+            var okFlGrad = ctx.createLinearGradient(0, okFrontBot, 0, okR.bottom);
+            okFlGrad.addColorStop(0, "#33261a");
+            okFlGrad.addColorStop(1, "#1e1409");
+            ctx.fillStyle = okFlGrad;
+            ctx.fillRect(okR.x0, okFrontBot, okW, okFloorH);
             ctx.fillStyle = "rgba(201,162,39,0.55)";
-            ctx.fillRect(okR.x0, okR.bottom - okBaseH, okW, 1.2);
+            ctx.fillRect(okR.x0, okFrontBot, okW, 1.2);
+            ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(okR.x0, okFrontBot + okFloorH * 0.55); ctx.lineTo(okR.x1, okFrontBot + okFloorH * 0.55); ctx.stroke();
+            for (var okFx = okR.x0 + 17; okFx < okR.x1 - 6; okFx += 34) {
+              ctx.beginPath(); ctx.moveTo(okFx, okFrontBot + 1.5); ctx.lineTo(okFx, okFrontBot + okFloorH * 0.55); ctx.stroke();
+              ctx.beginPath(); ctx.moveTo(okFx + 17, okFrontBot + okFloorH * 0.55); ctx.lineTo(okFx + 17, okR.bottom); ctx.stroke();
+            }
+            ctx.fillStyle = "rgba(255, 214, 160, 0.06)";
+            ctx.fillRect(okR.x0, okFrontBot + 1.5, okW, okFloorH * 0.3);
           }
           // The COOKTOP ZONE and its fittings (repair
           // pass, 2026-11-16): the old fittings never read
@@ -8019,10 +8187,25 @@
 
         // Seat a party with no escort: its seated guests
         // simply paint from the next frame, as parties
-        // always did before the escorts.
+        // always did before the escorts. EVERY direct
+        // seating is still a seating, so the entrance
+        // line advances for it exactly as it does for an
+        // escorted one (see finishEscortStop): this is
+        // the hook the paths that bypass the escort
+        // entirely run through — a plate run seating the
+        // host's current party from under him (tapTable),
+        // the final-five-seconds set-down in the frame
+        // loop, the escort failsafes in stepEscorts, and
+        // any full-house set-down among them. A party
+        // LEAVING (partyLeaves cancels its escort through
+        // here while its state is "leaving") is not a
+        // seating and never advances the line; nor does
+        // a party that was not waiting to sit at all.
         function seatDirectly(t) {
+          var wasHiddenD = t.seatedHidden;
           cancelEscortFor(t);
           t.seatedHidden = false;
+          if (wasHiddenD && (t.state === "seated" || t.state === "arriving")) advanceEntranceLine();
         }
 
         function cancelEscortFor(t) {
@@ -8117,7 +8300,14 @@
             // not escorted — it seats directly instead.
             if (tables.indexOf(e.t) === -1 || e.t.guests !== e.guests ||
                 (e.t.state !== "seated" && e.t.state !== "arriving")) {
+              var wasHiddenQ = e.t.seatedHidden;
               e.t.seatedHidden = false;
+              // A party that still stands on the floor
+              // WAS seated by this — the line advances
+              // for it like any other seating (see
+              // finishEscortStop / seatDirectly).
+              if (wasHiddenQ && tables.indexOf(e.t) !== -1 &&
+                  (e.t.state === "seated" || e.t.state === "arriving")) advanceEntranceLine();
               continue;
             }
             stops.push({ t: e.t, guests: e.guests });
@@ -8139,11 +8329,16 @@
           }
           activeEscort = { stops: ordered, stopIdx: 0, sitP: 0 };
           for (var si = 0; si < ordered.length; si++) spawnArrivals(ordered[si], si);
-          // The host takes a party from the head of the
-          // entrance line to seat them: the line steps
-          // forward one place behind him, and a new party
-          // joins at its back (see advanceEntranceLine).
-          advanceEntranceLine();
+          // The line does NOT advance here any more: it
+          // used to fire once per TRIP from this spot, so
+          // a trip seating three parties moved the line
+          // once, and every seating that never started a
+          // trip (direct seatings — see seatDirectly)
+          // moved it never. The advance now fires per
+          // SEATING, at the moment each party actually
+          // sits: finishEscortStop for escorted stops,
+          // seatDirectly for every direct seating (see
+          // advanceEntranceLine).
           host.state = "escortGo";
         }
 
@@ -8154,6 +8349,13 @@
         function finishEscortStop() {
           var stop = activeEscort.stops[activeEscort.stopIdx];
           stop.t.seatedHidden = false;
+          // This party is SEATED — the entrance line
+          // advances for it: the head of the line walks
+          // up to the desk, everyone behind steps forward
+          // one place, and a new party walks in at the
+          // back (see advanceEntranceLine). One advance
+          // per seated party, every trip, every path.
+          advanceEntranceLine();
           arrivals = arrivals.filter(function (a) { return a.t !== stop.t; });
           activeEscort.stopIdx++;
           activeEscort.sitP = 0;
@@ -9237,6 +9439,7 @@
             maitreDesk: { x: Math.round(entrance.deskX), y: Math.round(entrance.deskY) },
             entranceCouple: entrance.couple.length,
             entranceLine: entrance.line.length,
+            entranceLineAdvances: lineAdvanceCount,
             entranceLinePos: entrance.line.map(function (m) { return { x: Math.round(m.x), y: Math.round(m.y), tx: Math.round(m.tx), departing: !!m.departing, moving: !!m.moving }; }),
             ticketAgeMs: ticketNum == null ? null : Math.max(0, performance.now() - lastTicketAt),
             ticketDueInMs: nextTicketAt === Infinity ? null : Math.max(0, nextTicketAt - performance.now()),
