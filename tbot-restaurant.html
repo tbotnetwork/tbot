@@ -2056,9 +2056,21 @@
             var sw = s / SPRITE_BODY_FRAC;
             var sh = sw * SPRITE_ASPECT;
             // A soft feathered contact shadow under the
-            // figure, so the vinyl body rests grounded in
-            // the scene's light.
-            softShadow(0, sh * (1 - SPRITE_BODY_CY) + s * 0.015, s * 0.54, s * 0.09, 0.34);
+            // figure, deepened for the light marble (the
+            // desk correction, 2026-11-17), so the vinyl
+            // body rests grounded in the gloss.
+            softShadow(0, sh * (1 - SPRITE_BODY_CY) + s * 0.015, s * 0.54, s * 0.09, 0.52);
+            // The figure's faint presence in the polish:
+            // the sprite flipped and squashed under its
+            // feet at a whisper of alpha.
+            var feetY = sh * (1 - SPRITE_BODY_CY);
+            ctx.save();
+            ctx.globalAlpha = 0.10;
+            ctx.beginPath(); ctx.rect(-sw / 2, feetY, sw, sh * 0.30); ctx.clip();
+            ctx.translate(0, feetY * 1.32);
+            ctx.scale(1, -0.32);
+            ctx.drawImage(tbotImg, -sw / 2, -sh * SPRITE_BODY_CY, sw, sh);
+            ctx.restore();
             ctx.drawImage(tbotImg, -sw / 2, -sh * SPRITE_BODY_CY, sw, sh);
             // The standing rod-tip blink: a glow over the
             // sprite's own rod-tip balls — overlay only, the
@@ -2235,9 +2247,24 @@
           if (shadow) {
             // A feathered contact pool at the anchor, with
             // a firmer heart where the figure's weight
-            // lands — the person sits IN the room's light.
-            softShadow(0, u * 0.012, dw * 0.36, u * 0.08, 0.30);
-            softShadow(0, u * 0.010, dw * 0.20, u * 0.045, 0.22);
+            // lands — deepened for the light marble (the
+            // desk correction, 2026-11-17: the pools tuned
+            // for the old dark floor vanished on the pale
+            // stone), so the person sits IN the gloss.
+            softShadow(0, u * 0.012, dw * 0.36, u * 0.08, 0.50);
+            softShadow(0, u * 0.010, dw * 0.20, u * 0.045, 0.36);
+          }
+          if (pose === "stand") {
+            // The figure's faint presence in the polish:
+            // the photograph flipped and squashed under
+            // the feet at a whisper of alpha, the way a
+            // standing guest ghosts in real marble gloss.
+            ctx.save();
+            ctx.globalAlpha = 0.10;
+            ctx.beginPath(); ctx.rect(-dw / 2, 0, dw, dh * squash * 0.30); ctx.clip();
+            ctx.scale(1, -0.30);
+            ctx.drawImage(rec.img, -dw / 2, -rec.seat * dh * squash, dw, dh * squash);
+            ctx.restore();
           }
           ctx.drawImage(rec.img, -dw / 2, -rec.seat * dh * squash, dw, dh * squash);
           // The room's warm light laid over the cut-out:
@@ -2268,8 +2295,8 @@
           ctx.save();
           ctx.translate(cx, bottomY);
           if (shadow) {
-            softShadow(0, u * 0.012, u * 0.40, u * 0.08, 0.32);
-            softShadow(0, u * 0.010, u * 0.22, u * 0.045, 0.20);
+            softShadow(0, u * 0.012, u * 0.40, u * 0.08, 0.50);
+            softShadow(0, u * 0.010, u * 0.22, u * 0.045, 0.32);
           }
           var hipH = u * (0.28 + 0.24 * stand);   // the hips' height over the anchor
           var shH = u * (0.57 + 0.27 * stand);    // the shoulders' height
@@ -3025,8 +3052,9 @@
           var pw = u * 0.68, ph = u * 1.04;
           var top = base - ph;
           // Its contact shadow on the floor: a feathered
-          // pool under the podium.
-          softShadow(cx, base + u * 0.02, pw * 0.64, u * 0.085, 0.38);
+          // pool under the podium — deepened for the
+          // light marble (the desk correction, 2026-11-17).
+          softShadow(cx, base + u * 0.02, pw * 0.64, u * 0.085, 0.54);
           // The front panel: dark wood, lit down its face.
           var pGrad = ctx.createLinearGradient(0, top, 0, base);
           pGrad.addColorStop(0, "#5a3a1e");
@@ -4271,7 +4299,7 @@
                 var mXa = Math.min(mXAt(mc, mY0), mXAt(mc, mY1));
                 var mXb = Math.max(mXAt(mc + 1, mY0), mXAt(mc + 1, mY1));
                 var mBW = Math.max(2, mXb - mXa), mBH = Math.max(2, mY1 - mY0);
-                var mSW = 300 + roomHash(mSeed * 1.93) * 300;
+                var mSW = 225 + roomHash(mSeed * 1.93) * 260;
                 var mSH = Math.max(120, mSW * (mBH / mBW));
                 if (mSH > 900) { mSW *= 900 / mSH; mSH = 900; }
                 var mSX = roomHash(mSeed * 2.57) * Math.max(1, MARBLE_TEX_W - mSW);
@@ -4285,6 +4313,19 @@
                 ctx.scale(mFX, mFY);
                 ctx.drawImage(marbleImg, mSX, mSY, mSW, mSH,
                   -mBW * 0.54, -mBH * 0.54, mBW * 1.08, mBH * 1.08);
+                // The vein-deepening pass (the desk
+                // correction, 2026-11-17): the same crop
+                // laid over itself in multiply, so the
+                // stone's whites stay bright while every
+                // grey vein squares into real contrast —
+                // the slab reads as marble at room size,
+                // not pale tile.
+                ctx.globalCompositeOperation = "multiply";
+                ctx.globalAlpha = 0.55;
+                ctx.drawImage(marbleImg, mSX, mSY, mSW, mSH,
+                  -mBW * 0.54, -mBH * 0.54, mBW * 1.08, mBH * 1.08);
+                ctx.globalAlpha = 1;
+                ctx.globalCompositeOperation = "source-over";
                 ctx.restore();
                 // The slab's own tone under the room's
                 // light: a whisper of warm or cool shade,
@@ -4292,8 +4333,8 @@
                 var mTone = roomHash(mSeed * 1.31);
                 mCellPath(mr, mc);
                 ctx.fillStyle = mTone > 0.5
-                  ? "rgba(255, 252, 244, " + (0.02 + mTone * 0.05).toFixed(3) + ")"
-                  : "rgba(112, 108, 96, " + (0.03 + (1 - mTone) * 0.05).toFixed(3) + ")";
+                  ? "rgba(255, 252, 244, " + (0.01 + mTone * 0.03).toFixed(3) + ")"
+                  : "rgba(112, 108, 96, " + (0.04 + (1 - mTone) * 0.06).toFixed(3) + ")";
                 ctx.fill();
               }
             }
@@ -4335,7 +4376,7 @@
           for (var gci = 1; gci < mCols; gci++) {
             ctx.beginPath(); ctx.moveTo(mSeamHX(gci), floorTop); ctx.lineTo(mSeamBX(gci), fBot); ctx.stroke();
           }
-          ctx.strokeStyle = "rgba(94, 88, 76, 0.52)";
+          ctx.strokeStyle = "rgba(94, 88, 76, 0.62)";
           ctx.lineWidth = 1;
           for (var gri2 = 1; gri2 < mRows; gri2++) {
             ctx.beginPath(); ctx.moveTo(0, mRowY(gri2)); ctx.lineTo(W, mRowY(gri2)); ctx.stroke();
@@ -4362,8 +4403,8 @@
           // shadow and a faint presence in this gloss,
           // drawn with the figures and furniture as always.
           var mGlass = ctx.createLinearGradient(0, floorTop, 0, fBot);
-          mGlass.addColorStop(0, "rgba(255, 205, 150, 0.10)");
-          mGlass.addColorStop(0.5, "rgba(255, 205, 150, 0.045)");
+          mGlass.addColorStop(0, "rgba(255, 205, 150, 0.17)");
+          mGlass.addColorStop(0.5, "rgba(255, 205, 150, 0.08)");
           mGlass.addColorStop(1, "rgba(255, 205, 150, 0)");
           ctx.fillStyle = mGlass;
           ctx.fillRect(W * 0.30, floorTop, W * 0.44, fH);
@@ -4371,8 +4412,8 @@
             var mWxT = W * (0.335 + mWin * 0.088);
             var mWxB = vpX + (mWxT - vpX) * 1.9;
             var mWinG = ctx.createLinearGradient(0, floorTop, 0, floorTop + fH * 0.85);
-            mWinG.addColorStop(0, "rgba(255, 216, 160, 0.13)");
-            mWinG.addColorStop(0.55, "rgba(255, 216, 160, 0.05)");
+            mWinG.addColorStop(0, "rgba(255, 216, 160, 0.30)");
+            mWinG.addColorStop(0.55, "rgba(255, 216, 160, 0.12)");
             mWinG.addColorStop(1, "rgba(255, 216, 160, 0)");
             ctx.fillStyle = mWinG;
             ctx.beginPath();
@@ -4382,12 +4423,32 @@
             ctx.lineTo(mWxB - W * 0.026, floorTop + fH * 0.85);
             ctx.closePath(); ctx.fill();
           }
+          // The streaks' bright cores: a narrower,
+          // hotter thread down the middle of each window
+          // reflection — the specular edge that makes the
+          // polish read as gloss, not haze (the desk
+          // correction, 2026-11-17: the reflections must
+          // actually show at room size).
+          for (var mCore = 0; mCore < 5; mCore++) {
+            var mCxT = W * (0.335 + mCore * 0.088);
+            var mCxB = vpX + (mCxT - vpX) * 1.9;
+            var mCoreG = ctx.createLinearGradient(0, floorTop, 0, floorTop + fH * 0.7);
+            mCoreG.addColorStop(0, "rgba(255, 232, 190, 0.24)");
+            mCoreG.addColorStop(1, "rgba(255, 232, 190, 0)");
+            ctx.fillStyle = mCoreG;
+            ctx.beginPath();
+            ctx.moveTo(mCxT - W * 0.0035, floorTop);
+            ctx.lineTo(mCxT + W * 0.0035, floorTop);
+            ctx.lineTo(mCxB + W * 0.009, floorTop + fH * 0.7);
+            ctx.lineTo(mCxB - W * 0.009, floorTop + fH * 0.7);
+            ctx.closePath(); ctx.fill();
+          }
           var mLampX = [0.065, 0.315, 0.565, 0.685, 0.945];
           for (var mLamp = 0; mLamp < mLampX.length; mLamp++) {
             var mLxT = W * mLampX[mLamp];
             var mLxB = vpX + (mLxT - vpX) * 1.55;
             var mLampG = ctx.createLinearGradient(0, floorTop, 0, floorTop + fH * 0.62);
-            mLampG.addColorStop(0, "rgba(255, 190, 110, 0.10)");
+            mLampG.addColorStop(0, "rgba(255, 190, 110, 0.22)");
             mLampG.addColorStop(1, "rgba(255, 190, 110, 0)");
             ctx.fillStyle = mLampG;
             ctx.beginPath();
@@ -4398,21 +4459,28 @@
             ctx.closePath(); ctx.fill();
           }
           var mBarG = ctx.createLinearGradient(0, floorTop, 0, floorTop + fH * 0.34);
-          mBarG.addColorStop(0, "rgba(58, 36, 18, 0.13)");
+          mBarG.addColorStop(0, "rgba(58, 36, 18, 0.22)");
           mBarG.addColorStop(1, "rgba(58, 36, 18, 0)");
           ctx.fillStyle = mBarG;
           ctx.fillRect(0, floorTop, W * 0.54, fH * 0.34);
           for (var mPool = 0; mPool < 4; mPool++) {
             var mPx = W * (0.18 + mPool * 0.21), mPy = floorTop + fH * (0.30 + roomHash(mPool * 7.7 + 3) * 0.4);
             var mPoolG = ctx.createRadialGradient(mPx, mPy, 2, mPx, mPy, W * 0.10);
-            mPoolG.addColorStop(0, "rgba(255, 214, 150, 0.09)");
+            mPoolG.addColorStop(0, "rgba(255, 214, 150, 0.20)");
             mPoolG.addColorStop(1, "rgba(255, 214, 150, 0)");
             ctx.fillStyle = mPoolG;
             ctx.beginPath(); ctx.ellipse(mPx, mPy, W * 0.10, W * 0.10 * 0.36, 0, 0, Math.PI * 2); ctx.fill();
+            // The pool's hot core: the pendant's own
+            // bright heart standing in the polish.
+            var mCoreG2 = ctx.createRadialGradient(mPx, mPy, 1, mPx, mPy, W * 0.038);
+            mCoreG2.addColorStop(0, "rgba(255, 228, 178, 0.17)");
+            mCoreG2.addColorStop(1, "rgba(255, 228, 178, 0)");
+            ctx.fillStyle = mCoreG2;
+            ctx.beginPath(); ctx.ellipse(mPx, mPy, W * 0.038, W * 0.038 * 0.36, 0, 0, Math.PI * 2); ctx.fill();
           }
           var mSheen = ctx.createLinearGradient(0, floorTop, W, fBot);
           mSheen.addColorStop(0, "rgba(255, 255, 255, 0)");
-          mSheen.addColorStop(0.45, "rgba(255, 255, 255, 0.09)");
+          mSheen.addColorStop(0.45, "rgba(255, 255, 255, 0.18)");
           mSheen.addColorStop(0.62, "rgba(255, 255, 255, 0)");
           mSheen.addColorStop(1, "rgba(255, 255, 255, 0)");
           ctx.fillStyle = mSheen;
@@ -5866,10 +5934,11 @@
             ctx.beginPath(); ctx.arc(rx, ry, rugR * 0.8, 0, Math.PI * 2); ctx.stroke();
           }
           // Shadow: a soft feathered pool under the table,
-          // darker at its heart — the table rests grounded
-          // on the boards, in the room's light.
-          softShadow(cx, cy + r * 0.82, r * 1.30, r * 0.30, 0.30);
-          softShadow(cx, cy + r * 0.78, r * 1.02, r * 0.20, 0.22);
+          // darker at its heart — deepened for the light
+          // marble (the desk correction, 2026-11-17), so
+          // the table rests grounded in the gloss.
+          softShadow(cx, cy + r * 0.82, r * 1.30, r * 0.30, 0.48);
+          softShadow(cx, cy + r * 0.78, r * 1.02, r * 0.20, 0.34);
 
           // Guests: two TBOT people seated behind the table —
           // the real people, photographed (see
@@ -6362,8 +6431,10 @@
           var halfW = r * 1.14;
           var backTop = cy - r * 2.5, backBot = cy - r * 0.38;
           // Contact shadow on the gloss: a feathered pool
-          // grounding the unit in the floor's light.
-          softShadow(cx, cy + r * 0.84, halfW * 1.12, r * 0.24, 0.38);
+          // grounding the unit in the floor's light —
+          // deepened for the light marble (the desk
+          // correction, 2026-11-17).
+          softShadow(cx, cy + r * 0.84, halfW * 1.12, r * 0.24, 0.56);
           // The back bench's high back: deep-red upholstery
           // with channel tufting and a lit rolled top.
           var bGrad = ctx.createLinearGradient(0, backTop, 0, backBot);
@@ -6549,8 +6620,10 @@
           var r = t.r;
           var cw = Math.max((t.cellW || 0) / 2 * 0.995, r * 1.3);
           // Contact shadow under the counter run: a
-          // feathered pool along the run's foot.
-          softShadow(cx, cy + r * 0.82, cw * 1.04, r * 0.21, 0.38);
+          // feathered pool along the run's foot,
+          // deepened for the light marble (the desk
+          // correction, 2026-11-17).
+          softShadow(cx, cy + r * 0.82, cw * 1.04, r * 0.21, 0.54);
           // The stool's round red-leather seat, brass-rimmed.
           ctx.fillStyle = "#8f1d26";
           ctx.beginPath(); ctx.ellipse(cx, cy + r * 0.05, r * 0.98, r * 0.21, 0, 0, Math.PI * 2); ctx.fill();
@@ -6677,7 +6750,7 @@
           // Shadow, resting at the sprite's own bottom
           // edge: a feathered pool grounding him.
           var waiterSh = (s / SPRITE_BODY_FRAC) * SPRITE_ASPECT;
-          softShadow(waiter.x, waiter.y + waiterSh * (1 - SPRITE_BODY_CY) + s * 0.02, s * 0.56, s * 0.11, 0.38);
+          softShadow(waiter.x, waiter.y + waiterSh * (1 - SPRITE_BODY_CY) + s * 0.02, s * 0.56, s * 0.11, 0.56);
           drawTBOTFigure(waiter.x, waiter.y - bobY, s, blinkLid(waiter, nowMs), 0);
           // The waiter's white apron, over the lower body.
           // Its vertical measure follows Ref 1's real body
@@ -7986,7 +8059,18 @@
           // whole cloth shaded darker toward its wings so
           // the centre of the stage takes the light.
           var curW = st.w + 16, curX = cx - curW / 2;
-          var curTop = Math.max(st.topY - 8, 44), curBot = platTop + 3;
+          // The deck's depth (the desk correction,
+          // 2026-11-17): the board surface runs from its
+          // front edge at platTop back this far to the
+          // curtain's foot, so the performer stands ON a
+          // floor with real depth, not against the cloth
+          // above a fascia strip. The platform's footprint,
+          // platTop and baseY are exactly as layoutStage
+          // put them — the depth is taken from the
+          // curtain's foot, inside the stage's own extent.
+          var deckDepth = clamp(st.u * 0.62, 13, 26);
+          var deckBack = platTop - deckDepth;
+          var curTop = Math.max(st.topY - 8, 44), curBot = deckBack + 4;
           var cGrad = ctx.createLinearGradient(0, curTop, 0, curBot);
           cGrad.addColorStop(0, "#a32433");
           cGrad.addColorStop(0.55, "#831824");
@@ -8040,77 +8124,144 @@
           ctx.stroke();
           // The platform: a real performance stage's
           // raised deck (John's ruling, 2026-11-17) — a
-          // feathered contact shadow on the marble, a top
-          // of polished dark-wood BOARDS with their plank
-          // seams and a warm sheen along the grain, a
-          // lighter nosing on the platform's edge, and a
-          // front face of the same boards standing
-          // upright, with the gold trim line under the
-          // nosing and a row of small FOOTLIGHTS glowing
-          // along the front edge where the face is deep
-          // enough to carry them cleanly. The platform's
-          // footprint, top and base are exactly where
-          // layoutStage put them — only its surface is
+          // feathered contact shadow on the marble, a
+          // DECK of polished dark-wood boards in
+          // perspective running from the curtain's foot
+          // to the front edge (the desk correction,
+          // 2026-11-17: a real floor the performer stands
+          // ON, with visible depth), a lighter nosing on
+          // the front edge, a front face of the same
+          // boards standing upright with the gold trim
+          // line under the nosing, and a row of small
+          // FOOTLIGHTS glowing along the deck's front
+          // edge. The platform's footprint, top and base
+          // are exactly where layoutStage put them — only
+          // its surface is
           // real now.
-          softShadow(cx, baseY + 3, st.w * 0.62, Math.max(3.5, st.u * 0.12), 0.40);
-          var topGrad = ctx.createLinearGradient(0, platTop - 4, 0, platTop + 2);
-          topGrad.addColorStop(0, "#8a5a30");
-          topGrad.addColorStop(0.55, "#6d4525");
-          topGrad.addColorStop(1, "#4a2c17");
-          ctx.fillStyle = topGrad;
-          ctx.fillRect(cx - st.w / 2, platTop - 4, st.w, 6);
-          // The boards' plank seams across the deck, and
-          // the sheen the spotlights leave on the polish.
-          ctx.strokeStyle = "rgba(20, 10, 3, 0.35)";
-          ctx.lineWidth = 1;
-          for (var pbx = cx - st.w / 2 + 13; pbx < cx + st.w / 2 - 4; pbx += 15) {
-            ctx.beginPath(); ctx.moveTo(pbx, platTop - 4); ctx.lineTo(pbx, platTop + 2); ctx.stroke();
+          softShadow(cx, baseY + 3, st.w * 0.62, Math.max(3.5, st.u * 0.12), 0.48);
+          // THE DECK (the desk correction, 2026-11-17):
+          // a real board surface in perspective — a
+          // trapezoid from the curtain's foot (deckBack,
+          // a touch narrower) widening to the front edge
+          // at platTop, planked front-to-back with seams
+          // that converge as they recede, alternate
+          // planks tinted, one cross joint mid-depth, the
+          // curtain's shade pooling at the back and the
+          // boards warming toward the lit front edge.
+          var deckInset = st.w * 0.05;
+          var deckGrad = ctx.createLinearGradient(0, deckBack, 0, platTop + 2);
+          deckGrad.addColorStop(0, "#452a13");
+          deckGrad.addColorStop(0.45, "#684324");
+          deckGrad.addColorStop(1, "#8a5a2f");
+          ctx.fillStyle = deckGrad;
+          ctx.beginPath();
+          ctx.moveTo(cx - st.w / 2 + deckInset, deckBack);
+          ctx.lineTo(cx + st.w / 2 - deckInset, deckBack);
+          ctx.lineTo(cx + st.w / 2, platTop + 2);
+          ctx.lineTo(cx - st.w / 2, platTop + 2);
+          ctx.closePath(); ctx.fill();
+          var plankN = Math.max(5, Math.round(st.w / 16));
+          function deckXAt(t01, y) {
+            var backX = cx - st.w / 2 + deckInset + (st.w - deckInset * 2) * t01;
+            var frontX = cx - st.w / 2 + st.w * t01;
+            var f = (y - deckBack) / Math.max(1, platTop + 2 - deckBack);
+            return backX + (frontX - backX) * f;
           }
-          ctx.fillStyle = "rgba(255, 222, 170, 0.30)";
-          ctx.fillRect(cx - st.w / 2, platTop - 4, st.w, 1.3);
-          ctx.fillStyle = "rgba(255, 222, 170, 0.10)";
-          ctx.fillRect(cx - st.w / 2, platTop - 1, st.w, 1);
-          var faceGrad = ctx.createLinearGradient(0, platTop + 2, 0, baseY);
+          // Alternate planks take a whisper of extra light.
+          for (var dti = 0; dti < plankN; dti += 2) {
+            ctx.fillStyle = "rgba(255, 206, 150, 0.055)";
+            ctx.beginPath();
+            ctx.moveTo(deckXAt(dti / plankN, deckBack), deckBack);
+            ctx.lineTo(deckXAt((dti + 1) / plankN, deckBack), deckBack);
+            ctx.lineTo(deckXAt((dti + 1) / plankN, platTop + 2), platTop + 2);
+            ctx.lineTo(deckXAt(dti / plankN, platTop + 2), platTop + 2);
+            ctx.closePath(); ctx.fill();
+          }
+          // The plank seams, front to back, with a lit
+          // thread on each seam's room side.
+          for (var dpi = 1; dpi < plankN; dpi++) {
+            var dpBX = deckXAt(dpi / plankN, deckBack), dpFX = deckXAt(dpi / plankN, platTop + 2);
+            ctx.strokeStyle = "rgba(16, 8, 2, 0.55)";
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(dpBX, deckBack); ctx.lineTo(dpFX, platTop + 2); ctx.stroke();
+            ctx.strokeStyle = "rgba(255, 216, 165, 0.10)";
+            ctx.beginPath(); ctx.moveTo(dpBX + 1.2, deckBack); ctx.lineTo(dpFX + 1.2, platTop + 2); ctx.stroke();
+          }
+          // One cross joint across the boards, mid-depth.
+          var jointY = deckBack + deckDepth * 0.55;
+          ctx.strokeStyle = "rgba(16, 8, 2, 0.38)";
+          ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(deckXAt(0, jointY), jointY); ctx.lineTo(deckXAt(1, jointY), jointY); ctx.stroke();
+          // The curtain's shade pooling where the cloth
+          // meets the boards, so the deck's back edge
+          // sits in the stage's own shadow.
+          var shadeBot = deckBack + deckDepth * 0.6;
+          var deckShade = ctx.createLinearGradient(0, deckBack, 0, shadeBot);
+          deckShade.addColorStop(0, "rgba(10, 2, 2, 0.42)");
+          deckShade.addColorStop(1, "rgba(10, 2, 2, 0)");
+          ctx.fillStyle = deckShade;
+          ctx.beginPath();
+          ctx.moveTo(cx - st.w / 2 + deckInset, deckBack);
+          ctx.lineTo(cx + st.w / 2 - deckInset, deckBack);
+          ctx.lineTo(deckXAt(1, shadeBot), shadeBot);
+          ctx.lineTo(deckXAt(0, shadeBot), shadeBot);
+          ctx.closePath(); ctx.fill();
+          // The nosing: the deck's front edge, a lighter
+          // board with the light caught along its top.
+          var noseGrad = ctx.createLinearGradient(0, platTop + 2, 0, platTop + 5);
+          noseGrad.addColorStop(0, "#a06c38");
+          noseGrad.addColorStop(1, "#6d4525");
+          ctx.fillStyle = noseGrad;
+          ctx.fillRect(cx - st.w / 2, platTop + 2, st.w, 3);
+          ctx.fillStyle = "rgba(255, 228, 175, 0.55)";
+          ctx.fillRect(cx - st.w / 2, platTop + 2, st.w, 1.1);
+          var faceGrad = ctx.createLinearGradient(0, platTop + 5, 0, baseY);
           faceGrad.addColorStop(0, "#4a2e16");
           faceGrad.addColorStop(1, "#2a1708");
           ctx.fillStyle = faceGrad;
-          ctx.fillRect(cx - st.w / 2, platTop + 2, st.w, baseY - platTop - 2);
+          ctx.fillRect(cx - st.w / 2, platTop + 5, st.w, baseY - platTop - 5);
           // The front face's upright boards: a seam every
           // board's width, with a lit thread beside the
           // darker ones, in the room's own hash.
           for (var pfx = cx - st.w / 2 + 11; pfx < cx + st.w / 2 - 3; pfx += 13) {
             ctx.fillStyle = "rgba(12, 6, 2, 0.32)";
-            ctx.fillRect(pfx, platTop + 2, 1.1, baseY - platTop - 2);
+            ctx.fillRect(pfx, platTop + 5, 1.1, baseY - platTop - 5);
             if (roomHash(pfx * 1.93) > 0.5) {
               ctx.fillStyle = "rgba(255, 205, 150, 0.06)";
-              ctx.fillRect(pfx + 1.1, platTop + 2, 1.4, baseY - platTop - 2);
+              ctx.fillRect(pfx + 1.1, platTop + 5, 1.4, baseY - platTop - 5);
             }
           }
           // The raised edge's trim: the gold line under
           // the nosing, and a second slim line at the
           // platform's foot.
           ctx.fillStyle = "#c9a227";
-          ctx.fillRect(cx - st.w / 2, platTop + 2, st.w, Math.max(1.6, st.u * 0.05));
+          ctx.fillRect(cx - st.w / 2, platTop + 5, st.w, Math.max(1.6, st.u * 0.05));
           ctx.fillStyle = "rgba(201, 162, 39, 0.55)";
           ctx.fillRect(cx - st.w / 2, baseY - 1.6, st.w, 1.6);
           // The footlights: a row of small warm lamps
-          // along the platform's front edge, each a soft
-          // halo around a bright core — only where the
-          // face is deep enough to hold them clear of
-          // the trim and the foot line.
-          if (baseY - platTop >= 13) {
-            var flN = Math.max(3, Math.floor(st.w / 24));
-            for (var fli = 0; fli < flN; fli++) {
-              var flX = cx - st.w / 2 + (fli + 0.5) * (st.w / flN);
-              var flY = platTop + (baseY - platTop) * 0.58;
-              var flG = ctx.createRadialGradient(flX, flY, 0.4, flX, flY, 4.6);
-              flG.addColorStop(0, "rgba(255, 196, 100, 0.50)");
-              flG.addColorStop(1, "rgba(255, 196, 100, 0)");
-              ctx.fillStyle = flG;
-              ctx.beginPath(); ctx.arc(flX, flY, 4.6, 0, Math.PI * 2); ctx.fill();
-              ctx.fillStyle = "#ffd9a0";
-              ctx.beginPath(); ctx.arc(flX, flY, 1.5, 0, Math.PI * 2); ctx.fill();
-            }
+          // along the deck's FRONT EDGE (the desk
+          // correction, 2026-11-17) — each a bright core
+          // in a dark cup on the boards, wrapped in a
+          // warm halo wide enough to actually read at
+          // room size. They stand on the deck's edge
+          // itself, so they show at every stage size —
+          // no longer gated on the face's depth, where
+          // they vanished on smaller screens.
+          var flN = Math.max(4, Math.floor(st.w / 22));
+          for (var fli = 0; fli < flN; fli++) {
+            var flX = cx - st.w / 2 + (fli + 0.5) * (st.w / flN);
+            var flY = platTop + 0.5;
+            var flR = Math.max(6.5, st.u * 0.24);
+            var flG = ctx.createRadialGradient(flX, flY, 0.4, flX, flY, flR);
+            flG.addColorStop(0, "rgba(255, 198, 105, 0.60)");
+            flG.addColorStop(0.4, "rgba(255, 198, 105, 0.28)");
+            flG.addColorStop(1, "rgba(255, 198, 105, 0)");
+            ctx.fillStyle = flG;
+            ctx.beginPath(); ctx.arc(flX, flY, flR, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "#1d1006";
+            ctx.beginPath(); ctx.ellipse(flX, flY + 1.6, 2.6, 1.3, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "#ffe7bb";
+            ctx.beginPath(); ctx.arc(flX, flY, 2, 0, Math.PI * 2); ctx.fill();
           }
           // The stage light: two soft beams falling from
           // the curtain's top corners onto the platform,
@@ -8123,28 +8274,40 @@
           // pool they pool on the boards brighter, so the
           // light reads as spotlights, not a wash.
           ctx.save();
-          var beamG = ctx.createLinearGradient(0, curTop, 0, platTop);
-          beamG.addColorStop(0, "rgba(255, 216, 150, 0.24)");
-          beamG.addColorStop(1, "rgba(255, 216, 150, 0.08)");
+          var poolY = platTop - deckDepth * 0.45;
+          var beamG = ctx.createLinearGradient(0, curTop, 0, poolY);
+          beamG.addColorStop(0, "rgba(255, 216, 150, 0.30)");
+          beamG.addColorStop(1, "rgba(255, 216, 150, 0.12)");
           ctx.fillStyle = beamG;
           ctx.beginPath();
           ctx.moveTo(curX + curW * 0.16, curTop + 2);
           ctx.lineTo(curX + curW * 0.34, curTop + 2);
-          ctx.lineTo(cx + st.w * 0.30, platTop);
-          ctx.lineTo(cx - st.w * 0.06, platTop);
+          ctx.lineTo(cx + st.w * 0.30, poolY);
+          ctx.lineTo(cx - st.w * 0.06, poolY);
           ctx.closePath(); ctx.fill();
           ctx.beginPath();
           ctx.moveTo(curX + curW * 0.66, curTop + 2);
           ctx.lineTo(curX + curW * 0.84, curTop + 2);
-          ctx.lineTo(cx + st.w * 0.06, platTop);
-          ctx.lineTo(cx - st.w * 0.30, platTop);
+          ctx.lineTo(cx + st.w * 0.06, poolY);
+          ctx.lineTo(cx - st.w * 0.30, poolY);
           ctx.closePath(); ctx.fill();
           ctx.restore();
-          var poolG = ctx.createRadialGradient(cx, platTop - 2, 2, cx, platTop - 2, st.w * 0.42);
-          poolG.addColorStop(0, "rgba(255, 220, 160, 0.28)");
-          poolG.addColorStop(1, "rgba(255, 220, 160, 0)");
+          // The beams' pools ON the boards (the desk
+          // correction, 2026-11-17): a broad warm pool
+          // spread across the deck's depth where the two
+          // beams land, and a tighter, brighter pool
+          // where the act stands at the deck's front.
+          var poolG = ctx.createRadialGradient(cx, poolY, 2, cx, poolY, st.w * 0.44);
+          poolG.addColorStop(0, "rgba(255, 224, 168, 0.42)");
+          poolG.addColorStop(0.6, "rgba(255, 224, 168, 0.18)");
+          poolG.addColorStop(1, "rgba(255, 224, 168, 0)");
           ctx.fillStyle = poolG;
-          ctx.beginPath(); ctx.ellipse(cx, platTop - 2, st.w * 0.42, Math.max(3, st.u * 0.13), 0, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(cx, poolY, st.w * 0.44, deckDepth * 0.60, 0, 0, Math.PI * 2); ctx.fill();
+          var pool2G = ctx.createRadialGradient(cx, platTop - deckDepth * 0.16, 1, cx, platTop - deckDepth * 0.16, st.w * 0.26);
+          pool2G.addColorStop(0, "rgba(255, 230, 180, 0.24)");
+          pool2G.addColorStop(1, "rgba(255, 230, 180, 0)");
+          ctx.fillStyle = pool2G;
+          ctx.beginPath(); ctx.ellipse(cx, platTop - deckDepth * 0.16, st.w * 0.26, deckDepth * 0.34, 0, 0, Math.PI * 2); ctx.fill();
           // The act. Mid-rotation (a re-deal just turned
           // the stage over), the outgoing act leaves into
           // the wing as the incoming act takes the stage:
