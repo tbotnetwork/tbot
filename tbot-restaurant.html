@@ -2646,11 +2646,33 @@
         // The couple and the line are
         // living set dressing: grounded feet with contact
         // shadows, drawn in the floor's back order, sized
-        // like everyone else — and they never move. When an
+        // like everyone else. When an
         // escorted party is being seated the maître d'
         // steps away from the desk to lead them and returns
-        // to the desk after; the couple and the line stay
-        // put throughout.
+        // to the desk after; the couple stays put
+        // throughout, and the line advances (see above).
+        //
+        // The LINE MOVES (John's ruling, 2026-11-16:
+        // "Make the line move in the back as they are
+        // seated"): the line is a living queue, not a
+        // frozen row. Every time the host takes a party
+        // to seat them (startEscortGroup — the opening
+        // deal, Pack 'em adds, mid-shift re-deals, every
+        // seating trip), the party at the HEAD of the
+        // line leaves it — walking up to the desk to be
+        // seated — and every party behind them STEPS
+        // FORWARD one place, walking to their new spot on
+        // the frame's own real-elapsed-time clock (see
+        // stepEntranceLine), never teleporting; and a new
+        // party walks in at the BACK of the line, in from
+        // the room's right edge, so the queue stays alive
+        // through a shift. The couple at the desk stays
+        // put, as it always has. The line's spots stay
+        // where they have always stood — along the back
+        // edge, trailing out the right edge, clear of the
+        // desk and of every station — and the line is set
+        // dressing still: it never blocks a serve, an
+        // escort path or a walk-away exit.
         //
         // The scene is placed by layoutEntrance (called at
         // the end of layoutTables) along the back edge, so
@@ -2676,23 +2698,35 @@
           u: 44 * 2.08,       // the figure unit the scene is sized at (the host's own)
           figScale: 1,        // below 1 only when the room is too narrow for the pass and the scene to share the back edge
           couple: [],         // { fig, x, y } — feet points, resolved by layoutEntrance
-          line: []            // { fig, x, y }
+          line: [],           // { fig, x, y, tx, ty, departing, moving, stepPh, age } — the living queue (see stepEntranceLine)
+          lineSpots: [],      // the queue's standing spots along the back edge, resolved by layoutEntrance
+          lineJoinX: 0, lineJoinY: 0, // the desk-front point the head of the line walks up to when the host takes them
+          lineStepW: 40       // one figure width at the scene's scale — the back door's entry offset
         };
         var entranceCast = null; // the couple and the line, built once and fixed
+        function entranceFig(sex, build, size, nowMs) {
+          return {
+            sex: sex, build: build, size: size,
+            blinkAt: nowMs + rand(600, 3800), blinkDur: rand(120, 160),
+            bobPh: rand(0, Math.PI * 2)
+          };
+        }
+        // A fresh party for the back of the line: a new
+        // TBOT person from the guest family — never the
+        // mascot waiter — with a sex, build and size of
+        // their own, like every party that joins.
+        function newLineFig(nowMs) {
+          var sex = Math.random() < 0.5 ? "f" : "m";
+          var build = Math.random() < 0.32 ? "heavy" : sex;
+          return entranceFig(sex, build, rand(1.84, 2.32), nowMs);
+        }
         function buildEntranceCast(nowMs) {
-          function fig(sex, build, size) {
-            return {
-              sex: sex, build: build, size: size,
-              blinkAt: nowMs + rand(600, 3800), blinkDur: rand(120, 160),
-              bobPh: rand(0, Math.PI * 2)
-            };
-          }
           entranceCast = {
-            couple: [fig("f", "f", 2.02), fig("m", "m", 2.18)],
+            couple: [entranceFig("f", "f", 2.02, nowMs), entranceFig("m", "m", 2.18, nowMs)],
             line: [
-              fig("m", "heavy", 2.30), fig("f", "f", 1.86),
-              fig("m", "m", 2.08), fig("f", "heavy", 2.22),
-              fig("m", "m", 1.94)
+              entranceFig("m", "heavy", 2.30, nowMs), entranceFig("f", "f", 1.86, nowMs),
+              entranceFig("m", "m", 2.08, nowMs), entranceFig("f", "heavy", 2.22, nowMs),
+              entranceFig("m", "m", 1.94, nowMs)
             ]
           };
         }
@@ -2704,7 +2738,6 @@
           var fh = u * 1.76, fw = u * 0.79; // a standing figure's height / width at that unit
           entrance.u = u;
           entrance.couple = [];
-          entrance.line = [];
           // The scene stands at the back edge's right end:
           // every figure's feet rest on the floor line
           // itself (hallDims' floorTop — the line the whole
@@ -2738,16 +2771,129 @@
             { fig: entranceCast.couple[0], x: hx + sfw * 1.02, y: feetY - 2 },
             { fig: entranceCast.couple[1], x: hx + sfw * 1.80, y: feetY - 2 - sfh * 0.03 }
           ];
+          // The line's standing spots, exactly where the
+          // line has always stood — and the desk-front
+          // join point the head of the line walks up to
+          // when the host takes them. Layout only ever
+          // (re)assigns TARGETS: a member mid-walk keeps
+          // its feet where they are and walks on to the
+          // spot it now holds, so a re-layout (a resize,
+          // a new deal) never snaps the queue.
+          entrance.lineStepW = sfw;
+          entrance.lineJoinX = hx + sfw * 2.24;
+          entrance.lineJoinY = feetY - 2;
+          entrance.lineSpots = [];
           for (var qi = 0; qi < entranceCast.line.length; qi++) {
-            entrance.line.push({
-              fig: entranceCast.line[qi],
+            entrance.lineSpots.push({
               x: hx + sfw * (2.66 + qi * 0.78),
               y: feetY - 2 - sfh * 0.02 * (qi % 2)
             });
           }
+          if (!entrance.line.length) {
+            // First layout: the queue starts full, every
+            // member standing on their spot.
+            for (var si = 0; si < entrance.lineSpots.length; si++) {
+              entrance.line.push({
+                fig: entranceCast.line[si],
+                x: entrance.lineSpots[si].x, y: entrance.lineSpots[si].y,
+                tx: entrance.lineSpots[si].x, ty: entrance.lineSpots[si].y,
+                departing: false, moving: false, stepPh: rand(0, Math.PI * 2), age: 0
+              });
+            }
+          } else {
+            assignLineTargets();
+          }
           entrance.mode = "back";
           host.homeX = entrance.hostX;
           host.homeY = entrance.hostY;
+        }
+
+        // Point every member of the line at the spot the
+        // queue now gives them: the parties still waiting
+        // take the standing spots in order, head first;
+        // a party the host has taken walks to the desk's
+        // join point instead. Nobody's feet move here —
+        // stepEntranceLine does the walking.
+        function assignLineTargets() {
+          var spotIdx = 0;
+          for (var i = 0; i < entrance.line.length; i++) {
+            var m = entrance.line[i];
+            if (m.departing) {
+              m.tx = entrance.lineJoinX; m.ty = entrance.lineJoinY;
+            } else if (spotIdx < entrance.lineSpots.length) {
+              m.tx = entrance.lineSpots[spotIdx].x;
+              m.ty = entrance.lineSpots[spotIdx].y;
+              spotIdx++;
+            }
+          }
+        }
+
+        // The host takes the party at the head of the
+        // line (see startEscortGroup — every seating
+        // trip): the head party leaves the queue, walking
+        // up to the desk to be seated; everyone behind
+        // them steps forward one place; and a new party
+        // joins at the back, walking in from the room's
+        // right edge, so the line stays alive. Called
+        // once per seating trip, however many parties the
+        // trip seats — the line advances one place per
+        // trip, like a real host line.
+        function advanceEntranceLine() {
+          if (!entrance.lineSpots.length) return;
+          var head = null;
+          for (var i = 0; i < entrance.line.length; i++) {
+            if (!entrance.line[i].departing) { head = entrance.line[i]; break; }
+          }
+          if (head) { head.departing = true; head.age = 0; }
+          assignLineTargets();
+          var waiting = 0;
+          for (var wi = 0; wi < entrance.line.length; wi++) {
+            if (!entrance.line[wi].departing) waiting++;
+          }
+          if (waiting < entrance.lineSpots.length) {
+            var backSpot = entrance.lineSpots[entrance.lineSpots.length - 1];
+            entrance.line.push({
+              fig: newLineFig(performance.now()),
+              x: W + entrance.lineStepW * 0.7, y: backSpot.y,
+              tx: backSpot.x, ty: backSpot.y,
+              departing: false, moving: false, stepPh: rand(0, Math.PI * 2), age: 0
+            });
+            assignLineTargets();
+          }
+        }
+
+        // The line's per-frame step, run from the frame
+        // loop on the same real-elapsed-time clock as
+        // every other traveller: each member walks toward
+        // the spot the queue gives them at a queue's
+        // shuffle pace — a step slower than the escort
+        // procession — feet on the floor line, with a
+        // small stride bob while they move (see
+        // drawEntrance). A departing head who reaches the
+        // desk's join point leaves the scene (the host is
+        // seating them); one somehow held up past a few
+        // seconds leaves the same way, so the queue can
+        // never jam.
+        var LINE_PACE = 0.22; // px per presented ms — a host line's shuffle forward
+        function stepEntranceLine(dtMs) {
+          for (var i = entrance.line.length - 1; i >= 0; i--) {
+            var m = entrance.line[i];
+            m.age += dtMs;
+            var dx = m.tx - m.x, dy = m.ty - m.y;
+            var dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > 0.01) {
+              var adv = Math.min(dist, dtMs * LINE_PACE);
+              m.x += dx / dist * adv;
+              m.y += dy / dist * adv;
+              m.stepPh += dtMs / 95;
+              m.moving = dist > 3;
+            } else {
+              m.moving = false;
+            }
+            if (m.departing && (dist <= 4 || m.age > 9000)) {
+              entrance.line.splice(i, 1);
+            }
+          }
         }
 
         // The maître d's desk itself: a host stand in the
@@ -2858,7 +3004,12 @@
             drawEntranceFigure(entrance.couple[ci].fig, entrance.couple[ci].x, entrance.couple[ci].y, nowMs);
           }
           for (var li = 0; li < entrance.line.length; li++) {
-            drawEntranceFigure(entrance.line[li].fig, entrance.line[li].x, entrance.line[li].y, nowMs);
+            var lm = entrance.line[li];
+            // A member on the move carries a small stride
+            // bob — the shuffle reads in their feet, the
+            // way every walker's does.
+            var lbob = lm.moving ? -Math.abs(Math.sin(lm.stepPh)) * 1.6 : 0;
+            drawEntranceFigure(lm.fig, lm.x, lm.y + lbob, nowMs);
           }
         }
 
@@ -3057,19 +3208,29 @@
         function bathroomGeom() {
           var resW = stageReserveW();
           var topLim = (stageStation.baseY || 0) + 8;
-          var botLim = groundY();
+          // The doors' bottoms stand ON the ground line
+          // at the foot of the left wall — the room's own
+          // seat line, H less the phone-chrome reserve,
+          // the same line the open kitchen's floor apron
+          // seats on (see paintRoom). NOT groundY(): that
+          // line is raised by the whole toolbar inset, and
+          // doors ending there stopped some 90–110px above
+          // the bottom of the room with a dark floor strip
+          // showing beneath them (repair pass, 2026-11-16).
+          var botLim = H - chromeReserve;
           var avail = botLim - topLim;
           if (avail < 64) {
             var aTop = hallDims().floorTop + 6;
             var aBot = (stageStation.topY || 0) - 8;
             if (aBot - aTop > avail) { topLim = aTop; botLim = aBot; avail = aBot - aTop; }
           }
-          // Full-height in their stretch, anchored to
-          // the bottom limit — the ground line below the
-          // stage — so a capped door still lands flush on
-          // the floor with no gap at its feet.
-          var doorH = clamp(avail, 40, 200);
-          if (doorH > avail) doorH = avail;
+          // Full-height in their stretch: the doors run
+          // the WHOLE stretch from just under the stage's
+          // base down to the ground line at the foot of
+          // the wall — no height cap — so their bottoms
+          // stand on that line with no floor strip or
+          // shadow panel beneath them.
+          var doorH = avail;
           var doorY = botLim - doorH;
           // Flush to the wall: the pair starts ON the
           // wall line (x = 0); the width fit leaves the
@@ -3240,13 +3401,16 @@
         // kitchen longer and lower in the screen"): its
         // band steps up from 0.13·H / 124 max to 0.185·H /
         // 172 max — a taller, deeper kitchen filling the
-        // lower floor, its bottom still on the ground line
-        // (clear of the phone's control bar, whose reserve
-        // the ground line already carries) and its top edge
-        // reaching further up the lower floor, the grid's
-        // bottom boundary moving up with it (see
-        // layoutTables) and the floor guarantee in hallDims
-        // counting the taller band in its need. The chefs,
+        // lower floor, its working line still on the
+        // ground line (clear of the phone's control bar,
+        // whose reserve the ground line already carries)
+        // and its top edge reaching further up the lower
+        // floor, the grid's bottom boundary moving up
+        // with it (see layoutTables) and the floor
+        // guarantee in hallDims counting the taller band
+        // in its need — and now its interior deepens
+        // DOWNWARD past that working line to the room's
+        // seat line (see openKitchenRect below). The chefs,
         // pots and pans spread wider along the longer-
         // reading run (see openKitchenPotXs and
         // drawOpenKitchen), and the set's fittings — steel
@@ -3255,15 +3419,47 @@
         // drawOpenKitchen, so the bigger kitchen reads as a
         // working kitchen, not a stretched strip.
         function openKitchenH() { return clamp(H * 0.185, 120, 172); }
+        // The kitchen DEEPENS DOWNWARD (John's ruling,
+        // 2026-11-16: "More kitchen at the bottom"): the
+        // set's TOP edge does not move — it stays where
+        // openKitchenH puts it above the working line, so
+        // the dealt grid's clearance from it is unchanged
+        // — but its foot no longer stops at the working
+        // line (groundY, raised by the toolbar inset).
+        // The interior runs on DOWN to the room's seat
+        // line (H less the phone-chrome reserve — the
+        // same line the bathroom doors stand on and the
+        // pickup leg panel reaches): the dark apron band
+        // that used to run dead from the counter's foot
+        // to the page foot is kitchen now — a deep
+        // counter frontage with ovens and cabinet detail
+        // below the steel counter, ending in a slim base
+        // trim at the foot (see paintRoom). The WORKING
+        // set — steel counter, cooktop, grill, pots,
+        // chefs, steam, KITCHEN sign — keeps its old
+        // seats, all measured from the working line (see
+        // openKitchenWorkY), so every one of them stays
+        // exactly where it read before, fully visible
+        // above the control bar; only the interior below
+        // that line is new.
         function openKitchenRect() {
           var x0 = stageReserveW();
-          var gy = groundY();
+          var top = groundY() - openKitchenH();
+          var bottom = H - chromeReserve;
           return {
             x0: x0, x1: W,
-            top: gy - openKitchenH(), bottom: gy,
-            cx: (x0 + W) / 2, h: openKitchenH()
+            top: top, bottom: bottom,
+            cx: (x0 + W) / 2, h: bottom - top
           };
         }
+        // The kitchen's WORKING line: the line the steel
+        // counter stands on and the chefs work behind —
+        // the ground line the set's foot used to be.
+        // Every fitting of the working set is measured
+        // from this line, never from the deepened foot,
+        // so deepening the kitchen downward moves none
+        // of them.
+        function openKitchenWorkY() { return groundY(); }
         // The open kitchen counter's depth — one measure,
         // shared by the cached room painting (which draws
         // the counter and its fittings) and the live steam
@@ -3277,20 +3473,42 @@
           var w = clamp(openKitchenH() * 0.32, 42, 58);
           return { w: w, h: clamp(openKitchenH() * 0.17, 24, 30), lidRy: w * 0.20 };
         }
-        // The two pots on the open kitchen's counter stand
-        // on the cooktop at the counter's two ENDS — shared
-        // by the cached room painting (which draws the
-        // pots) and the live steam over them (see
-        // drawOpenKitchen). They used to stand in front of
-        // the chefs, where the chefs' own sprites covered
-        // them whole and no pot ever read (repair pass,
-        // 2026-11-16); at the ends they stand in the clear
-        // stretches of the run, lids and steam in open air
-        // at desktop and phone sizes alike.
+        // The two pots on the open kitchen's counter —
+        // shared by the cached room painting (which draws
+        // the pots) and the live steam over them (see
+        // drawOpenKitchen). The right-hand pot stands at
+        // the counter's right end. The left-hand pot used
+        // to stand at the counter's left end, directly
+        // below the pickup bar's left end — in the exact
+        // footprint of the L's downward leg, where the
+        // leg's pot-clearance cap (see pickupLegRect)
+        // collapsed the leg to nothing and the pickup
+        // counter read as a straight bar (repair pass,
+        // 2026-11-16). It now stands EAST of the leg,
+        // toward the centre: centred in the clear stretch
+        // of counter between the waiter's post at the leg
+        // and the left-hand chef, clear of the leg, the
+        // waiter's sprite, the chef's sprite and the
+        // grill, still on the cooktop with its lid and
+        // steam in open air. Only where that stretch is
+        // too narrow to hold it (phone widths, where the
+        // post and the chef already crowd each other)
+        // does it sit just east of the leg itself — never
+        // in the leg's span, so the leg always descends
+        // its full height.
         function openKitchenPotXs() {
           var r = openKitchenRect();
           var w = openKitchenPotGeom().w;
-          return [r.x0 + w / 2 + 5, r.x1 - w / 2 - 5];
+          var pb = pickupBarRect();
+          var legR = pb.x0 + clamp(pb.w * 0.16, 46, 76);
+          var fig = kitchenFigureGeom();
+          var waiterR = legR + 38 + (bodySize() * 1.12 / SPRITE_BODY_FRAC) / 2;
+          var chefL = r.cx - fig.chefOff - (fig.chefS / SPRITE_BODY_FRAC) / 2;
+          var lo = Math.max(legR, waiterR) + w / 2 + 10;
+          var hi = chefL - w / 2 - 10;
+          var left = hi > lo ? (lo + hi) / 2 : legR + w / 2 + 14;
+          left = clamp(left, r.x0 + w / 2 + 5, r.x1 - w / 2 - 5);
+          return [left, r.x1 - w / 2 - 5];
         }
         // The kitchen's SIDE BAR — the pickup bar (John's
         // ruling, 2026-11-16: "Add a side Bar to the kitchen
@@ -3333,11 +3551,12 @@
         // full-footprint rule the kitchen band itself
         // keeps. The main run's left end stands just
         // clear of the kitchen's left cheek and the
-        // stage's band beyond it, and the leg's length is
-        // capped by the kitchen's own fittings (see
-        // pickupLegRect), so it never reaches the chefs,
-        // the cooktop, the grill or the pots, which all
-        // work the steel counter at the set's foot.
+        // stage's band beyond it, and the leg descends
+        // the kitchen's left side in front of the set as
+        // a full-height panel to the ground line (see
+        // pickupLegRect), clear of the chefs, the
+        // cooktop, the grill and the pots, which all work
+        // the steel counter east of it.
         function pickupBarRect() {
           var ok = openKitchenRect();
           var w = clamp((ok.x1 - ok.x0) * 0.44, 180, 500);
@@ -3350,50 +3569,43 @@
             top: ok.top, bottom: ok.top + surfOff + 24
           };
         }
-        // The L's short leg: at the pickup bar's LEFT
-        // end — the kitchen's left end, in front of the
+        // The L's leg: at the pickup bar's LEFT end —
+        // the kitchen's left end, in front of the
         // bathrooms — the counter turns 90 degrees and
-        // runs DOWN into the kitchen, along the kitchen's
-        // left side — a vertical run of the same dark-wood
-        // counter, its slab joining the main run's slab at
-        // the corner, its face, brass trim and PICK-UP
-        // lettering carried onto it (see paintRoom), so
-        // the two runs read as one L-shaped bar. Its
-        // length is the SHORTEST of its natural reach and
-        // the clearances the kitchen's own fittings demand
-        // — the chefs' toques, the grill's top rail, the
-        // hanging pans and (where their spans would meet)
-        // the left-hand pot — each measured with the same
-        // formulas that draw those fittings, mirroring
-        // the clearances the leg kept at the right end,
-        // so the leg stops clear of every one of them at
-        // desktop and phone widths alike, and it never
-        // leaves the kitchen's footprint or reaches the
-        // steel counter at the set's foot.
+        // runs DOWN the kitchen's left side as a
+        // FULL-HEIGHT SIDE PANEL (John's ruling,
+        // 2026-11-16, drawn in yellow on his own phone
+        // screenshot of the room: two vertical strokes
+        // descending from the big pickup number card at
+        // the kitchen's top-left, down the kitchen's
+        // left side in front of the bathroom doors,
+        // continuing below the steel counter, down the
+        // deepened kitchen's lower band, and ending in a
+        // horizontal base stroke near the room's foot):
+        // from the number card's slab ALL THE WAY DOWN
+        // TO THE GROUND LINE at the foot of the kitchen
+        // — the seat line, H less the phone-chrome
+        // reserve, the same line the bathroom doors
+        // stand on — with its base/foot on that line.
+        // A dark-wood panel with brass trim and PICK-UP
+        // lettering on its upper face (see paintRoom),
+        // the number stand on top of it, the waiter
+        // posted at it. It stays at the kitchen's left
+        // end, INSIDE the kitchen fixture's left edge —
+        // down, never jutting out toward the dining
+        // floor — and it is NOT capped by the kitchen's
+        // fittings: it is a panel IN FRONT of the set's
+        // left end, and nothing of the working set stands
+        // in its span (the left-hand pot moved east to
+        // clear it — see openKitchenPotXs; the chefs, the
+        // grill and the pans all work east of it), so it
+        // descends its full height at every width.
         function pickupLegRect() {
-          var ok = openKitchenRect();
           var pb = pickupBarRect();
           var legW = clamp(pb.w * 0.16, 46, 76);
           var x0 = pb.x0, x1 = x0 + legW;
           var top = pb.surfY - 1;
-          var bottom = pb.surfY + clamp(ok.h * 0.34, 36, 58);
-          var fig = kitchenFigureGeom();
-          var sh = (fig.chefS / SPRITE_BODY_FRAC) * SPRITE_ASPECT;
-          var chefTop = (ok.bottom - 14) - sh * SPRITE_BODY_CY - fig.chefS * 0.14;
-          bottom = Math.min(bottom, chefTop - 5);
-          var grillTop = (ok.bottom - openKitchenCounterH()) - clamp(ok.h * 0.15, 20, 27) - 5;
-          bottom = Math.min(bottom, grillTop - 5);
-          var railY = ok.top + ok.h * 0.31;
-          var panBot = railY + 8 + clamp(ok.h * 0.10, 8, 16) * 2;
-          bottom = Math.min(bottom, panBot - 2);
-          var potG = openKitchenPotGeom();
-          var pots = openKitchenPotXs();
-          for (var pi = 0; pi < pots.length; pi++) {
-            if (pots[pi] + potG.w / 2 > x0 && pots[pi] - potG.w / 2 < x1) {
-              var potTop = (ok.bottom - openKitchenCounterH() + 1) - potG.h - potG.lidRy;
-              bottom = Math.min(bottom, potTop - 4);
-            }
-          }
+          var bottom = H - chromeReserve;
           return {
             x0: x0, x1: x1, cx: (x0 + x1) / 2, w: legW,
             top: top, bottom: bottom, h: bottom - top
@@ -3429,7 +3641,11 @@
         // the waiter's half-width at his post.
         function kitchenFigureGeom() {
           var r = openKitchenRect();
-          var okScale = clamp(r.h / 124, 1, 1.4);
+          // The chefs' scale follows the WORKING band
+          // (openKitchenH), not the deepened interior —
+          // deepening the kitchen downward does not
+          // resize the working set.
+          var okScale = clamp(openKitchenH() / 124, 1, 1.4);
           return {
             chefS: bodySize() * 0.98 * okScale,
             chefOff: clamp((r.x1 - r.x0) * 0.30, 56, 240),
@@ -4168,6 +4384,15 @@
           // drawKitchenSign).
           var okR = openKitchenRect();
           var okW = okR.x1 - okR.x0;
+          // The working line and the working band above
+          // it: the working set (tiles, rail, pans, steel
+          // counter, cooktop and all its fittings) is
+          // measured from these, exactly as it was when
+          // the set's foot stood on this line — the
+          // deepened interior below the line (the counter
+          // frontage) is painted after the steel counter.
+          var okWorkY = openKitchenWorkY();
+          var okWorkH = okWorkY - okR.top;
           ctx.save();
           ctx.beginPath(); ctx.rect(okR.x0, okR.top, okW, okR.h); ctx.clip();
           var okBack = ctx.createLinearGradient(0, okR.top, 0, okR.bottom);
@@ -4187,10 +4412,10 @@
           ctx.strokeStyle = "#dfe9ec";
           ctx.lineWidth = 1;
           var okTileRow = 0;
-          for (var oty = okR.top + 8; oty < okR.top + okR.h * 0.30; oty += 13, okTileRow++) {
+          for (var oty = okR.top + 8; oty < okR.top + okWorkH * 0.30; oty += 13, okTileRow++) {
             ctx.beginPath(); ctx.moveTo(okR.x0, oty); ctx.lineTo(okR.x1, oty); ctx.stroke();
             for (var otx = okR.x0 + (okTileRow % 2) * 22; otx < okR.x1; otx += 44) {
-              ctx.beginPath(); ctx.moveTo(otx, oty); ctx.lineTo(otx, Math.min(oty + 13, okR.top + okR.h * 0.30)); ctx.stroke();
+              ctx.beginPath(); ctx.moveTo(otx, oty); ctx.lineTo(otx, Math.min(oty + 13, okR.top + okWorkH * 0.30)); ctx.stroke();
             }
           }
           ctx.restore();
@@ -4198,13 +4423,13 @@
           // across the back wall, pans hanging from it by
           // their handles, clear of the KITCHEN sign's seat
           // at the set's centre.
-          var railY = okR.top + okR.h * 0.31;
+          var railY = okR.top + okWorkH * 0.31;
           ctx.fillStyle = "#8d9aa1";
           ctx.fillRect(okR.x0 + 6, railY, okW - 12, 3);
           var panFr = [0.08, 0.30, 0.70, 0.92];
           for (var pni = 0; pni < panFr.length; pni++) {
             var panX = okR.x0 + panFr[pni] * okW;
-            var panR = clamp(okR.h * 0.10, 8, 16);
+            var panR = clamp(okWorkH * 0.10, 8, 16);
             ctx.strokeStyle = "#8d9aa1";
             ctx.lineWidth = 1.6;
             ctx.beginPath(); ctx.moveTo(panX, railY + 2); ctx.lineTo(panX, railY + 8); ctx.stroke();
@@ -4217,11 +4442,11 @@
             ctx.beginPath(); ctx.arc(panX, railY + 8 + panR, panR * 0.62, 0, Math.PI * 2); ctx.fill();
           }
           // The heat lamps' warm glow under the back wall.
-          var okHeat = ctx.createLinearGradient(0, railY + 3, 0, railY + 3 + okR.h * 0.22);
+          var okHeat = ctx.createLinearGradient(0, railY + 3, 0, railY + 3 + okWorkH * 0.22);
           okHeat.addColorStop(0, "rgba(255,150,60,0.20)");
           okHeat.addColorStop(1, "rgba(255,150,60,0)");
           ctx.fillStyle = okHeat;
-          ctx.fillRect(okR.x0, railY + 3, okW, okR.h * 0.22);
+          ctx.fillRect(okR.x0, railY + 3, okW, okWorkH * 0.22);
           // The steel counter along the set's front: the
           // old pass's steel, at the open kitchen's own
           // front — brushed top, hard highlight, dark foot.
@@ -4230,21 +4455,93 @@
           // plates on it scale with it, so the deeper
           // kitchen's fittings read at the bigger size.
           var okCounterH = openKitchenCounterH();
-          var okSteel = ctx.createLinearGradient(0, okR.bottom - okCounterH, 0, okR.bottom);
+          var okSteel = ctx.createLinearGradient(0, okWorkY - okCounterH, 0, okWorkY);
           okSteel.addColorStop(0, "#eef2f4");
           okSteel.addColorStop(0.35, "#c3ced4");
           okSteel.addColorStop(0.75, "#9fadb5");
           okSteel.addColorStop(1, "#7f8f98");
           ctx.fillStyle = okSteel;
-          ctx.fillRect(okR.x0, okR.bottom - okCounterH, okW, okCounterH);
+          ctx.fillRect(okR.x0, okWorkY - okCounterH, okW, okCounterH);
           ctx.fillStyle = "rgba(255,255,255,0.5)";
-          ctx.fillRect(okR.x0, okR.bottom - okCounterH, okW, 1.4);
+          ctx.fillRect(okR.x0, okWorkY - okCounterH, okW, 1.4);
           for (var obi = 0; obi < 5; obi++) {
             ctx.fillStyle = obi % 2 ? "rgba(40,55,62,0.10)" : "rgba(255,255,255,0.16)";
-            ctx.fillRect(okR.x0, okR.bottom - okCounterH + 5 + obi * (okCounterH - 8) / 5, okW, 1);
+            ctx.fillRect(okR.x0, okWorkY - okCounterH + 5 + obi * (okCounterH - 8) / 5, okW, 1);
           }
           ctx.fillStyle = "rgba(20, 30, 34, 0.55)";
-          ctx.fillRect(okR.x0, okR.bottom - 3, okW, 3);
+          ctx.fillRect(okR.x0, okWorkY - 3, okW, 3);
+          // The DEEPENED LOWER KITCHEN (John's ruling,
+          // 2026-11-16: "More kitchen at the bottom"):
+          // below the steel counter's working line, the
+          // interior runs on down to the seat line as a
+          // deep counter FRONTAGE — dark steel cabinet
+          // fronts with panel seams, two oven doors with
+          // dark glass and steel handles under the
+          // working run, a vent grille on the right
+          // stretch, and a slim base trim at the foot —
+          // kitchen equipment and detail in the working
+          // set's own materials, where the dead dark
+          // apron band used to run to the page foot. The
+          // pickup leg's panel descends in front of the
+          // frontage's left end (painted later, with the
+          // pickup bar), and the chefs' working zone
+          // above the counter is untouched.
+          var okBaseH = 9;
+          var okFrontTop = okWorkY;
+          var okFrontBot = okR.bottom - okBaseH;
+          if (okFrontBot > okFrontTop + 12) {
+            var okFront = ctx.createLinearGradient(0, okFrontTop, 0, okFrontBot);
+            okFront.addColorStop(0, "#4b5157");
+            okFront.addColorStop(0.5, "#34393f");
+            okFront.addColorStop(1, "#22252a");
+            ctx.fillStyle = okFront;
+            ctx.fillRect(okR.x0, okFrontTop, okW, okFrontBot - okFrontTop);
+            ctx.fillStyle = "rgba(201,162,39,0.5)";
+            ctx.fillRect(okR.x0, okFrontTop, okW, 1.2);
+            // Cabinet panel seams down the frontage.
+            ctx.strokeStyle = "rgba(0, 0, 0, 0.38)";
+            ctx.lineWidth = 1;
+            for (var ofs = okR.x0 + 46; ofs < okR.x1 - 20; ofs += 92) {
+              ctx.beginPath(); ctx.moveTo(ofs, okFrontTop + 7); ctx.lineTo(ofs, okFrontBot - 7); ctx.stroke();
+            }
+            // The oven doors: steel-framed dark glass
+            // with a handle bar, under the working run's
+            // middle stretches — clear of the pickup
+            // leg's panel at the left end.
+            var okOvenW = clamp(Math.min(okW * 0.16, okW * 0.21), 54, 210);
+            var okOvenH = okFrontBot - okFrontTop - 24;
+            if (okOvenH > 26) {
+              var okOvenFr = [0.40, 0.64];
+              for (var ovi = 0; ovi < okOvenFr.length; ovi++) {
+                var okOvenCx = okR.x0 + okOvenFr[ovi] * okW;
+                var okOvenX = okOvenCx - okOvenW / 2, okOvenY = okFrontTop + 12;
+                ctx.fillStyle = "#6a747b";
+                ctx.fillRect(okOvenX, okOvenY, okOvenW, okOvenH);
+                ctx.fillStyle = "#101216";
+                ctx.fillRect(okOvenX + 6, okOvenY + 10, okOvenW - 12, okOvenH - 16);
+                ctx.fillStyle = "rgba(255, 170, 90, 0.20)";
+                ctx.fillRect(okOvenX + 6, okOvenY + okOvenH - 22, okOvenW - 12, 8);
+                ctx.fillStyle = "#c8d1d6";
+                ctx.fillRect(okOvenX + 8, okOvenY + 4, okOvenW - 16, 3);
+                ctx.fillStyle = "rgba(255,255,255,0.35)";
+                ctx.fillRect(okOvenX + 8, okOvenY + 4, okOvenW - 16, 1);
+              }
+            }
+            // The vent grille on the right stretch:
+            // three dark slits in the frontage's face.
+            ctx.fillStyle = "rgba(8, 9, 11, 0.65)";
+            var okVentX = okR.x0 + okW * 0.84, okVentW = Math.min(64, okW * 0.09);
+            for (var ovi2 = 0; ovi2 < 3; ovi2++) {
+              ctx.fillRect(okVentX, okFrontTop + 16 + ovi2 * 9, okVentW, 3.4);
+            }
+            // The slim base trim at the foot: a dark
+            // kick with a brass line over it — the only
+            // band left at the kitchen's foot.
+            ctx.fillStyle = "#120a04";
+            ctx.fillRect(okR.x0, okR.bottom - okBaseH, okW, okBaseH);
+            ctx.fillStyle = "rgba(201,162,39,0.55)";
+            ctx.fillRect(okR.x0, okR.bottom - okBaseH, okW, 1.2);
+          }
           // The COOKTOP ZONE and its fittings (repair
           // pass, 2026-11-16): the old fittings never read
           // at the set's size — the burners were two
@@ -4258,7 +4555,7 @@
           // grill standing on it between the waiter and
           // the right-hand chef, and two identifiable
           // lidded pots on it at the run's ends.
-          var okTopY = okR.bottom - okCounterH;
+          var okTopY = okWorkY - okCounterH;
           // The slab: black glass with a lit top edge and
           // a hard shadow line where it meets the steel.
           ctx.fillStyle = "#14161a";
@@ -4272,13 +4569,17 @@
           // dark ring, an inner ring, and a core, glowing
           // orange on the lit rings. Two rings carry the
           // pots (their rims read around the pot bases);
-          // two more stand bare in the run's outer thirds.
+          // two more stand bare in the run's outer thirds
+          // — the first of them stepped east past the
+          // left-hand pot's ring wherever that pot's new
+          // seat east of the pickup leg (see
+          // openKitchenPotXs) would crowd it.
           var okPotG = openKitchenPotGeom();
           var okPots = openKitchenPotXs();
-          var okRingXs = [okPots[0], okPots[1], okR.x0 + okW * 0.30, okR.x0 + okW * 0.70];
+          var okRingXs = [okPots[0], okPots[1], Math.max(okR.x0 + okW * 0.30, okPots[0] + okPotG.w * 0.62 + clamp(okWorkH * 0.115, 16, 23) + 10), okR.x0 + okW * 0.70];
           for (var obn = 0; obn < okRingXs.length; obn++) {
             var obx = okRingXs[obn];
-            var obR = obn < 2 ? okPotG.w * 0.62 : clamp(okR.h * 0.115, 16, 23);
+            var obR = obn < 2 ? okPotG.w * 0.62 : clamp(okWorkH * 0.115, 16, 23);
             var obLit = obn >= 2;
             ctx.fillStyle = "#0d0e11";
             ctx.beginPath(); ctx.ellipse(obx, okTopY - 1, obR, obR * 0.36, 0, 0, Math.PI * 2); ctx.fill();
@@ -4309,7 +4610,7 @@
           var okGapR = okR.cx + okFig.chefOff - okFig.chefS / 2;
           var okGrillW = clamp((okGapR - okGapL) * 1.5, 46, 300);
           var okGrillCx = (okGapL + okGapR) / 2;
-          var okGrillH = clamp(okR.h * 0.15, 20, 27);
+          var okGrillH = clamp(okWorkH * 0.15, 20, 27);
           var okGrillTop = okTopY - okGrillH;
           ctx.fillStyle = "#17181d";
           ctx.fillRect(okGrillCx - okGrillW / 2 - 2, okGrillTop - 2, okGrillW + 4, okGrillH + 3);
@@ -4330,8 +4631,10 @@
           ctx.fillStyle = "#8d9aa1";
           ctx.fillRect(okGrillCx - okGrillW / 2 - 3, okGrillTop - 5, okGrillW + 6, 3.5);
           // The POTS: two wide stock pots on the cooktop,
-          // one at each end of the run (their spots are
-          // shared with the live steam — see
+          // the right-hand one at the run's right end, the
+          // left-hand one east of the pickup leg in the
+          // clear stretch before the left chef (their
+          // spots are shared with the live steam — see
           // openKitchenPotXs) — tapered steel bodies lit
           // from the left, side handles, a bright rim, a
           // domed lid and a knob, drawn big enough to be
@@ -4389,8 +4692,8 @@
           // of the waiter's post.
           ctx.fillStyle = "#f4f7f8";
           for (var ppi = 0; ppi < 3; ppi++) {
-            ctx.beginPath(); ctx.ellipse(okR.cx - 52 + ppi * 15, okR.bottom - okCounterH - 2, 12, 3.8, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(okR.cx + 52 - ppi * 15, okR.bottom - okCounterH - 2, 12, 3.8, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(okR.cx - 52 + ppi * 15, okWorkY - okCounterH - 2, 12, 3.8, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(okR.cx + 52 - ppi * 15, okWorkY - okCounterH - 2, 12, 3.8, 0, 0, Math.PI * 2); ctx.fill();
           }
           // The SIDE BAR — the pickup bar (see
           // pickupBarRect): a pickup counter attached to
@@ -4492,17 +4795,51 @@
           // and reads in full.
           ctx.fillStyle = "#c9a227";
           ctx.fillRect(pbLeg.x1 - 1.6, pbR.surfY + 7, 1.6, pbLeg.bottom - (pbR.surfY + 7));
+          // The panel's lower face, below the steel
+          // counter's working line: an inset cabinet
+          // panel worked into the wood, matching the
+          // counter frontage it stands in front of, so
+          // the full-height panel reads as kitchen
+          // furniture all the way down — not a blank
+          // slab.
+          ctx.strokeStyle = "rgba(227, 194, 104, 0.38)";
+          ctx.lineWidth = 1.1;
+          if (pbLeg.bottom - okWorkY > 44) {
+            if (ctx.roundRect) {
+              ctx.beginPath(); ctx.roundRect(pbLeg.x0 + 7, okWorkY + 13, pbLeg.w - 14, pbLeg.bottom - okWorkY - 36, 3); ctx.stroke();
+            } else {
+              ctx.strokeRect(pbLeg.x0 + 7, okWorkY + 13, pbLeg.w - 14, pbLeg.bottom - okWorkY - 36);
+            }
+          }
+          // The panel's base/foot ON the ground line
+          // (John's drawing ends the leg in a horizontal
+          // base stroke at the room's foot): a brass foot
+          // rail across the panel's foot, a base plinth
+          // standing a step proud of the panel at the
+          // very bottom, and a dark end line under it.
           ctx.fillStyle = "#e3c268";
           ctx.fillRect(pbLeg.x0, pbLeg.bottom - 6.5, pbLeg.w, 2.2);
           ctx.fillStyle = "#120a04";
+          ctx.fillRect(pbLeg.x0 - 2.5, pbLeg.bottom - 11, pbLeg.w + 5, 4.5);
+          ctx.fillStyle = "rgba(201,162,39,0.65)";
+          ctx.fillRect(pbLeg.x0 - 2.5, pbLeg.bottom - 11, pbLeg.w + 5, 1.2);
+          ctx.fillStyle = "#120a04";
           ctx.fillRect(pbLeg.x0, pbLeg.bottom - 2, pbLeg.w, 2);
-          var pbLegFont = clamp((pbLeg.bottom - (pbR.surfY + 24)) * 0.62, 7, 10.5);
+          // The lettering sits on the panel's UPPER
+          // face, in the stretch below the main face
+          // where it has always read — the panel's
+          // descent to the foot does not drag it down:
+          // its size and seat are measured on that upper
+          // stretch (the old short leg's face), not on
+          // the full height.
+          var pbLegFaceBot = Math.min(pbLeg.bottom, pbR.surfY + 47);
+          var pbLegFont = clamp((pbLegFaceBot - (pbR.surfY + 24)) * 0.62, 7, 10.5);
           ctx.font = "800 " + pbLegFont + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
           ctx.fillStyle = "#ffbe1a";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           var pbLegTextW = ctx.measureText("PICK-UP").width;
-          ctx.fillText("PICK-UP", pbLeg.x0 + 3 + pbLegTextW / 2, (pbR.surfY + 24 + pbLeg.bottom) / 2 - 3);
+          ctx.fillText("PICK-UP", pbLeg.x0 + 3 + pbLegTextW / 2, (pbR.surfY + 24 + pbLegFaceBot) / 2 - 3);
           ctx.textBaseline = "alphabetic";
           // Pickup plates on the slab, east of the number
           // stand's seat at the leg, along the main run —
@@ -4525,34 +4862,16 @@
           ctx.fillRect(okR.x0 - 3, okR.top, 3, okR.h);
           ctx.fillStyle = "rgba(201,162,39,0.65)";
           ctx.fillRect(okR.x0 - 3, okR.top, 1.2, okR.h);
-          // The kitchen's floor apron (repair pass,
-          // 2026-11-16): the band used to stop at the
-          // ground line, and a strip of the backdrop
-          // photograph showed beneath it, between the
-          // counter's foot and the control bar. The set's
-          // own dark floor now runs on from the counter's
-          // foot to the floor's bottom edge — the stage's
-          // bottom on desktop, and at phone widths the
-          // line the phone's floating chrome leaves
-          // visible (the same chromeReserve the ground
-          // line carries), so the kitchen seats on that
-          // edge, above the control bar, with no
-          // photograph under it. The control bar floats
-          // over the apron as it floats over the room.
-          var okSeatY = H - chromeReserve;
-          if (okSeatY > okR.bottom + 0.5) {
-            var okApron = ctx.createLinearGradient(0, okR.bottom, 0, okSeatY);
-            okApron.addColorStop(0, "#1e1208");
-            okApron.addColorStop(1, "#100903");
-            ctx.fillStyle = okApron;
-            ctx.fillRect(okR.x0, okR.bottom, okW, okSeatY - okR.bottom);
-            ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
-            ctx.fillRect(okR.x0, okR.bottom, okW, 2);
-            ctx.fillStyle = "#1c1108";
-            ctx.fillRect(okR.x0 - 3, okR.bottom, 3, okSeatY - okR.bottom);
-            ctx.fillStyle = "rgba(201,162,39,0.65)";
-            ctx.fillRect(okR.x0 - 3, okR.bottom, 1.2, okSeatY - okR.bottom);
-          }
+          // (The kitchen's old floor apron is gone: the
+          // set itself now runs down to the seat line —
+          // its deepened interior and counter frontage
+          // fill the whole band to the foot, ending in
+          // the slim base trim painted with the frontage
+          // above — so there is no band left beneath the
+          // kitchen for an apron to cover, and no
+          // photograph ever shows under it. The control
+          // bar floats over the kitchen's foot as it
+          // floats over the room.)
 
           // The restrooms beside the stage: two signed
           // doors set flush into the stage wall — the
@@ -5725,7 +6044,7 @@
         // counter, one to each side of the waiter's post
         // at the kitchen's centre — the set the room
         // painting lays out (see paintRoom). Steam rises
-        // off the pots at the counter's ends, on the
+        // off the pots on the cooktop, on the
         // spots openKitchenPotXs shares with the
         // painting. Painted live, after the room and the
         // stations, before the waiter: the waiter at his
@@ -5772,14 +6091,19 @@
           // (up to 1.4× their first size) and spread wider
           // along its longer run, either side of the
           // waiter's post at the run's centre. (The pots
-          // no longer share their spread — they stand at
-          // the counter's ends, clear of the chefs' own
-          // sprites; see openKitchenPotXs.)
-          var okScale = clamp(okR.h / 124, 1, 1.4);
+          // no longer share their spread — the right-hand
+          // pot stands at the counter's right end, the
+          // left-hand one east of the pickup leg, clear of
+          // the chefs' own sprites; see openKitchenPotXs.)
+          var okScale = clamp(openKitchenH() / 124, 1, 1.4);
           var s = bodySize() * 0.98 * okScale;
           var off = clamp((okR.x1 - okR.x0) * 0.30, 56, 240);
-          drawChefFigure(okR.cx - off, okR.bottom - 14, s, kitchenChefs[0], nowMs);
-          drawChefFigure(okR.cx + off, okR.bottom - 14, s, kitchenChefs[1], nowMs);
+          // The chefs stand on the WORKING line, as they
+          // always have — the deepened interior below
+          // that line (the counter frontage) does not
+          // move their posts.
+          drawChefFigure(okR.cx - off, openKitchenWorkY() - 14, s, kitchenChefs[0], nowMs);
+          drawChefFigure(okR.cx + off, openKitchenWorkY() - 14, s, kitchenChefs[1], nowMs);
           // Steam off the pots: full plumes, not dots
           // (repair pass, 2026-11-16 — the old three
           // faint grey dots per pot read as nothing at
@@ -5791,8 +6115,8 @@
           // rise and the wisps scale with the set.
           var pots = openKitchenPotXs();
           var okPotG2 = openKitchenPotGeom();
-          var okLidY = okR.bottom - openKitchenCounterH() + 1 - okPotG2.h - okPotG2.lidRy;
-          var okRise = clamp(okR.h * 0.34, 44, 58);
+          var okLidY = openKitchenWorkY() - openKitchenCounterH() + 1 - okPotG2.h - okPotG2.lidRy;
+          var okRise = clamp(openKitchenH() * 0.34, 44, 58);
           for (var cpi = 0; cpi < pots.length; cpi++) {
             var wob = Math.sin(nowMs / 480 + cpi * 2.3) * 3 * okScale;
             ctx.save();
@@ -5874,7 +6198,7 @@
         function drawKitchenSign(nowMs) {
           var okSign = openKitchenRect();
           var ax = okSign.cx;
-          var ay = okSign.bottom - 14;
+          var ay = openKitchenWorkY() - 14;
           var bobY = Math.sin(nowMs / 700) * 1.2;
           var s = bodySize() * 1.12;
           var sh = (s / SPRITE_BODY_FRAC) * SPRITE_ASPECT;
@@ -7711,6 +8035,11 @@
           }
           activeEscort = { stops: ordered, stopIdx: 0, sitP: 0 };
           for (var si = 0; si < ordered.length; si++) spawnArrivals(ordered[si], si);
+          // The host takes a party from the head of the
+          // entrance line to seat them: the line steps
+          // forward one place behind him, and a new party
+          // joins at its back (see advanceEntranceLine).
+          advanceEntranceLine();
           host.state = "escortGo";
         }
 
@@ -8611,6 +8940,7 @@
           stepWaiter(dtMs);
           stepHost(dtMs);
           stepEscorts(dtMs);
+          stepEntranceLine(dtMs);
 
           // Tables ease toward their slots after a resize
           // or a Pack 'em — a short settle into place, never
@@ -8804,6 +9134,7 @@
             maitreDesk: { x: Math.round(entrance.deskX), y: Math.round(entrance.deskY) },
             entranceCouple: entrance.couple.length,
             entranceLine: entrance.line.length,
+            entranceLinePos: entrance.line.map(function (m) { return { x: Math.round(m.x), y: Math.round(m.y), tx: Math.round(m.tx), departing: !!m.departing, moving: !!m.moving }; }),
             ticketAgeMs: ticketNum == null ? null : Math.max(0, performance.now() - lastTicketAt),
             ticketDueInMs: nextTicketAt === Infinity ? null : Math.max(0, nextTicketAt - performance.now()),
             tableShows: tables.map(function (t) { return t.show ? t.show.name : null; }),
