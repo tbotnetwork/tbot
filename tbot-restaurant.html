@@ -1971,6 +1971,28 @@
         // the pot seats) grows with them as it always has.
         var PEOPLE_SCALE = 1.60;
         function bodySize() { return clamp(W * 0.115, 40, 56) * PEOPLE_SCALE; }
+        // The WAITER's own size: the mascot at 1.12 of
+        // the body measure — with one phone-width fit
+        // (server-post correction, 2026-11-17): on a
+        // narrow screen the strip of dining floor west
+        // of the kitchen is narrower than his whole
+        // sprite, rods included, so at his full size his
+        // body was pressed against the screen's edge and
+        // read as cropped. At phone widths he is scaled
+        // to fit that strip — the whole body standing
+        // inside it with marble at both sides — while
+        // every other figure (the photographed people,
+        // the chefs, the host) keeps the full people
+        // scale untouched, and on desktop widths he
+        // keeps his full size exactly as built.
+        function waiterSize() {
+          var s = bodySize() * 1.12;
+          if (W < 620) {
+            var fit = (stageReserveW() + 34) / (s / SPRITE_BODY_FRAC);
+            s *= clamp(fit, 0.8, 1);
+          }
+          return s;
+        }
 
         // A soft contact shadow: a radial-gradient pool,
         // dark at its heart and feathering to nothing at
@@ -3202,12 +3224,15 @@
         // backdrop along the wall behind it, the planked
         // boards run the length of the deck with their
         // sheen, footlights glow along BOTH long edges,
-        // and spotlight beams pool on the boards along its
+        // and ONE follow spotlight beams down from above
+        // the head into a bright pool on the boards
+        // around the current act, following it along the
         // length. The acts perform ALONG the runway (see
         // stageActPoint): the DJ's table at the head by
-        // the bar, the piano placed along it, the singer
-        // and the rapper pacing its length, the band at
-        // its standing point — the gold role plate riding
+        // the bar, the piano placed along the lower
+        // stretch, the singer and the rapper pacing its
+        // length to the foot, the band at the foot — the
+        // gold role plate riding
         // the deck at each act's feet, on the runway's
         // room-facing front.
         //
@@ -4110,15 +4135,48 @@
           // seat on open floor, never under the runway.
           var pbRect = pickupBarRect();
           var pbLeg = pickupLegRect();
-          var wS = bodySize() * 1.12;
+          var wS = waiterSize();
           var wSw = wS / SPRITE_BODY_FRAC;
           var wSh = wSw * SPRITE_ASPECT;
-          waiter.homeX = Math.max(pbLeg.x0 - wSw / 2 - 4, wS * 1.29 + 2);
-          waiter.homeY = okRect.top + pbRect.surfOff + 36;
+          // THE POST, MEASURED ON THE BODY (server-post
+          // correction, 2026-11-17): the old seat centred
+          // him on his whole SPRITE's width and clamped
+          // him east, so his BODY overlapped the leg panel
+          // by some 40% of its width, his head sat in
+          // front of the kitchen's brick wall, and his
+          // body ended at mid-leg height — floating. The
+          // post is now measured on the BODY the sprite
+          // carries (wS wide, centred on homeX): the
+          // body's east edge stands a clear 12px WEST of
+          // the leg panel's west face — the whole body
+          // clear of the leg, and west of the kitchen's
+          // cheek and brick wall with it — and his feet
+          // (the sprite's bottom, where his contact
+          // shadow pools — see drawWaiter) stand ON THE
+          // DINING FLOOR west of the kitchen, a step
+          // below the pickup counter's surface line, so
+          // the full figure stands grounded on the black
+          // marble, unmistakably outside the kitchen on
+          // its left. On a phone-width strip too narrow
+          // for the full-size sprite, the mascot himself
+          // is fitted to the strip (see waiterSize), so
+          // the whole body stands inside it — marble at
+          // both sides, east edge still clear of the
+          // leg, feet and shadow on the stone — and reads
+          // as a full grounded figure at phone widths
+          // too (only the sprite's thin side rods reach
+          // past the strip there, as they do for the
+          // entrance figures at the room's east edge).
+          // The runway guard
+          // below still applies, capped low: it only ever
+          // settles his crown clear of the runway's foot,
+          // never lifts his feet off the floor line.
+          waiter.homeX = Math.max(pbLeg.x0 - wS / 2 - 12, wS / 2 + 1);
+          waiter.homeY = okRect.top + pbRect.surfOff + 22 - wSh * (1 - SPRITE_BODY_CY);
           if (waiter.homeX - wSw / 2 < stageStation.w &&
               waiter.homeY - wSh * SPRITE_BODY_CY < stageStation.baseY + 6) {
             var wShift = stageStation.baseY + 6 - (waiter.homeY - wSh * SPRITE_BODY_CY);
-            if (wShift > 0) waiter.homeY += Math.min(wShift, 36);
+            if (wShift > 0) waiter.homeY += Math.min(wShift, 10);
           }
           if (waiter.state === "pass") { waiter.x = waiter.homeX; waiter.y = waiter.homeY; }
         }
@@ -4375,14 +4433,15 @@
         // edge on the floor's perspective curve — so the
         // stone deepens as it recedes while no vein ever
         // breaks. Over it, the room's light as one plane
-        // and the polished gloss: the glass wall's sunset
-        // standing in the black polish, lantern smears,
-        // warm pools, a raking sheen — on black stone the
-        // reflections carry further than they ever did on
-        // white, which is what grounds everything that
-        // stands on it: every figure, table and fixture
-        // keeps its contact shadow and its faint presence
-        // in the gloss, drawn with them as always. It is
+        // and a polished gloss kept to a soft, low sheen
+        // within the black — feathered radial pools and
+        // one faint centred sheen, never a band, stripe
+        // or wash of another colour (see the gloss note
+        // in paintMarbleFloor) — which is what grounds
+        // everything that stands on it: every figure,
+        // table and fixture keeps its contact shadow and
+        // its faint presence in the gloss, drawn with
+        // them as always. It is
         // painted over the photograph's floor everywhere
         // below the floor line (the dining area, the
         // entrance / maître d' area, around the bar and
@@ -4396,7 +4455,7 @@
         function paintMarbleFloor(floorTop) {
           var fBot = H;
           var fH = Math.max(1, fBot - floorTop);
-          var vpX = W * 0.52; // the reflections' vanishing point, on the glass wall's centre
+          var vpX = W * 0.52; // the floor light's centre, on the glass wall's centre
           ctx.save();
           ctx.beginPath(); ctx.rect(0, floorTop, W, fH); ctx.clip();
           // The stone's base: deep black, a step deeper
@@ -4459,7 +4518,7 @@
             var mLight = ctx.createLinearGradient(0, floorTop, 0, fBot);
             mLight.addColorStop(0, "rgba(0, 0, 0, 0.26)");
             mLight.addColorStop(0.30, "rgba(0, 0, 0, 0.06)");
-            mLight.addColorStop(0.72, "rgba(255, 196, 128, 0.045)");
+            mLight.addColorStop(0.72, "rgba(255, 255, 255, 0.02)");
             mLight.addColorStop(1, "rgba(0, 0, 0, 0.16)");
             ctx.fillStyle = mLight;
             ctx.fillRect(0, floorTop, W, fH);
@@ -4472,109 +4531,46 @@
               var mDy = floorTop + fH * (0.12 + roomHash(mDrift * 6.3 + 5) * 0.76);
               var mDr = W * (0.16 + roomHash(mDrift * 4.9 + 8) * 0.14);
               var mDriftG = ctx.createRadialGradient(mDx, mDy, 4, mDx, mDy, mDr);
-              mDriftG.addColorStop(0, mDrift % 2 === 0 ? "rgba(214, 198, 168, 0.05)" : "rgba(120, 128, 148, 0.045)");
+              mDriftG.addColorStop(0, mDrift % 2 === 0 ? "rgba(226, 230, 238, 0.035)" : "rgba(120, 128, 148, 0.03)");
               mDriftG.addColorStop(1, "rgba(0, 0, 0, 0)");
               ctx.fillStyle = mDriftG;
               ctx.beginPath(); ctx.ellipse(mDx, mDy, mDr, mDr * 0.42, 0, 0, Math.PI * 2); ctx.fill();
             }
           }
-          // THE POLISHED GLOSS: on black stone the floor
-          // mirrors the room MORE, not less — that mirror
-          // is the black floor's own light. The glass
-          // wall's sunset stands in the polish as soft
-          // vertical streaks that fan with the floor's
-          // perspective and fade as they come forward; the
-          // lanterns answer with their own warm smears;
-          // the bar throws a low warm reflection along the
-          // back-left; warm pools settle under the
-          // pendants; and one broad sheen rakes the stone
-          // diagonally, so the gloss shifts as the eye
-          // crosses the floor. No seam, no grid, no grout
-          // anywhere in it — the reflections run unbroken
-          // across the whole sheet, like the veining.
-          var mGlass = ctx.createLinearGradient(0, floorTop, 0, fBot);
-          mGlass.addColorStop(0, "rgba(255, 205, 150, 0.13)");
-          mGlass.addColorStop(0.5, "rgba(255, 205, 150, 0.06)");
-          mGlass.addColorStop(1, "rgba(255, 205, 150, 0)");
-          ctx.fillStyle = mGlass;
-          ctx.fillRect(W * 0.30, floorTop, W * 0.44, fH);
-          for (var mWin = 0; mWin < 5; mWin++) {
-            var mWxT = W * (0.335 + mWin * 0.088);
-            var mWxB = vpX + (mWxT - vpX) * 1.9;
-            var mWinG = ctx.createLinearGradient(0, floorTop, 0, floorTop + fH * 0.85);
-            mWinG.addColorStop(0, "rgba(255, 216, 160, 0.32)");
-            mWinG.addColorStop(0.55, "rgba(255, 216, 160, 0.13)");
-            mWinG.addColorStop(1, "rgba(255, 216, 160, 0)");
-            ctx.fillStyle = mWinG;
-            ctx.beginPath();
-            ctx.moveTo(mWxT - W * 0.010, floorTop);
-            ctx.lineTo(mWxT + W * 0.010, floorTop);
-            ctx.lineTo(mWxB + W * 0.026, floorTop + fH * 0.85);
-            ctx.lineTo(mWxB - W * 0.026, floorTop + fH * 0.85);
-            ctx.closePath(); ctx.fill();
-          }
-          // The streaks' bright cores: a narrower,
-          // hotter thread down the middle of each window
-          // reflection — the specular edge that makes the
-          // polish read as gloss, not haze.
-          for (var mCore = 0; mCore < 5; mCore++) {
-            var mCxT = W * (0.335 + mCore * 0.088);
-            var mCxB = vpX + (mCxT - vpX) * 1.9;
-            var mCoreG = ctx.createLinearGradient(0, floorTop, 0, floorTop + fH * 0.7);
-            mCoreG.addColorStop(0, "rgba(255, 232, 190, 0.26)");
-            mCoreG.addColorStop(1, "rgba(255, 232, 190, 0)");
-            ctx.fillStyle = mCoreG;
-            ctx.beginPath();
-            ctx.moveTo(mCxT - W * 0.0035, floorTop);
-            ctx.lineTo(mCxT + W * 0.0035, floorTop);
-            ctx.lineTo(mCxB + W * 0.009, floorTop + fH * 0.7);
-            ctx.lineTo(mCxB - W * 0.009, floorTop + fH * 0.7);
-            ctx.closePath(); ctx.fill();
-          }
-          var mLampX = [0.065, 0.315, 0.565, 0.685, 0.945];
-          for (var mLamp = 0; mLamp < mLampX.length; mLamp++) {
-            var mLxT = W * mLampX[mLamp];
-            var mLxB = vpX + (mLxT - vpX) * 1.55;
-            var mLampG = ctx.createLinearGradient(0, floorTop, 0, floorTop + fH * 0.62);
-            mLampG.addColorStop(0, "rgba(255, 190, 110, 0.24)");
-            mLampG.addColorStop(1, "rgba(255, 190, 110, 0)");
-            ctx.fillStyle = mLampG;
-            ctx.beginPath();
-            ctx.moveTo(mLxT - W * 0.008, floorTop);
-            ctx.lineTo(mLxT + W * 0.008, floorTop);
-            ctx.lineTo(mLxB + W * 0.020, floorTop + fH * 0.62);
-            ctx.lineTo(mLxB - W * 0.020, floorTop + fH * 0.62);
-            ctx.closePath(); ctx.fill();
-          }
-          // The bar's low reflection in the black polish:
-          // warm light off the back bar's bottles and
-          // brass, lying along the floor's back-left.
-          var mBarG = ctx.createLinearGradient(0, floorTop, 0, floorTop + fH * 0.34);
-          mBarG.addColorStop(0, "rgba(255, 178, 102, 0.13)");
-          mBarG.addColorStop(1, "rgba(255, 178, 102, 0)");
-          ctx.fillStyle = mBarG;
-          ctx.fillRect(0, floorTop, W * 0.54, fH * 0.34);
+          // THE POLISHED GLOSS (floor correction,
+          // 2026-11-17): the gloss is a soft SHEEN WITHIN
+          // THE BLACK, and nothing else. An earlier build
+          // laid the sunset's reflection as hard-edged
+          // trapezoid bands fanning from the glass wall,
+          // partial-width warm washes and a diagonal sheen
+          // band — on the live floor those stacked into a
+          // grey-brown matte CENTRE PANEL crossed by wide
+          // TAN DIAGONAL STRIPES, with hard seams where the
+          // washes ended. They are DELETED, all of them:
+          // no polygon bands, no partial-width rectangles,
+          // no diagonal stripe, no bright cores, no line
+          // at the floor's bottom edge. What remains is
+          // feathered radial light only — a few very soft,
+          // low pools under the pendants and one broad,
+          // faint sheen centred on the floor — every
+          // gradient fading to nothing at its edges, so
+          // the black stone and its white streaks run
+          // uninterrupted from wall to wall and the
+          // centre of the floor is the same black Nero
+          // Marquina marble as its edges.
           for (var mPool = 0; mPool < 4; mPool++) {
             var mPx = W * (0.18 + mPool * 0.21), mPy = floorTop + fH * (0.30 + roomHash(mPool * 7.7 + 3) * 0.4);
-            var mPoolG = ctx.createRadialGradient(mPx, mPy, 2, mPx, mPy, W * 0.10);
-            mPoolG.addColorStop(0, "rgba(255, 214, 150, 0.21)");
-            mPoolG.addColorStop(1, "rgba(255, 214, 150, 0)");
+            var mPoolG = ctx.createRadialGradient(mPx, mPy, 2, mPx, mPy, W * 0.11);
+            mPoolG.addColorStop(0, "rgba(255, 226, 175, 0.10)");
+            mPoolG.addColorStop(1, "rgba(255, 226, 175, 0)");
             ctx.fillStyle = mPoolG;
-            ctx.beginPath(); ctx.ellipse(mPx, mPy, W * 0.10, W * 0.10 * 0.36, 0, 0, Math.PI * 2); ctx.fill();
-            // The pool's hot core: the pendant's own
-            // bright heart standing in the polish.
-            var mCoreG2 = ctx.createRadialGradient(mPx, mPy, 1, mPx, mPy, W * 0.038);
-            mCoreG2.addColorStop(0, "rgba(255, 228, 178, 0.18)");
-            mCoreG2.addColorStop(1, "rgba(255, 228, 178, 0)");
-            ctx.fillStyle = mCoreG2;
-            ctx.beginPath(); ctx.ellipse(mPx, mPy, W * 0.038, W * 0.038 * 0.36, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(mPx, mPy, W * 0.11, W * 0.11 * 0.36, 0, 0, Math.PI * 2); ctx.fill();
           }
-          var mSheen = ctx.createLinearGradient(0, floorTop, W, fBot);
-          mSheen.addColorStop(0, "rgba(255, 255, 255, 0)");
-          mSheen.addColorStop(0.45, "rgba(255, 255, 255, 0.19)");
-          mSheen.addColorStop(0.62, "rgba(255, 255, 255, 0)");
-          mSheen.addColorStop(1, "rgba(255, 255, 255, 0)");
-          ctx.fillStyle = mSheen;
+          var mSheenG = ctx.createRadialGradient(W * 0.5, floorTop + fH * 0.42, 10, W * 0.5, floorTop + fH * 0.42, W * 0.62);
+          mSheenG.addColorStop(0, "rgba(235, 238, 245, 0.055)");
+          mSheenG.addColorStop(0.6, "rgba(235, 238, 245, 0.025)");
+          mSheenG.addColorStop(1, "rgba(235, 238, 245, 0)");
+          ctx.fillStyle = mSheenG;
           ctx.fillRect(0, floorTop, W, fH);
           // Ambient occlusion where the floor meets the
           // back wall and the fixtures, so the room's
@@ -6837,7 +6833,7 @@
         }
 
         function drawWaiter(nowMs) {
-          var s = bodySize() * 1.12;
+          var s = waiterSize();
           var moving = waiter.state !== "pass";
           var bobY = moving ? Math.abs(Math.sin(waiter.stepPh)) * 3 : Math.sin(nowMs / 700) * 1.2;
           // Shadow, resting at the sprite's own bottom
@@ -8139,11 +8135,11 @@
         // (table run and head) measured down from the
         // deck's head so the whole act stands on the
         // boards below the curtain's valance; the piano
-        // is placed along the upper-middle; the band
-        // stands at its point in the lower-middle; and
-        // the two microphone acts — the singer and the
-        // rapper — PACE the runway's length: a slow
-        // traverse of the middle stretch on the room's
+        // is placed along the lower stretch and the band
+        // at the foot; and the two microphone acts — the
+        // singer and the rapper — PACE the runway's
+        // length: a full traverse from the mid-length
+        // down to the foot point and back on the room's
         // real-elapsed clock, turning at the ends of
         // their stretch, their feet never leaving the
         // deck. Every point is measured from the laid-out
@@ -8163,25 +8159,39 @@
             // off the head of the shorter deck.
             return headY + clamp(Math.max(u * 2.08, len * 0.30), 0, Math.max(len * 0.72, 0));
           }
-          // The piano and the band sit along the boards
-          // at their fractions of the shortened length,
-          // stepped down the deck whenever their own
-          // height needs the room, so no head ever rises
-          // above the deck's head.
-          if (actId === "pj-morton-piano") return Math.max(headY + len * 0.56, Math.min(headY + u * 2.20, footY - 6));
-          if (actId === "tbot-band") return Math.max(headY + len * 0.66, Math.min(headY + u * 1.85, footY - 6));
-          // The microphone acts pace the shortened
-          // length: their stretch is the part of the deck
-          // a standing figure fits — feet low enough that
-          // the head clears the deck's head, high enough
-          // that the role plate at the feet stays on the
-          // boards above the foot — and they traverse its
-          // centre, turning at its ends.
-          var paceLo = headY + u * 2.28, paceHi = footY - 26;
+          // The piano and the band are placed ALONG the
+          // boards, well down the runway's length (act
+          // placement correction, 2026-11-17: the acts
+          // must perform along the runway, not only at
+          // its head — at their old fractions their feet
+          // stood in the deck's upper stretch and their
+          // bodies filled the head, so every act read as
+          // a head act). The piano stands at the lower
+          // stretch, its feet near the foot, its body and
+          // lid filling the mid-to-foot boards; the band
+          // stands at the foot itself. Each keeps the old
+          // head-clearance cap: stepped up the deck only
+          // as far as its own height needs, so no head
+          // ever rises above the deck's head on a very
+          // short runway.
+          if (actId === "pj-morton-piano") return Math.max(headY + len * 0.86, Math.min(headY + u * 2.20, footY - 4));
+          if (actId === "tbot-band") return Math.max(headY + len * 0.94, Math.min(headY + u * 1.85, footY - 4));
+          // The microphone acts PACE the runway's length
+          // (same correction): their stretch runs from
+          // the highest feet a standing figure fits —
+          // head clear of the deck's head — all the way
+          // down to the foot point, the lowest feet whose
+          // role plate still lands on the boards at the
+          // foot's edge, and they traverse the WHOLE of
+          // it on a readable stride (a full traverse in
+          // about nine seconds), turning at its ends — so
+          // the singer and the rapper read at mid-length
+          // and at the foot, not hovering at the head.
+          var paceLo = headY + u * 2.28, paceHi = footY - 22;
           if (paceHi < paceLo) paceHi = paceLo;
           var mid = (paceLo + paceHi) / 2;
-          var amp = Math.min(len * 0.20, (paceHi - paceLo) / 2);
-          return mid + Math.sin(nowMs / 3400) * amp;
+          var amp = (paceHi - paceLo) / 2;
+          return mid + Math.sin(nowMs / 1500) * amp;
         }
 
         // The runway itself, painted live each frame
@@ -8192,8 +8202,10 @@
         // planked deck running down the wall from the
         // head to the foot, its boards running its
         // length; footlights glowing along both long
-        // edges; spotlight beams from the head pooling
-        // on the boards along the length; the current
+        // edges; ONE follow spotlight — a beam cone from
+        // above the head landing in a bright pool on the
+        // boards around the current act, wherever the
+        // act stands along the length; the current
         // act performing at its point along the runway;
         // and the number stand on its room-facing edge
         // at the runway's middle height, painted last so
@@ -8393,41 +8405,13 @@
             runwayLamp(deckL + 3.5, fly);
             runwayLamp(deckR - 3.5, fly);
           }
-          // The stage light: two soft beams falling from
-          // the curtain's head down the runway, and the
-          // pools they leave on the boards ALONG ITS
-          // LENGTH — one at each stretch of the catwalk —
-          // in the room's warm tone, so the acts stand in
-          // real light, grounded on the boards, not pasted
-          // on a flat strip.
-          ctx.save();
-          var beamG = ctx.createLinearGradient(0, curTop, 0, headY + len * 0.55);
-          beamG.addColorStop(0, "rgba(255, 216, 150, 0.26)");
-          beamG.addColorStop(1, "rgba(255, 216, 150, 0.05)");
-          ctx.fillStyle = beamG;
-          ctx.beginPath();
-          ctx.moveTo(deckL + 2, curTop + 4);
-          ctx.lineTo(deckL + deckW * 0.30, curTop + 4);
-          ctx.lineTo(deckCx + deckW * 0.30, headY + len * 0.55);
-          ctx.lineTo(deckCx - deckW * 0.42, headY + len * 0.55);
-          ctx.closePath(); ctx.fill();
-          ctx.beginPath();
-          ctx.moveTo(deckR - deckW * 0.30, curTop + 4);
-          ctx.lineTo(deckR - 2, curTop + 4);
-          ctx.lineTo(deckCx + deckW * 0.42, headY + len * 0.55);
-          ctx.lineTo(deckCx - deckW * 0.30, headY + len * 0.55);
-          ctx.closePath(); ctx.fill();
-          ctx.restore();
-          var poolFr = [0.24, 0.52, 0.80];
-          for (var poi = 0; poi < poolFr.length; poi++) {
-            var poolY = headY + len * poolFr[poi];
-            var poolG = ctx.createRadialGradient(deckCx, poolY, 2, deckCx, poolY, deckW * 0.62);
-            poolG.addColorStop(0, "rgba(255, 224, 168, 0.34)");
-            poolG.addColorStop(0.6, "rgba(255, 224, 168, 0.14)");
-            poolG.addColorStop(1, "rgba(255, 224, 168, 0)");
-            ctx.fillStyle = poolG;
-            ctx.beginPath(); ctx.ellipse(deckCx, poolY, deckW * 0.62, len * 0.11, 0, 0, Math.PI * 2); ctx.fill();
-          }
+          // (The stage light itself — the follow
+          // spotlight — is drawn with the act below, so
+          // its one beam and one pool sit on the
+          // performer wherever the act stands along the
+          // runway. The general warm washes and static
+          // pools an earlier build laid along the boards
+          // are gone: they never read as a spotlight.)
           // The act, at its point along the runway (see
           // stageActPoint). Mid-rotation (a re-deal just
           // turned the stage over), the outgoing act
@@ -8438,25 +8422,94 @@
           // real-elapsed clock). Each act's gold role
           // plate rides the deck at its feet, on the
           // runway's room-facing front.
-          if (st.prevActId && st.swapT > 0 && STAGE_ACTS[st.prevActId] && st.prevActId !== STAGE_ACT_ID) {
+          var swapping = !!(st.prevActId && st.swapT > 0 && STAGE_ACTS[st.prevActId] && st.prevActId !== STAGE_ACT_ID);
+          var actY = stageActPoint(STAGE_ACT_ID, nowMs);
+          var prevY = swapping ? stageActPoint(st.prevActId, nowMs) : actY;
+          // THE SPOTLIGHT (John's ruling, 2026-11-17:
+          // "Spotlight on the stage."): ONE clear beam
+          // cone falling from a lamp point above the
+          // runway's head, landing in ONE bright, defined
+          // pool on the boards AROUND THE CURRENT
+          // PERFORMER — the classic stage spotlight. The
+          // pool is centred on the act's own point along
+          // the runway (see stageActPoint), so the light
+          // follows the performance: on the DJ at the
+          // head, on the piano at the lower stretch, on
+          // the band at the foot, and travelling with the
+          // singer and the rapper as they pace. Mid-
+          // rotation the beam follows the incoming act.
+          // The beam and pool are painted here, behind
+          // the act, so the performer stands IN the
+          // light, grounded on the lit boards.
+          var spotRy = Math.max(13, u * 0.70);
+          var spotRx = deckW * 0.86;
+          var spotY = clamp(actY - u * 0.22, headY + spotRy * 0.8, footY - spotRy * 0.55);
+          var beamTopX = deckCx, beamTopY = curTop - 4;
+          var beamG = ctx.createLinearGradient(0, beamTopY, 0, spotY);
+          beamG.addColorStop(0, "rgba(255, 240, 205, 0.34)");
+          beamG.addColorStop(0.7, "rgba(255, 232, 185, 0.22)");
+          beamG.addColorStop(1, "rgba(255, 232, 185, 0.30)");
+          ctx.fillStyle = beamG;
+          ctx.beginPath();
+          ctx.moveTo(beamTopX - 3, beamTopY);
+          ctx.lineTo(beamTopX + 3, beamTopY);
+          ctx.lineTo(deckCx + spotRx * 0.92, spotY);
+          ctx.lineTo(deckCx - spotRx * 0.92, spotY);
+          ctx.closePath(); ctx.fill();
+          // The beam's bright core: a narrower cone down
+          // its heart, so the beam reads as one shaft of
+          // light, not a wash.
+          var beamCoreG = ctx.createLinearGradient(0, beamTopY, 0, spotY);
+          beamCoreG.addColorStop(0, "rgba(255, 246, 220, 0.16)");
+          beamCoreG.addColorStop(1, "rgba(255, 246, 220, 0.10)");
+          ctx.fillStyle = beamCoreG;
+          ctx.beginPath();
+          ctx.moveTo(beamTopX - 1.2, beamTopY);
+          ctx.lineTo(beamTopX + 1.2, beamTopY);
+          ctx.lineTo(deckCx + spotRx * 0.45, spotY);
+          ctx.lineTo(deckCx - spotRx * 0.45, spotY);
+          ctx.closePath(); ctx.fill();
+          // The lamp point itself: a small bright heart
+          // where the beam leaves, above the head.
+          var lampG = ctx.createRadialGradient(beamTopX, beamTopY, 0.5, beamTopX, beamTopY, 7);
+          lampG.addColorStop(0, "rgba(255, 248, 224, 0.55)");
+          lampG.addColorStop(1, "rgba(255, 248, 224, 0)");
+          ctx.fillStyle = lampG;
+          ctx.beginPath(); ctx.arc(beamTopX, beamTopY, 7, 0, Math.PI * 2); ctx.fill();
+          // THE POOL on the boards: a bright, defined
+          // ellipse of warm light around the performer's
+          // feet, with a hot core at its heart — the
+          // boards inside it read clearly lighter than
+          // the boards outside it, at every point along
+          // the runway.
+          var spotG = ctx.createRadialGradient(deckCx, spotY, 2, deckCx, spotY, spotRx);
+          spotG.addColorStop(0, "rgba(255, 240, 200, 0.68)");
+          spotG.addColorStop(0.55, "rgba(255, 230, 175, 0.44)");
+          spotG.addColorStop(0.85, "rgba(255, 220, 160, 0.16)");
+          spotG.addColorStop(1, "rgba(255, 220, 160, 0)");
+          ctx.fillStyle = spotG;
+          ctx.beginPath(); ctx.ellipse(deckCx, spotY, spotRx, spotRy, 0, 0, Math.PI * 2); ctx.fill();
+          var spotCoreG = ctx.createRadialGradient(deckCx, spotY, 1, deckCx, spotY, spotRx * 0.52);
+          spotCoreG.addColorStop(0, "rgba(255, 246, 214, 0.40)");
+          spotCoreG.addColorStop(1, "rgba(255, 246, 214, 0)");
+          ctx.fillStyle = spotCoreG;
+          ctx.beginPath(); ctx.ellipse(deckCx, spotY, spotRx * 0.52, spotRy * 0.52, 0, 0, Math.PI * 2); ctx.fill();
+          if (swapping) {
             var swapP = 1 - st.swapT;
             var prevAct = STAGE_ACTS[st.prevActId];
-            var prevY = stageActPoint(st.prevActId, nowMs);
             ctx.save();
             ctx.globalAlpha = 1 - swapP;
             ctx.translate(0, -swapP * u * 1.2);
             prevAct.draw({ cx: deckCx, platTop: prevY, u: u, nowMs: nowMs, happyT: 0 });
             drawStageRolePlate(prevAct.role, deckCx + (prevAct.roleDx || 0) * u, prevY, u);
             ctx.restore();
-            var inY = stageActPoint(STAGE_ACT_ID, nowMs);
             ctx.save();
             ctx.globalAlpha = swapP;
             ctx.translate(0, (1 - swapP) * u * 1.2);
-            act.draw({ cx: deckCx, platTop: inY, u: u, nowMs: nowMs, happyT: st.happyT });
-            drawStageRolePlate(act.role, deckCx + (act.roleDx || 0) * u, inY, u);
+            act.draw({ cx: deckCx, platTop: actY, u: u, nowMs: nowMs, happyT: st.happyT });
+            drawStageRolePlate(act.role, deckCx + (act.roleDx || 0) * u, actY, u);
             ctx.restore();
           } else {
-            var actY = stageActPoint(STAGE_ACT_ID, nowMs);
             act.draw({ cx: deckCx, platTop: actY, u: u, nowMs: nowMs, happyT: st.happyT });
             drawStageRolePlate(act.role, deckCx + (act.roleDx || 0) * u, actY, u);
           }
