@@ -7565,15 +7565,33 @@
           // station (the floor grid is carved clear of the
           // whole stage band — see layoutTables).
           // Unnumbered on an empty floor: no stand.
+          //
+          // The stage numbers, BIGGER (John's ruling,
+          // 2026-11-17: "Make the stage number larger"):
+          // the stand's plaque grows to the enlarged bar
+          // numbers' own proportions — from 1.16 × 0.76 of
+          // the floored radius to 1.68 × 1.10 — so its
+          // digits (about 0.71 of the plaque's height, see
+          // drawPlaque) run at the bar numbers' size,
+          // readable at a glance at desktop and phone
+          // widths, and the brass base grows with it. The
+          // stand keeps its seat on the room-facing edge
+          // at the stage's middle height: the plaque's
+          // bottom and its base still end above the
+          // platform top, clear of the gold role plate on
+          // the stage front below it, and its right edge
+          // still lands inside the stage's reserved band,
+          // clear of the nearest dealt station, at the
+          // opening floor of 6 and a full house of 16.
           if (st.number > 0) {
             var standX = cx + st.w / 2 + 2, standY = st.cy;
             var pop = 1 + (st.numPop > 0 ? Math.sin(st.numPop * Math.PI) * 0.22 : 0);
             var tentR = Math.max(st.r, 26);
-            var tentW = tentR * 1.16 * pop, tentH = tentR * 0.76 * pop;
+            var tentW = tentR * 1.68 * pop, tentH = tentR * 1.10 * pop;
             ctx.fillStyle = "#8a6a2f";
-            ctx.beginPath(); ctx.ellipse(standX, standY + tentH / 2 + 3.5, st.u * 0.20, st.u * 0.055, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(standX, standY + tentH / 2 + 3.5, tentR * 0.50, st.u * 0.055, 0, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = "#e3c268";
-            ctx.beginPath(); ctx.ellipse(standX, standY + tentH / 2 + 2, st.u * 0.155, st.u * 0.042, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(standX, standY + tentH / 2 + 2, tentR * 0.39, st.u * 0.042, 0, 0, Math.PI * 2); ctx.fill();
             drawPlaque(standX, standY, tentW, tentH, st.number);
           }
           ctx.restore();
