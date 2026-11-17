@@ -732,7 +732,7 @@
     </style>
   </head>
   <body>
-    <canvas id="stage" aria-label="A grand dining room at sunset, its photograph combined from the world's great three-star restaurants: a coffered wood ceiling with lantern pendants, portraits and a great wave canvas on the walls, a glass wall over a harbour at sunset, a bar at the upper left of the room, an open kitchen on the lower floor, a maître d's desk at the upper right with a couple checking in and a line waiting behind them, and numbered tables, booths and bar seats of TBOT guests. You are the waiter — tap the station wearing the number the kitchen calls. When a party leaves, the numbers change."></canvas>
+    <canvas id="stage" aria-label="A grand dining room at sunset, its photograph combined from the world's great three-star restaurants: a coffered wood ceiling with lantern pendants, portraits and a great wave canvas on the walls, a glass wall over a harbour at sunset, a bar at the upper left of the room, an open kitchen on the lower floor, a maître d's desk at the upper right with a couple checking in and a line waiting behind them, men's and women's restroom doors beside the stage on the left wall, and numbered tables, booths and bar seats of TBOT guests. You are the waiter — tap the station wearing the number the kitchen calls. When a party leaves, the numbers change."></canvas>
 
     <!-- Background music: the last 17 seconds of "Velvet Rot" by
          Kimo (the series track), looped behind the game. Sound
@@ -3014,6 +3014,128 @@
           stageStation.r = Math.max(r0, 24);
         }
 
+        // The RESTROOMS beside the stage (John's ruling,
+        // 2026-11-16: men's and women's bathrooms next to
+        // the stage): two doors set into the LEFT WALL in
+        // the stage's own reserved band, standing on the
+        // floor line BELOW the stage platform — MEN on the
+        // left, WOMEN on the right — each signed on a
+        // gold-on-dark plate in the room's signage family
+        // (see drawBathrooms). They are set dressing only:
+        // not stations, unnumbered, never called by the
+        // kitchen, never tapped. Because they live inside
+        // the reserved band the station grid already
+        // starts right of (see layoutTables), no station
+        // drawing's full footprint — rug included — can
+        // ever touch them at the 6-station opening or the
+        // 16-station full house, on desktop or phone
+        // widths, and no band extension is needed. Their
+        // tops keep a margin below the stage's base, so
+        // they clear the act and its number stand on the
+        // stage's room-facing edge; the bar stands far
+        // above them over the back edge, and the open
+        // kitchen stands to their right (its run starts at
+        // the band's edge), never below them. Only on a
+        // stage too short to hold them below the platform
+        // do they take the wall stretch above the stage
+        // instead, between the floor line and the curtain.
+        function bathroomGeom() {
+          var resW = stageReserveW();
+          var topLim = (stageStation.baseY || 0) + 12;
+          var botLim = groundY() - 6;
+          var avail = botLim - topLim;
+          if (avail < 64) {
+            var aTop = hallDims().floorTop + 10;
+            var aBot = (stageStation.topY || 0) - 16;
+            if (aBot - aTop > avail) { topLim = aTop; botLim = aBot; avail = aBot - aTop; }
+          }
+          var doorH = clamp(avail * 0.88, 40, 176);
+          if (doorH > avail) doorH = avail;
+          var doorY = topLim + (avail - doorH) / 2;
+          var gap = 6, margin = 5;
+          var doorW = Math.min((resW - margin * 2 - gap) / 2, 80);
+          var totalW = doorW * 2 + gap;
+          var x0 = (resW - totalW) / 2;
+          return {
+            doors: [
+              { label: "MEN", x: x0, y: doorY, w: doorW, h: doorH },
+              { label: "WOMEN", x: x0 + doorW + gap, y: doorY, w: doorW, h: doorH }
+            ]
+          };
+        }
+
+        // The restroom doors themselves, painted with the
+        // room (see paintRoom): each a dark-wood door in a
+        // dark frame with a brass line — the room's own
+        // materials — two inset panels worked into its
+        // face, a brass knob at its meeting side, and its
+        // sign plate near the top: MEN / WOMEN in gold on
+        // a deep-brown plaque with a fine gold trim, the
+        // stage role plates' own treatment, its lettering
+        // stepped down only until it sits inside the
+        // door's pitch, never below 9px, so both signs
+        // read at desktop and phone widths alike.
+        function drawBathrooms() {
+          var bg = bathroomGeom();
+          for (var di = 0; di < bg.doors.length; di++) {
+            var dr = bg.doors[di];
+            // Its contact shadow on the floor.
+            ctx.fillStyle = "rgba(12, 6, 3, 0.30)";
+            ctx.beginPath(); ctx.ellipse(dr.x + dr.w / 2, dr.y + dr.h + 2, dr.w * 0.58, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+            // The frame: a dark surround with its brass line.
+            ctx.fillStyle = "#1c1108";
+            ctx.fillRect(dr.x - 3, dr.y - 3, dr.w + 6, dr.h + 3);
+            ctx.fillStyle = "rgba(201,162,39,0.65)";
+            ctx.fillRect(dr.x - 3, dr.y - 3, dr.w + 6, 1.4);
+            // The door leaf: dark wood, lit down its face.
+            var drGrad = ctx.createLinearGradient(0, dr.y, 0, dr.y + dr.h);
+            drGrad.addColorStop(0, "#5a3a1e");
+            drGrad.addColorStop(0.55, "#402712");
+            drGrad.addColorStop(1, "#2c1a0c");
+            ctx.fillStyle = drGrad;
+            ctx.fillRect(dr.x, dr.y, dr.w, dr.h);
+            // Two inset panels worked into the face.
+            ctx.strokeStyle = "rgba(227, 194, 104, 0.38)";
+            ctx.lineWidth = 1.1;
+            if (ctx.roundRect) {
+              ctx.beginPath(); ctx.roundRect(dr.x + 6, dr.y + dr.h * 0.34, dr.w - 12, dr.h * 0.26, 3); ctx.stroke();
+              ctx.beginPath(); ctx.roundRect(dr.x + 6, dr.y + dr.h * 0.68, dr.w - 12, dr.h * 0.24, 3); ctx.stroke();
+            } else {
+              ctx.strokeRect(dr.x + 6, dr.y + dr.h * 0.34, dr.w - 12, dr.h * 0.26);
+              ctx.strokeRect(dr.x + 6, dr.y + dr.h * 0.68, dr.w - 12, dr.h * 0.24);
+            }
+            // The sign plate: gold on dark, the room's
+            // signage family, near the door's top.
+            var sFont = 12.5;
+            ctx.font = "800 " + sFont + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+            while (sFont > 9 && ctx.measureText(dr.label).width > dr.w - 16) {
+              sFont -= 0.5;
+              ctx.font = "800 " + sFont + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+            }
+            var sW = ctx.measureText(dr.label).width + 16, sH = Math.round(sFont * 1.7);
+            var sX = dr.x + dr.w / 2 - sW / 2, sY = dr.y + 9;
+            ctx.fillStyle = "#2a1a0c";
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(sX, sY, sW, sH, Math.min(5, sH * 0.28));
+            else ctx.rect(sX, sY, sW, sH);
+            ctx.fill();
+            ctx.strokeStyle = "rgba(201, 162, 77, 0.85)";
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
+            ctx.fillStyle = "#ffbe1a";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(dr.label, dr.x + dr.w / 2, sY + sH / 2 + Math.max(0.5, sFont * 0.05));
+            ctx.textBaseline = "alphabetic";
+            // The brass knob, at the meeting side.
+            var knobX = di === 0 ? dr.x + dr.w - 7 : dr.x + 7;
+            ctx.fillStyle = "#e3c268";
+            ctx.beginPath(); ctx.arc(knobX, dr.y + dr.h * 0.52, 2.4, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "rgba(255,255,255,0.55)";
+            ctx.beginPath(); ctx.arc(knobX - 0.8, dr.y + dr.h * 0.52 - 0.8, 0.9, 0, Math.PI * 2); ctx.fill();
+          }
+        }
+
         // The BAR's band height: the bar stands at the back
         // edge of the floor (see hallDims), its counter base
         // on the floor line and its back bar rising this far
@@ -3132,26 +3254,37 @@
         // The kitchen's SIDE BAR — the pickup bar (John's
         // ruling, 2026-11-16: "Add a side Bar to the kitchen
         // where waiter picks up order to table. Number on
-        // top of that Bar"): a pickup counter attached to
-        // the open kitchen on its floor-facing side — the
+        // top of that Bar"), reshaped into an L (John's
+        // ruling, 2026-11-16: "The side Bar needs to be a L
+        // off the kitchen" — "The L should go down not to
+        // the floor"): a pickup counter attached to the
+        // open kitchen on its floor-facing side — the
         // pass — sitting in the kitchen's top-edge zone,
-        // centred on the kitchen's run. The waiter posts
-        // at it (see layoutTables), plates are picked up
+        // centred on the kitchen's run, and at its RIGHT
+        // end (the end away from the stage) the bar TURNS
+        // 90 degrees and runs DOWN into the kitchen — the
+        // short leg of the L, down along the kitchen's
+        // right side toward the bottom of the screen (see
+        // pickupLegRect). The leg stays INSIDE the
+        // kitchen's footprint, so the dealt grid and its
+        // clearances never change. The waiter posts at
+        // the L (see layoutTables), plates are picked up
         // from it, the final-five-seconds hold stands at
-        // it, and the CALLED NUMBER stands on top of it on
-        // its own stand (see drawPickupBar), updating with
-        // every ticket. The whole unit — bar, stand and
-        // number plaque — sits INSIDE the kitchen's
-        // footprint: the stand's top stays below the dealt
-        // grid's bottom boundary (the kitchen's top edge
-        // less 8 — see layoutTables), so the grid's
-        // clearance needs no change and no table drawing
-        // ever touches it, the same full-footprint rule
-        // the kitchen band itself keeps. Centred on the
-        // run, it stands clear of the stage's band on the
-        // left, and it never reaches the chefs, the
-        // cooktop, the grill or the pots, which all work
-        // the steel counter at the set's foot.
+        // it, and the CALLED NUMBER stands on top of the
+        // bar at the L's corner on its own stand (see
+        // drawPickupBar), updating with every ticket. The
+        // whole unit — bar, leg, stand and number plaque —
+        // sits INSIDE the kitchen's footprint: the stand's
+        // top stays below the dealt grid's bottom boundary
+        // (the kitchen's top edge less 8 — see
+        // layoutTables), so no table drawing ever touches
+        // it, the same full-footprint rule the kitchen
+        // band itself keeps. The main run stands clear of
+        // the stage's band on the left, and the leg's
+        // length is capped by the kitchen's own fittings
+        // (see pickupLegRect), so it never reaches the
+        // chefs, the cooktop, the grill or the pots, which
+        // all work the steel counter at the set's foot.
         function pickupBarRect() {
           var ok = openKitchenRect();
           var w = clamp((ok.x1 - ok.x0) * 0.44, 180, 500);
@@ -3163,19 +3296,70 @@
             top: ok.top, bottom: ok.top + surfOff + 24
           };
         }
+        // The L's short leg: at the pickup bar's right
+        // end the counter turns 90 degrees and runs DOWN
+        // into the kitchen, along the kitchen's right
+        // side — a vertical run of the same dark-wood
+        // counter, its slab joining the main run's slab at
+        // the corner, its face, brass trim and PICK-UP
+        // lettering carried onto it (see paintRoom), so
+        // the two runs read as one L-shaped bar. Its
+        // length is the SHORTEST of its natural reach and
+        // the clearances the kitchen's own fittings demand
+        // — the chefs' toques, the grill's top rail, the
+        // hanging pans and (where their spans would meet)
+        // the right-hand pot — each measured with the same
+        // formulas that draw those fittings, so the leg
+        // stops clear of every one of them at desktop and
+        // phone widths alike, and it never leaves the
+        // kitchen's footprint or reaches the steel counter
+        // at the set's foot.
+        function pickupLegRect() {
+          var ok = openKitchenRect();
+          var pb = pickupBarRect();
+          var legW = clamp(pb.w * 0.16, 46, 76);
+          var x1 = pb.x1, x0 = x1 - legW;
+          var top = pb.surfY - 1;
+          var bottom = pb.surfY + clamp(ok.h * 0.34, 36, 58);
+          var fig = kitchenFigureGeom();
+          var sh = (fig.chefS / SPRITE_BODY_FRAC) * SPRITE_ASPECT;
+          var chefTop = (ok.bottom - 14) - sh * SPRITE_BODY_CY - fig.chefS * 0.14;
+          bottom = Math.min(bottom, chefTop - 5);
+          var grillTop = (ok.bottom - openKitchenCounterH()) - clamp(ok.h * 0.15, 20, 27) - 5;
+          bottom = Math.min(bottom, grillTop - 5);
+          var railY = ok.top + ok.h * 0.31;
+          var panBot = railY + 8 + clamp(ok.h * 0.10, 8, 16) * 2;
+          bottom = Math.min(bottom, panBot - 2);
+          var potG = openKitchenPotGeom();
+          var pots = openKitchenPotXs();
+          for (var pi = 0; pi < pots.length; pi++) {
+            if (pots[pi] + potG.w / 2 > x0 && pots[pi] - potG.w / 2 < x1) {
+              var potTop = (ok.bottom - openKitchenCounterH() + 1) - potG.h - potG.lidRy;
+              bottom = Math.min(bottom, potTop - 4);
+            }
+          }
+          return {
+            x0: x0, x1: x1, cx: (x0 + x1) / 2, w: legW,
+            top: top, bottom: bottom, h: bottom - top
+          };
+        }
         // The called number's stand on top of the pickup
-        // bar: one measure shared by the cached room
-        // painting (which lays the pickup plates either
-        // side of it) and the live stand itself, so the
-        // two never drift. The plaque is BIG — its digits
-        // run larger than any table tent's — and readable
-        // at desktop and phone widths alike.
+        // bar, at the L's corner — centred on the downward
+        // leg where it turns off the main run, the pickup
+        // point the waiter posts at: one measure shared by
+        // the cached room painting (which lays the pickup
+        // plates along the slab west of it) and the live
+        // stand itself, so the two never drift. The plaque
+        // is BIG — its digits run larger than any table
+        // tent's — and readable at desktop and phone
+        // widths alike.
         function pickupStandGeom() {
           var pb = pickupBarRect();
+          var leg = pickupLegRect();
           var w = clamp(pb.w * 0.36, 66, 86);
           var h = w * 0.55;
           return {
-            x: pb.cx, w: w, h: h,
+            x: leg.cx, w: w, h: h,
             baseY: pb.surfY + 2,
             cy: pb.surfY + 2 - h / 2,
             top: pb.surfY + 2 - h
@@ -3460,17 +3644,22 @@
           // Home is the open kitchen's SIDE BAR — the
           // pickup bar in the kitchen's top-edge zone, on
           // its floor-facing side (see pickupBarRect): the
-          // waiter posts at the pickup bar, at the centre
-          // of the kitchen's run — the post the kitchen's
-          // tickets print from, plates are picked up from,
-          // and the final-five-seconds hold stands at (see
-          // FINAL_CALL_MS). His anchor stands a figure's
-          // depth inside the kitchen behind the pickup
-          // counter, so his whole sprite stays inside the
-          // kitchen's footprint, clear of the dealt grid
-          // above the kitchen's top edge.
+          // waiter posts at the L — just west of the
+          // downward leg at the bar's right end, at the
+          // corner where the leg turns down, his body
+          // leaning on the leg's west edge — the post the
+          // kitchen's tickets print from, plates are picked
+          // up from, and the final-five-seconds hold stands
+          // at (see FINAL_CALL_MS). His anchor stands a
+          // figure's depth inside the kitchen behind the
+          // pickup counter, so his whole sprite stays
+          // inside the kitchen's footprint, clear of the
+          // dealt grid above the kitchen's top edge, and
+          // his post west of the leg keeps his body clear
+          // of the right-hand chef working the run.
           var pbRect = pickupBarRect();
-          waiter.homeX = pbRect.cx;
+          var pbLeg = pickupLegRect();
+          waiter.homeX = pbLeg.x0 - 16;
           waiter.homeY = okRect.top + pbRect.surfOff + 36;
           if (waiter.state === "pass") { waiter.x = waiter.homeX; waiter.y = waiter.homeY; }
           // The maître d's post is his desk at the
@@ -4145,14 +4334,21 @@
           // slab across them with its brass trim, a
           // panelled front face under it with a brass foot
           // rail, and PICK-UP lettered in gold on the face's
-          // left stretch, clear of the waiter at his post
-          // at the bar's centre. The called number's stand
-          // rides on top of the slab at its centre (painted
+          // left stretch. At the run's right end the bar
+          // turns DOWN into the kitchen as the L's short
+          // leg (see pickupLegRect): the same slab, face,
+          // brass trim and PICK-UP lettering carried onto
+          // the downward run, so the two read as one
+          // L-shaped bar. The called number's stand rides
+          // on top of the slab at the L's corner (painted
           // live — see drawPickupBar — so the number can
-          // change with every ticket), and the pickup
-          // plates wait on the slab either side of it.
+          // change with every ticket), the waiter posts
+          // just west of the leg at that corner, and the
+          // pickup plates wait on the slab west of the
+          // stand, along the main run.
           var pbR = pickupBarRect();
           var pbStand = pickupStandGeom();
+          var pbLeg = pickupLegRect();
           ctx.fillStyle = "rgba(10, 12, 14, 0.35)";
           ctx.beginPath(); ctx.ellipse(pbR.cx, pbR.surfY + 26, pbR.w * 0.52, 5, 0, 0, Math.PI * 2); ctx.fill();
           ctx.fillStyle = "#1c1108";
@@ -4171,6 +4367,22 @@
           for (var pbsx = pbR.x0 + 30; pbsx < pbR.x1 - 6; pbsx += 30) {
             ctx.beginPath(); ctx.moveTo(pbsx, pbR.surfY + 9); ctx.lineTo(pbsx, pbR.surfY + 22); ctx.stroke();
           }
+          // The L's downward leg: the same panelled face
+          // running down from the main face at the bar's
+          // right end, inside the kitchen — its wood
+          // gradient deepening as it drops, a panel seam
+          // down its middle, and its own end grain at the
+          // foot. The slab over it is the main slab itself
+          // (painted next, across the whole run including
+          // the corner), so the turn reads as one counter.
+          var pbLegFace = ctx.createLinearGradient(0, pbR.surfY + 7, 0, pbLeg.bottom);
+          pbLegFace.addColorStop(0, "#3c2412");
+          pbLegFace.addColorStop(1, "#1e0f04");
+          ctx.fillStyle = pbLegFace;
+          ctx.fillRect(pbLeg.x0, pbR.surfY + 7, pbLeg.w, pbLeg.bottom - (pbR.surfY + 7));
+          ctx.strokeStyle = "rgba(0, 0, 0, 0.4)";
+          ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(pbLeg.cx, pbR.surfY + 26); ctx.lineTo(pbLeg.cx, pbLeg.bottom - 9); ctx.stroke();
           var pbTopG = ctx.createLinearGradient(0, pbR.surfY - 1, 0, pbR.surfY + 7);
           pbTopG.addColorStop(0, "#7a4e2a");
           pbTopG.addColorStop(1, "#4a2c17");
@@ -4188,13 +4400,36 @@
           ctx.textBaseline = "middle";
           ctx.fillText("PICK-UP", pbR.x0 + pbR.w * 0.24, pbR.surfY + 15.5);
           ctx.textBaseline = "alphabetic";
-          // Pickup plates on the slab, either side of the
-          // number stand's seat.
+          // The leg's own brass and lettering, carried
+          // down the L: a brass line down the leg's west
+          // edge where it turns off the main run, a brass
+          // foot rail across its foot, a dark end line
+          // under the foot, and PICK-UP lettered in gold
+          // on the leg's face below the main face — sized
+          // to the leg's face so it reads at desktop and
+          // phone widths alike.
+          ctx.fillStyle = "#c9a227";
+          ctx.fillRect(pbLeg.x0, pbR.surfY + 7, 1.6, pbLeg.bottom - (pbR.surfY + 7));
+          ctx.fillStyle = "#e3c268";
+          ctx.fillRect(pbLeg.x0, pbLeg.bottom - 6.5, pbLeg.w, 2.2);
+          ctx.fillStyle = "#120a04";
+          ctx.fillRect(pbLeg.x0, pbLeg.bottom - 2, pbLeg.w, 2);
+          var pbLegFont = clamp((pbLeg.bottom - (pbR.surfY + 24)) * 0.62, 7, 10.5);
+          ctx.font = "800 " + pbLegFont + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+          ctx.fillStyle = "#ffbe1a";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("PICK-UP", pbLeg.cx, (pbR.surfY + 24 + pbLeg.bottom) / 2 - 3);
+          ctx.textBaseline = "alphabetic";
+          // Pickup plates on the slab, west of the number
+          // stand's seat at the L's corner, along the main
+          // run — the stand stands at the bar's right end
+          // now, so both stacks sit on the run to its left.
           ctx.fillStyle = "#f4f7f8";
           for (var pbpi = 0; pbpi < 2; pbpi++) {
-            var pbPlateX = pbStand.x + (pbpi === 0 ? -1 : 1) * (pbStand.w / 2 + 24);
+            var pbPlateX = pbStand.x - (pbStand.w / 2 + 24) - pbpi * 38;
             for (var pbpj = 0; pbpj < 2; pbpj++) {
-              ctx.beginPath(); ctx.ellipse(pbPlateX + (pbpi === 0 ? -1 : 1) * pbpj * 9, pbR.surfY - 2, 11, 3.4, 0, 0, Math.PI * 2); ctx.fill();
+              ctx.beginPath(); ctx.ellipse(pbPlateX - pbpj * 9, pbR.surfY - 2, 11, 3.4, 0, 0, Math.PI * 2); ctx.fill();
             }
           }
           ctx.restore();
@@ -4234,6 +4469,14 @@
             ctx.fillStyle = "rgba(201,162,39,0.65)";
             ctx.fillRect(okR.x0 - 3, okR.bottom, 1.2, okSeatY - okR.bottom);
           }
+
+          // The restrooms beside the stage: two signed
+          // doors in the left wall's reserved band (see
+          // bathroomGeom / drawBathrooms) — set dressing
+          // painted with the room, clear of the stage
+          // above them, the bar over the back edge, and
+          // the open kitchen to their right.
+          drawBathrooms();
 
         }
         // The rug's weave: a small tile of carpet pile,
@@ -8459,6 +8702,8 @@
             barPos: { x: 0, y: Math.round(hallDims().floorTop - kitchenH()), w: Math.round(passWidth()), h: Math.round(kitchenH()) },
             kitchenPos: { x: Math.round(openKitchenRect().x0), y: Math.round(openKitchenRect().top), w: Math.round(openKitchenRect().x1 - openKitchenRect().x0), h: Math.round(openKitchenRect().h) },
             pickupBarPos: { x: Math.round(pickupBarRect().x0), y: Math.round(pickupBarRect().top), w: Math.round(pickupBarRect().w), h: Math.round(pickupBarRect().bottom - pickupBarRect().top), surfY: Math.round(pickupBarRect().surfY) },
+            pickupLegPos: { x: Math.round(pickupLegRect().x0), y: Math.round(pickupLegRect().top), w: Math.round(pickupLegRect().w), h: Math.round(pickupLegRect().h), bottom: Math.round(pickupLegRect().bottom) },
+            bathrooms: bathroomGeom().doors.map(function (dr) { return { label: dr.label, x: Math.round(dr.x), y: Math.round(dr.y), w: Math.round(dr.w), h: Math.round(dr.h) }; }),
             pickupStand: { x: Math.round(pickupStandGeom().x), top: Math.round(pickupStandGeom().top), w: Math.round(pickupStandGeom().w), h: Math.round(pickupStandGeom().h), number: ticketNum },
             waiterHome: { x: Math.round(waiter.homeX), y: Math.round(waiter.homeY) },
             tableStates: tables.map(function (t) { return t.state; }),
