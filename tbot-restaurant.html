@@ -2370,11 +2370,12 @@
         // read from the body build. (sex) is "f" or "m";
         // (stand) runs 0 (seated) to 1 (standing); (swing)
         // is the walk cycle's leg swing; (lid) the blink.
-        function drawPlasticPerson(sex, cx, bottomY, u, stand, swing, lid, shadow) {
+        function drawPlasticPerson(sex, cx, bottomY, u, stand, swing, lid, shadow, rock) {
           var female = sex === "f";
           u = u * PEOPLE_SCALE; // the people scale — see drawPhotoPerson
           ctx.save();
           ctx.translate(cx, bottomY);
+          if (rock) ctx.rotate(rock); // the laugh's rock, for a laughing guest (see the laugh block)
           if (shadow) {
             softShadow(0, u * 0.012, u * 0.40, u * 0.08, 0.50);
             softShadow(0, u * 0.010, u * 0.22, u * 0.045, 0.32);
@@ -2616,6 +2617,68 @@
             }
           }
           return lid;
+        }
+
+        // ---------- The laugh (the COMIC act) ----------
+        // While — and only while — the COMIC act is on
+        // stage, the whole room laughs: every seated
+        // diner at the round tables, in the booths and at
+        // the bar seats, and the guests standing in the
+        // entrance scene (the couple at the desk and the
+        // line behind them). The laugh is MOVEMENT ONLY
+        // — canon: no mouths, no text bubbles — heads tip
+        // and bob, bodies rock and shake in a laughing
+        // rhythm: each figure's whole cut-out rocks on
+        // its seat/feet anchor, bounces up on the laugh's
+        // beat and compresses a touch at the bounce's
+        // peak, every person on their OWN phase (their
+        // dealt bobPh) and a slightly personal lean, so
+        // the room reads alive and organic, never
+        // mechanical. laughAmt eases the whole room in
+        // and out together (stepLaugh, on the frame
+        // loop's real-elapsed step): when the act changes
+        // the room settles smoothly back to normal
+        // dining. Staff never laugh — the waiter, the
+        // chefs and the host keep working as usual — and
+        // nobody mid-walk laughs either: walkers and
+        // escorted parties keep walking, exactly as
+        // before; a party laughs once it is seated.
+        var laughAmt = 0; // 0 = normal dining, 1 = the room in full laugh
+        var LAUGH_NONE = { dy: 0, rock: 0, squash: 1 };
+        var laughScratch = { dy: 0, rock: 0, squash: 1 };
+        // One person's laugh motion this frame, written
+        // into laughScratch (consumed by the caller at
+        // once, before the next person's call): (dy) the
+        // anchor's vertical bounce — never downward, a
+        // laugh lifts — (rock) the body's rocking tilt
+        // on its anchor, (squash) the figure's vertical
+        // compression at the bounce's peak. (phase) is
+        // the person's own bobPh; (amp) scales the bounce
+        // to the figure's size at its seat.
+        function laughMotion(phase, nowMs, amp) {
+          if (laughAmt <= 0.002) {
+            laughScratch.dy = 0; laughScratch.rock = 0; laughScratch.squash = 1;
+            return laughScratch;
+          }
+          var ph = phase || 0;
+          var w = Math.sin(nowMs / 168 + ph * 2.63);
+          var wa = Math.abs(w);
+          var j = Math.sin(nowMs / 84 + ph * 5.17);
+          laughScratch.dy = (-wa * amp - Math.max(0, j) * amp * 0.3) * laughAmt;
+          laughScratch.rock = (w * 0.08 + j * 0.02 + Math.sin(ph * 3.7) * 0.035) * laughAmt;
+          laughScratch.squash = 1 - (0.04 * wa + 0.012 * Math.abs(j)) * laughAmt;
+          return laughScratch;
+        }
+        // The room's laugh level, stepped on the frame
+        // loop: it rises as the comic takes the runway
+        // (his act is named the moment the rotation
+        // advances, so the laugh builds through his
+        // turnover beat) and settles back to nothing
+        // over the same half-second when his act ends.
+        function stepLaugh(dtMs) {
+          var target = STAGE_ACT_ID === "comic-standup" ? 1 : 0;
+          if (laughAmt < target) laughAmt = Math.min(target, laughAmt + dtMs / 480);
+          else if (laughAmt > target) laughAmt = Math.max(target, laughAmt - dtMs / 480);
         }
 
         // ---------- Show labels ----------
@@ -3197,8 +3260,12 @@
         function drawEntranceFigure(fig, x, y, nowMs) {
           var u = entrance.u * entrance.figScale * (fig.size / 2.08);
           var rock = Math.sin(nowMs / 1150 + fig.bobPh) * 0.007;
-          if (!drawPhotoPerson(fig.build, "stand", x, y, u, 1, rock, true)) {
-            drawPlasticPerson(fig.sex, x, y, u, 1, 0, blinkLid(fig, nowMs), true);
+          // The laugh, while the COMIC is on (see the
+          // laugh block): the entrance's standing guests
+          // rock and bounce on their feet like the diners.
+          var lm = laughMotion(fig.bobPh, nowMs, u * 0.055);
+          if (!drawPhotoPerson(fig.build, "stand", x, y + lm.dy, u, lm.squash, rock + lm.rock, true)) {
+            drawPlasticPerson(fig.sex, x, y + lm.dy, u, 1, 0, blinkLid(fig, nowMs), true, lm.rock);
           }
         }
 
@@ -3277,7 +3344,8 @@
         // party-leave re-deal — the same event that re-deals
         // the station numbers (see finishLeave) — DJ → PJ
         // Morton at the piano → Erykah Badu with the
-        // microphone → the rapper → the TBOT band → DJ,
+        // microphone → the rapper → the comic → the TBOT
+        // band → DJ,
         // the incoming act taking the runway as the new
         // party is dealt. A fresh deal of the floor (lobby
         // load, Reset, a new shift) always opens on the
@@ -6337,8 +6405,13 @@
               var bob = (Math.sin(nowMs / 620 + g.bobPh) - 1) * 0.8 * gAmp;
               var hop = t.happyT > 0 ? -Math.sin(t.happyT * Math.PI) * r * 0.22 * gAmp : 0;
               var gS = r * gSize * gScale;
-              if (!drawPhotoPerson(g.build, "sit", gx, cy - r * 0.20 + bob + hop, gS, 1, 0, true)) {
-                drawPlasticPerson(g.sex, gx, cy - r * 0.20 + bob + hop, gS, 0, 0, blinkLid(g, nowMs), true);
+              // The laugh, while the COMIC is on (see the
+              // laugh block): a seated diner rocks and
+              // bounces on their seat line, on their own
+              // phase — movement only, no mouth, no bubble.
+              var lm = t.state === "seated" ? laughMotion(g.bobPh, nowMs, r * 0.11) : LAUGH_NONE;
+              if (!drawPhotoPerson(g.build, "sit", gx, cy - r * 0.20 + bob + hop + lm.dy, gS, lm.squash, lm.rock, true)) {
+                drawPlasticPerson(g.sex, gx, cy - r * 0.20 + bob + hop + lm.dy, gS, 0, 0, blinkLid(g, nowMs), true, lm.rock);
               }
             }
             ctx.restore();
@@ -6754,8 +6827,12 @@
           var bob = (Math.sin(nowMs / 620 + g.bobPh) - 1) * 0.8 * gAmp;
           var hop = t.happyT > 0 ? -Math.sin(t.happyT * Math.PI) * r * 0.22 * gAmp : 0;
           var gS = r * gSize * anim.scale;
-          if (!drawPhotoPerson(g.build, "sit", gx, seatBottomY + bob + hop, gS, 1, 0, true)) {
-            drawPlasticPerson(g.sex, gx, seatBottomY + bob + hop, gS, 0, 0, blinkLid(g, nowMs), true);
+          // The laugh, while the COMIC is on (see the
+          // laugh block): booth and bar diners rock and
+          // bounce on their seat line like everyone else.
+          var lm = t.state === "seated" ? laughMotion(g.bobPh, nowMs, r * 0.11) : LAUGH_NONE;
+          if (!drawPhotoPerson(g.build, "sit", gx, seatBottomY + bob + hop + lm.dy, gS, lm.squash, lm.rock, true)) {
+            drawPlasticPerson(g.sex, gx, seatBottomY + bob + hop + lm.dy, gS, 0, 0, blinkLid(g, nowMs), true, lm.rock);
           }
         }
 
@@ -7773,6 +7850,12 @@
         //   "rapper-mic" — a TBOT rapper with a handheld
         //     microphone, one hand on the mic at his face,
         //     the other gesturing as he performs.
+        //   "comic-standup" — the COMIC: a stand-up
+        //     comedian, single figure front and centre at
+        //     the runway's foot, microphone raised at his
+        //     face, free hand gesturing — and while he is
+        //     on, the whole room laughs (see drawActComic
+        //     and the laugh block by blinkLid).
         //   "tbot-band" — a small TBOT band: drums centre-
         //     back, guitar and bass flanking, drawn compact
         //     so all three figures and their instruments
@@ -7793,13 +7876,14 @@
         // re-deals with the floor as always, and the stage
         // stays callable under whichever act is on it.
         var STAGE_OPENING_ACT = "dj-decks";
-        var STAGE_ACT_ORDER = ["dj-decks", "pj-morton-piano", "erykah-badu-mic", "rapper-mic", "tbot-band"];
+        var STAGE_ACT_ORDER = ["dj-decks", "pj-morton-piano", "erykah-badu-mic", "rapper-mic", "comic-standup", "tbot-band"];
         var STAGE_ACT_ID = STAGE_OPENING_ACT;
         var STAGE_ACTS = {
           "pj-morton-piano": { name: "PJ Morton at the piano", role: "PIANIST", draw: drawActPiano },
           "erykah-badu-mic": { name: "Erykah Badu — headwrap and microphone, with her live band", role: "SINGER", draw: drawActBadu },
           "dj-decks": { name: "The DJ on the decks", role: "DJ", roleDx: -0.38, draw: drawActDJ },
           "rapper-mic": { name: "The rapper — handheld microphone", role: "RAPPER", draw: drawActRapper },
+          "comic-standup": { name: "The comic — stand-up, microphone at his face", role: "COMIC", draw: drawActComic },
           "tbot-band": { name: "The TBOT band — drums, guitar and bass", role: "BAND", draw: drawActBand }
         };
         // One step of the rotation, taken on the re-deal
@@ -8482,6 +8566,117 @@
           }
         }
 
+        // ACT — the COMIC: a stand-up comedian in full
+        // TBOT canon (see drawActHead): a rounded-square
+        // head with the plain three-part crest, the
+        // middle blade tallest, round red dome eyes, NO
+        // mouth, a black suit, and black gloves on EVERY
+        // hand — every hand here is drawn by drawActArm
+        // at the enlarged rimmed-glove size, the way the
+        // singer's corrected act wears them. He stands
+        // FRONT AND CENTRE of the runway at its foot
+        // (see stageActPoint), facing the room, holding
+        // a microphone RAISED visibly at his face — a
+        // long dark handle and a LARGE round silver-
+        // grilled head, sized to read clearly in the
+        // live view, the lesson from the singer — his
+        // free hand gesturing wide as he works the room.
+        // While he is on, the whole room laughs (see the
+        // laugh block by blinkLid). He is a SINGLE
+        // figure, and he stands fully clear of the
+        // runway's number stand, solved inside the deck
+        // from the stand's own seat: at his foot point
+        // his head normally passes below the plaque's
+        // bottom edge with room to spare, so he holds
+        // the deck's centre; on a deck too short for
+        // that, his unit steps down until his head
+        // clears the plaque's bottom, and only if the
+        // unit's floor still leaves him under the
+        // plaque does he step left inside the boards
+        // until his widest reach ends left of the
+        // plaque's left edge — the singer's own two
+        // clearances, in his size. The stand never
+        // moves, and drawStage still paints it last,
+        // fully readable.
+        function drawActComic(env) {
+          var u = env.u, cx = env.cx, fy = env.platTop, nowMs = env.nowMs;
+          var U = u;
+          if (stageStation.number > 0) {
+            var tentR2 = Math.max(stageStation.r, 26);
+            var standL = stageStation.cx + stageStation.w / 2 + 2 - tentR2 * 1.68 / 2;
+            var standB = stageStation.cy + tentR2 * 1.10 / 2;
+            // His head's top — crest included, with the
+            // bounce's lift allowed for — runs about
+            // 2.40 units above his feet.
+            var needU = (fy - standB - 4) / 2.40;
+            if (needU < U) U = Math.max(needU, u * 0.55);
+            if (fy - U * 2.40 <= standB + 4) {
+              cx = Math.min(cx, standL - 4 - U * 0.60);
+              var deckLeft = stageStation.w * 0.34;
+              if (cx < deckLeft + U * 0.30) cx = deckLeft + U * 0.30;
+            }
+          }
+          var bounce = -Math.abs(Math.sin(nowMs / 300)) * U * 0.035 -
+            (env.happyT > 0 ? Math.sin(env.happyT * Math.PI) * U * 0.07 : 0);
+          var sway = Math.sin(nowMs / 820) * 0.024;
+          ctx.save();
+          ctx.translate(cx, fy + bounce);
+          ctx.rotate(sway);
+          ctx.translate(-cx, -fy);
+          // Legs, planted on the boards at the foot.
+          ctx.strokeStyle = "#101014";
+          ctx.lineCap = "round";
+          ctx.lineWidth = U * 0.115;
+          ctx.beginPath();
+          ctx.moveTo(cx - U * 0.10, fy - U * 0.80); ctx.lineTo(cx - U * 0.14, fy - U * 0.02);
+          ctx.moveTo(cx + U * 0.10, fy - U * 0.80); ctx.lineTo(cx + U * 0.15, fy - U * 0.02);
+          ctx.stroke();
+          drawActTorso(cx, fy - U * 1.44, fy - U * 0.76, U * 0.28);
+          // The free arm, gesturing wide as he works
+          // the room — out on the line, up on the beat.
+          var gest = Math.sin(nowMs / 430) * U * 0.07 + Math.sin(nowMs / 215) * U * 0.02;
+          drawActArm(cx - U * 0.26, fy - U * 1.38, cx - U * 0.47, fy - U * 1.18, cx - U * 0.58, fy - U * 0.98 + gest, U * 0.10, 2.0);
+          // The mic arm, RAISED to his face: elbow out
+          // at shoulder height, the gloved hand up at
+          // his face holding the mic — never hanging
+          // at his side.
+          drawActArm(cx + U * 0.26, fy - U * 1.38, cx + U * 0.45, fy - U * 1.32, cx + U * 0.27, fy - U * 1.60, U * 0.10, 2.0);
+          drawActHead(cx, fy - U * 1.72, U * 0.55, nowMs, false);
+          // The microphone, IN his raised hand at his
+          // face: a long dark handle running from the
+          // glove up to a LARGE round head — a silver
+          // grille ball with a dark rim — sitting
+          // against his face, so it reads at live size
+          // the way the singer's corrected mic reads.
+          var micHx = cx + U * 0.27, micHy = fy - U * 1.60;
+          var micX = cx + U * 0.14, micY = fy - U * 1.74, micR = U * 0.105;
+          ctx.strokeStyle = "#1c1c20";
+          ctx.lineCap = "round";
+          ctx.lineWidth = Math.max(2, U * 0.055);
+          ctx.beginPath(); ctx.moveTo(micHx, micHy); ctx.lineTo(micX + micR * 0.45, micY + micR * 0.55); ctx.stroke();
+          ctx.fillStyle = "#43464e";
+          ctx.beginPath(); ctx.arc(micX, micY, micR, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = "rgba(228, 230, 236, 0.60)";
+          ctx.lineWidth = Math.max(0.8, U * 0.018);
+          ctx.beginPath(); ctx.arc(micX, micY, micR * 0.68, 0.35, Math.PI - 0.35); ctx.stroke();
+          ctx.beginPath(); ctx.arc(micX, micY, micR * 0.42, 0.35, Math.PI - 0.35); ctx.stroke();
+          ctx.strokeStyle = "#0a0a0c";
+          ctx.lineWidth = Math.max(1, U * 0.022);
+          ctx.beginPath(); ctx.arc(micX, micY, micR, 0, Math.PI * 2); ctx.stroke();
+          ctx.fillStyle = "rgba(255,255,255,0.55)";
+          ctx.beginPath(); ctx.arc(micX - micR * 0.34, micY - micR * 0.38, micR * 0.20, 0, Math.PI * 2); ctx.fill();
+          // His glove over the handle's base, so the
+          // hand is seen HOLDING the mic.
+          ctx.fillStyle = "#0c0c0f";
+          ctx.beginPath(); ctx.arc(micHx, micHy, U * 0.104, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = "rgba(255, 236, 200, 0.38)";
+          ctx.lineWidth = Math.max(0.7, U * 0.013);
+          ctx.beginPath(); ctx.arc(micHx, micHy, U * 0.104, 0, Math.PI * 2); ctx.stroke();
+          ctx.fillStyle = "rgba(255, 244, 220, 0.30)";
+          ctx.beginPath(); ctx.arc(micHx - U * 0.033, micHy - U * 0.035, U * 0.027, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        }
+
         // ACT — the DJ on the decks (the launch act): his
         // act is built around the house song — "Chic
         // Cheer" by Chic — which he fronts at the runway
@@ -8777,8 +8972,8 @@
         // trim, #ffbe1a letters) — reading the current
         // act's role from STAGE_ACTS (DJ under the decks,
         // PIANIST under the piano, SINGER under the
-        // microphone, RAPPER under the rapper, BAND under
-        // the band). It is part of the act unit: drawStage
+        // microphone, RAPPER under the rapper, COMIC
+        // under the comic, BAND under the band). It is part of the act unit: drawStage
         // paints it with the act at the act's own point
         // along the runway, so it swaps on the same
         // turnover beat as the act itself, and it paces
@@ -8889,6 +9084,16 @@
             // figure's head clearance instead, and the
             // act's own group step-down (gs, in
             // drawActBadu) fits the band behind her.
+            return Math.max(footY - 22, headY + u * 2.28);
+          }
+          if (actId === "comic-standup") {
+            // The COMIC is FIXED at the FRONT of the
+            // runway, like the singer: front and centre
+            // at the foot point, facing the room, with
+            // the follow spotlight's pool riding this
+            // same point so the light stays on him. His
+            // draw keeps the single figure fully clear
+            // of the number stand (see drawActComic).
             return Math.max(footY - 22, headY + u * 2.28);
           }
           // The rapper PACES the runway's length
@@ -10886,6 +11091,10 @@
             stageStation.swapT = Math.max(0, stageStation.swapT - dtMs / 650);
             if (stageStation.swapT === 0) stageStation.prevActId = null;
           }
+          // The room's laugh rises and settles with the
+          // COMIC act on the same real-elapsed step (see
+          // the laugh block by blinkLid).
+          stepLaugh(dtMs);
 
           // The last call (see FINAL_CALL_MS): once the
           // shift enters its final five seconds, a waiter
@@ -11087,6 +11296,7 @@
             stageRole: (STAGE_ACTS[STAGE_ACT_ID] || {}).role || null,
             stagePrevAct: stageStation.prevActId,
             stageSwap: Math.round(stageStation.swapT * 100) / 100,
+            laughing: Math.round(laughAmt * 100) / 100,
             stageNumber: stageStation.number,
             stagePos: { x: Math.round(stageStation.cx), y: Math.round(stageStation.baseY), top: Math.round(stageStation.topY), w: Math.round(stageStation.w) },
             barPos: { x: 0, y: Math.round(hallDims().floorTop - kitchenH()), w: Math.round(passWidth()), h: Math.round(kitchenH()) },
