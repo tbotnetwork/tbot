@@ -3261,8 +3261,9 @@
         // length. The acts perform ALONG the runway (see
         // stageActPoint): the DJ's table at the head by
         // the bar, the piano placed along the lower
-        // stretch, the singer and the rapper pacing its
-        // length to the foot, the band at the foot — the
+        // stretch, the singer at the foot with her live
+        // band behind her, the rapper pacing its length
+        // to the foot, the band at the foot — the
         // gold role plate riding
         // the deck at each act's feet, on the runway's
         // room-facing front.
@@ -7766,7 +7767,9 @@
         //   "pj-morton-piano" — PJ Morton at the grand
         //     piano.
         //   "erykah-badu-mic" — Erykah Badu in her headwrap
-        //     with a microphone, no piano.
+        //     with a microphone, no piano — restaged with
+        //     her LIVE BAND behind her: guitarist, drummer
+        //     and keyboard player (see drawActBadu).
         //   "rapper-mic" — a TBOT rapper with a handheld
         //     microphone, one hand on the mic at his face,
         //     the other gesturing as he performs.
@@ -7794,7 +7797,7 @@
         var STAGE_ACT_ID = STAGE_OPENING_ACT;
         var STAGE_ACTS = {
           "pj-morton-piano": { name: "PJ Morton at the piano", role: "PIANIST", draw: drawActPiano },
-          "erykah-badu-mic": { name: "Erykah Badu — headwrap and microphone", role: "SINGER", draw: drawActBadu },
+          "erykah-badu-mic": { name: "Erykah Badu — headwrap and microphone, with her live band", role: "SINGER", draw: drawActBadu },
           "dj-decks": { name: "The DJ on the decks", role: "DJ", roleDx: -0.38, draw: drawActDJ },
           "rapper-mic": { name: "The rapper — handheld microphone", role: "RAPPER", draw: drawActRapper },
           "tbot-band": { name: "The TBOT band — drums, guitar and bass", role: "BAND", draw: drawActBand }
@@ -8072,14 +8075,211 @@
           }
         }
 
-        // ACT 2 — Erykah Badu, headwrap and microphone:
-        // the singer standing centre stage, the wrap on
-        // her head, a microphone in her raised hand, her
-        // free arm gesturing as she sways.
+        // ACT 2 — Erykah Badu, headwrap and microphone,
+        // WITH HER LIVE BAND (restaged 2026-11-18, modelled
+        // on a live stage performance — the singer front
+        // and centre with a live band behind her, not a
+        // lone singer on an empty stage): the singer stands
+        // at the FRONT of the runway, centre, facing the
+        // room, microphone in hand at singing height — the
+        // clear lead of the act, at the act's full unit,
+        // with the follow spotlight's pool riding her act
+        // point so the light stays on her (see
+        // stageActPoint and drawStage). Behind her,
+        // arranged in the runway's depth, three backing
+        // players at a smaller unit: a DRUMMER back-centre
+        // at a compact kit (kick drum, snare and cymbals —
+        // simplified but readable as a kit), a GUITARIST
+        // with an electric guitar flanking mid-stage on
+        // the left, and a KEYBOARD PLAYER flanking
+        // mid-stage on the right at a slab keyboard on an
+        // X-stand — NOT the grand piano, which belongs to
+        // the PIANIST act alone. Every figure is a TBOT
+        // person to canon (see drawActHead): rounded-square
+        // heads with the plain three-blade crest, middle
+        // blade tallest (the singer's headwrap takes the
+        // blades' place, as a wrap does), round red dome
+        // eyes, NO mouths, black suits — and black gloves
+        // on EVERY hand: every hand in the act is drawn by
+        // drawActArm, whose round hand is the black glove,
+        // and the gloved hands land visibly on the guitar
+        // neck, on the drumsticks and on the keys. The
+        // band is drawn FIRST and the singer LAST, so the
+        // band stands behind her and none of it ever
+        // covers her. Within this act only, the whole
+        // group steps down together (gs) when the runway's
+        // length cannot hold its full height, so the four
+        // figures and their instruments always fit the
+        // deck between its head and the singer's feet at
+        // its foot — the SINGER plate stays on the deck at
+        // her feet, the number stand keeps its seat (and
+        // drawStage still paints it last, on top), and the
+        // runway's foot stays clear of the kitchen, as
+        // layoutStage leaves it.
         function drawActBadu(env) {
           var u = env.u, cx = env.cx, fy = env.platTop, nowMs = env.nowMs;
+          var gs = 1;
+          var headClear = fy - (stageStation.headY + 6);
+          if (headClear > 0 && headClear < u * 2.78) gs = clamp(headClear / (u * 2.78), 0.6, 1);
+          var U = u * gs;   // the singer's unit — the act's largest presence
+          var B = U * 0.72; // the band's unit
+          var happyLift = env.happyT > 0 ? -Math.sin(env.happyT * Math.PI) * U * 0.05 : 0;
+
+          // ---- THE DRUMMER, back-centre behind his kit ----
+          var dCx = cx, dFy = fy - U * 1.55;
+          var dBounce = Math.sin(nowMs / 460) * B * 0.03 + happyLift * 0.5;
+          drawActTorso(dCx, dFy - B * 1.16 + dBounce, dFy - B * 0.60 + dBounce, B * 0.21);
+          drawActHead(dCx, dFy - B * 1.40 + dBounce, B * 0.40, nowMs, false);
+          // The kit, standing on the boards: cymbal stands
+          // first, then the kick, the snare and the tom.
+          ctx.strokeStyle = "#3a3a41";
+          ctx.lineWidth = Math.max(1, B * 0.025);
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(dCx - B * 0.50, dFy - B * 0.78); ctx.lineTo(dCx - B * 0.50, dFy - B * 0.02);
+          ctx.moveTo(dCx + B * 0.52, dFy - B * 0.90); ctx.lineTo(dCx + B * 0.52, dFy - B * 0.02);
+          ctx.stroke();
+          // The kick drum.
+          ctx.fillStyle = "#26232a";
+          ctx.beginPath(); ctx.arc(dCx, dFy - B * 0.27, B * 0.26, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = "rgba(201, 162, 39, 0.75)";
+          ctx.lineWidth = Math.max(1, B * 0.022);
+          ctx.beginPath(); ctx.arc(dCx, dFy - B * 0.27, B * 0.26, 0, Math.PI * 2); ctx.stroke();
+          ctx.fillStyle = "#17161a";
+          ctx.beginPath(); ctx.arc(dCx, dFy - B * 0.27, B * 0.185, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#c9a227";
+          ctx.beginPath(); ctx.arc(dCx, dFy - B * 0.27, B * 0.045, 0, Math.PI * 2); ctx.fill();
+          // The snare (left) and the tom (right): pale heads
+          // on dark shells, either side of the kick's top.
+          var dHeads = [[-0.31, 0.50], [0.33, 0.53]];
+          for (var dhi = 0; dhi < dHeads.length; dhi++) {
+            var dhx = dCx + dHeads[dhi][0] * B, dhy = dFy - dHeads[dhi][1] * B;
+            ctx.fillStyle = "#1d1c22";
+            ctx.fillRect(dhx - B * 0.15, dhy, B * 0.30, B * 0.085);
+            ctx.fillStyle = "#efe9da";
+            ctx.beginPath(); ctx.ellipse(dhx, dhy, B * 0.15, B * 0.052, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = "rgba(201, 162, 39, 0.6)";
+            ctx.lineWidth = Math.max(0.8, B * 0.016);
+            ctx.beginPath(); ctx.ellipse(dhx, dhy, B * 0.15, B * 0.052, 0, 0, Math.PI * 2); ctx.stroke();
+          }
+          // The cymbals: hi-hat left, crash right, in gold.
+          ctx.fillStyle = "#d9a92e";
+          ctx.beginPath(); ctx.ellipse(dCx - B * 0.50, dFy - B * 0.80, B * 0.19, B * 0.034, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "rgba(120, 72, 0, 0.45)";
+          ctx.beginPath(); ctx.ellipse(dCx - B * 0.50, dFy - B * 0.815, B * 0.19, B * 0.02, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.save();
+          ctx.translate(dCx + B * 0.52, dFy - B * 0.92);
+          ctx.rotate(-0.12);
+          ctx.fillStyle = "#d9a92e";
+          ctx.beginPath(); ctx.ellipse(0, 0, B * 0.21, B * 0.038, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "rgba(255, 244, 200, 0.5)";
+          ctx.beginPath(); ctx.ellipse(-B * 0.05, -B * 0.012, B * 0.08, B * 0.014, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+          // His arms over the kit, gloved hands on the
+          // sticks, the sticks alternating on the clock —
+          // left to the snare, right to the tom.
+          var hit1 = Math.sin(nowMs / 230) * B * 0.03, hit2 = Math.sin(nowMs / 230 + Math.PI) * B * 0.03;
+          drawActArm(dCx - B * 0.19, dFy - B * 1.10 + dBounce, dCx - B * 0.30, dFy - B * 0.82 + dBounce, dCx - B * 0.29, dFy - B * 0.60 + hit1, B * 0.082);
+          drawActArm(dCx + B * 0.19, dFy - B * 1.10 + dBounce, dCx + B * 0.31, dFy - B * 0.82 + dBounce, dCx + B * 0.31, dFy - B * 0.63 + hit2, B * 0.082);
+          ctx.strokeStyle = "#c9a86a";
+          ctx.lineWidth = Math.max(1, B * 0.022);
+          ctx.beginPath();
+          ctx.moveTo(dCx - B * 0.29, dFy - B * 0.60 + hit1); ctx.lineTo(dCx - B * 0.33, dFy - B * 0.50 + hit1);
+          ctx.moveTo(dCx + B * 0.31, dFy - B * 0.63 + hit2); ctx.lineTo(dCx + B * 0.36, dFy - B * 0.53 + hit2);
+          ctx.stroke();
+
+          // ---- THE GUITARIST, flanking mid-stage, left ----
+          var gCx = cx - U * 0.60, gFy = fy - U * 0.92 + happyLift * 0.5;
+          var gSway = Math.sin(nowMs / 850 + 0.7) * 0.022;
+          ctx.save();
+          ctx.translate(gCx, gFy);
+          ctx.rotate(gSway);
+          ctx.translate(-gCx, -gFy);
+          // Legs, grounded on the boards behind the singer.
+          ctx.strokeStyle = "#101014";
+          ctx.lineCap = "round";
+          ctx.lineWidth = B * 0.095;
+          ctx.beginPath();
+          ctx.moveTo(gCx - B * 0.07, gFy - B * 0.54); ctx.lineTo(gCx - B * 0.11, gFy - B * 0.02);
+          ctx.moveTo(gCx + B * 0.07, gFy - B * 0.54); ctx.lineTo(gCx + B * 0.12, gFy - B * 0.02);
+          ctx.stroke();
+          drawActTorso(gCx, gFy - B * 1.06, gFy - B * 0.52, B * 0.20);
+          drawActHead(gCx, gFy - B * 1.30, B * 0.40, nowMs, false);
+          // The electric guitar: a solid body at his hip
+          // and a neck running up and OUT, away from the
+          // singer at centre.
+          var gBodyX = gCx - B * 0.05, gBodyY = gFy - B * 0.58;
+          var gNeckX = gCx - B * 0.44, gNeckY = gFy - B * 0.98;
+          ctx.strokeStyle = "#241a12";
+          ctx.lineCap = "round";
+          ctx.lineWidth = Math.max(1.4, B * 0.05);
+          ctx.beginPath(); ctx.moveTo(gBodyX, gBodyY - B * 0.03); ctx.lineTo(gNeckX, gNeckY); ctx.stroke();
+          ctx.fillStyle = "#17130e";
+          ctx.beginPath(); ctx.arc(gNeckX, gNeckY, B * 0.05, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#9e3327";
+          ctx.beginPath(); ctx.ellipse(gBodyX, gBodyY, B * 0.20, B * 0.15, -0.5, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+          ctx.beginPath(); ctx.arc(gBodyX - B * 0.02, gBodyY, B * 0.055, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "rgba(255, 240, 214, 0.20)";
+          ctx.beginPath(); ctx.ellipse(gBodyX + B * 0.06, gBodyY - B * 0.07, B * 0.07, B * 0.035, -0.5, 0, Math.PI * 2); ctx.fill();
+          // The neck hand — gloved, up the neck — and the
+          // strumming hand, gloved over the body, working
+          // the strings on the clock.
+          drawActArm(gCx - B * 0.18, gFy - B * 1.00, gCx - B * 0.30, gFy - B * 0.90, gCx - B * 0.36, gFy - B * 0.92, B * 0.082);
+          var strum = Math.sin(nowMs / 210 + 0.7) * B * 0.026;
+          drawActArm(gCx + B * 0.18, gFy - B * 1.00, gCx + B * 0.04, gFy - B * 0.80, gBodyX + B * 0.03, gBodyY - B * 0.03 + strum, B * 0.082);
+          ctx.restore();
+
+          // ---- THE KEYBOARD PLAYER, flanking mid-stage, right ----
+          var kCx = cx + U * 0.60, kFy = fy - U * 0.92 + happyLift * 0.5;
+          // Legs, grounded on the boards behind the singer.
+          ctx.strokeStyle = "#101014";
+          ctx.lineCap = "round";
+          ctx.lineWidth = B * 0.095;
+          ctx.beginPath();
+          ctx.moveTo(kCx - B * 0.07, kFy - B * 0.54); ctx.lineTo(kCx - B * 0.11, kFy - B * 0.02);
+          ctx.moveTo(kCx + B * 0.07, kFy - B * 0.54); ctx.lineTo(kCx + B * 0.12, kFy - B * 0.02);
+          ctx.stroke();
+          drawActTorso(kCx, kFy - B * 1.06, kFy - B * 0.52, B * 0.20);
+          drawActHead(kCx, kFy - B * 1.30, B * 0.40, nowMs, false);
+          // The keyboard: a slab on an X-stand in front of
+          // him — a slab keyboard, never the grand piano.
+          var kbY = kFy - B * 0.60, kbHalf = B * 0.46;
+          ctx.strokeStyle = "#2c2c33";
+          ctx.lineCap = "round";
+          ctx.lineWidth = Math.max(1.2, B * 0.035);
+          ctx.beginPath();
+          ctx.moveTo(kCx - kbHalf * 0.8, kbY + B * 0.06); ctx.lineTo(kCx + kbHalf * 0.8, kFy - B * 0.01);
+          ctx.moveTo(kCx + kbHalf * 0.8, kbY + B * 0.06); ctx.lineTo(kCx - kbHalf * 0.8, kFy - B * 0.01);
+          ctx.stroke();
+          ctx.fillStyle = "#17171c";
+          rrPath(kCx - kbHalf, kbY, kbHalf * 2, B * 0.13, Math.min(3, B * 0.05));
+          ctx.fill();
+          ctx.strokeStyle = "rgba(201, 162, 39, 0.5)";
+          ctx.lineWidth = Math.max(0.8, B * 0.016);
+          rrPath(kCx - kbHalf, kbY, kbHalf * 2, B * 0.13, Math.min(3, B * 0.05));
+          ctx.stroke();
+          // The keys: a white strip along the slab, black
+          // keys over it.
+          ctx.fillStyle = "#f7f3e8";
+          ctx.fillRect(kCx - kbHalf + B * 0.04, kbY + B * 0.055, kbHalf * 2 - B * 0.08, B * 0.05);
+          ctx.fillStyle = "#101014";
+          for (var kki = 0; kki < 9; kki++) {
+            ctx.fillRect(kCx - kbHalf + B * (0.09 + kki * 0.095), kbY + B * 0.055, B * 0.045, B * 0.032);
+          }
+          // His arms forward to the keys — gloved hands ON
+          // the keys, bobbing gently as he plays.
+          var keyBob1 = Math.sin(nowMs / 240) * B * 0.012, keyBob2 = Math.sin(nowMs / 240 + Math.PI) * B * 0.012;
+          drawActArm(kCx - B * 0.18, kFy - B * 1.00, kCx - B * 0.26, kFy - B * 0.82, kCx - B * 0.20, kbY + B * 0.07 + keyBob1, B * 0.082);
+          drawActArm(kCx + B * 0.18, kFy - B * 1.00, kCx + B * 0.26, kFy - B * 0.82, kCx + B * 0.22, kbY + B * 0.07 + keyBob2, B * 0.082);
+
+          // ---- THE SINGER, front and centre ----
+          // Drawn last, in front of her band: legs, torso,
+          // the wrap on her head, a microphone in her raised
+          // hand at singing height, her free arm gesturing
+          // as she sways — her established form, unchanged.
           var sway = Math.sin(nowMs / 1000) * 0.022;
-          var bounce = env.happyT > 0 ? -Math.sin(env.happyT * Math.PI) * u * 0.09 : 0;
+          var bounce = happyLift * 1.8;
           ctx.save();
           ctx.translate(cx, fy + bounce);
           ctx.rotate(sway);
@@ -8087,35 +8287,35 @@
           // Legs, in the vinyl.
           ctx.strokeStyle = "#101014";
           ctx.lineCap = "round";
-          ctx.lineWidth = u * 0.115;
+          ctx.lineWidth = U * 0.115;
           ctx.beginPath();
-          ctx.moveTo(cx - u * 0.10, fy - u * 0.80); ctx.lineTo(cx - u * 0.13, fy - u * 0.02);
-          ctx.moveTo(cx + u * 0.10, fy - u * 0.80); ctx.lineTo(cx + u * 0.14, fy - u * 0.02);
+          ctx.moveTo(cx - U * 0.10, fy - U * 0.80); ctx.lineTo(cx - U * 0.13, fy - U * 0.02);
+          ctx.moveTo(cx + U * 0.10, fy - U * 0.80); ctx.lineTo(cx + U * 0.14, fy - U * 0.02);
           ctx.stroke();
-          drawActTorso(cx, fy - u * 1.42, fy - u * 0.76, u * 0.27);
+          drawActTorso(cx, fy - U * 1.42, fy - U * 0.76, U * 0.27);
           // The free arm, gesturing out on the phrase.
-          var gest = Math.sin(nowMs / 640) * u * 0.05;
-          drawActArm(cx - u * 0.25, fy - u * 1.36, cx - u * 0.44, fy - u * 1.14, cx - u * 0.40, fy - u * 0.94 + gest, u * 0.10);
+          var gest = Math.sin(nowMs / 640) * U * 0.05;
+          drawActArm(cx - U * 0.25, fy - U * 1.36, cx - U * 0.44, fy - U * 1.14, cx - U * 0.40, fy - U * 0.94 + gest, U * 0.10);
           // The microphone arm, raised to her mouth.
-          drawActArm(cx + u * 0.25, fy - u * 1.36, cx + u * 0.42, fy - u * 1.30, cx + u * 0.24, fy - u * 1.58, u * 0.10);
-          drawActHead(cx, fy - u * 1.70, u * 0.54, nowMs, true);
+          drawActArm(cx + U * 0.25, fy - U * 1.36, cx + U * 0.42, fy - U * 1.30, cx + U * 0.24, fy - U * 1.58, U * 0.10);
+          drawActHead(cx, fy - U * 1.70, U * 0.54, nowMs, true);
           // The microphone, at her hand by her mouth.
           ctx.strokeStyle = "#26262b";
-          ctx.lineWidth = Math.max(1.6, u * 0.045);
-          ctx.beginPath(); ctx.moveTo(cx + u * 0.24, fy - u * 1.58); ctx.lineTo(cx + u * 0.13, fy - u * 1.66); ctx.stroke();
+          ctx.lineWidth = Math.max(1.6, U * 0.045);
+          ctx.beginPath(); ctx.moveTo(cx + U * 0.24, fy - U * 1.58); ctx.lineTo(cx + U * 0.13, fy - U * 1.66); ctx.stroke();
           ctx.fillStyle = "#3c3f46";
-          ctx.beginPath(); ctx.arc(cx + u * 0.115, fy - u * 1.675, u * 0.062, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(cx + U * 0.115, fy - U * 1.675, U * 0.062, 0, Math.PI * 2); ctx.fill();
           ctx.fillStyle = "rgba(255,255,255,0.5)";
-          ctx.beginPath(); ctx.arc(cx + u * 0.095, fy - u * 1.695, u * 0.02, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(cx + U * 0.095, fy - U * 1.695, U * 0.02, 0, Math.PI * 2); ctx.fill();
           ctx.restore();
           if (env.happyT > 0) {
             ctx.save();
             ctx.globalAlpha = clamp(env.happyT * 1.4, 0, 1) * 0.9;
             ctx.fillStyle = "#ffd166";
-            ctx.font = "700 " + Math.round(u * 0.4) + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+            ctx.font = "700 " + Math.round(U * 0.4) + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
             ctx.textAlign = "center";
-            ctx.fillText("♪", cx - u * 0.6, fy - u * 2.0 + (1 - env.happyT) * u * 0.2);
-            ctx.fillText("♫", cx + u * 0.55, fy - u * 2.06 + (1 - env.happyT) * u * 0.26);
+            ctx.fillText("♪", cx - U * 0.88, fy - U * 1.92 + (1 - env.happyT) * U * 0.2);
+            ctx.fillText("♫", cx + U * 0.88, fy - U * 1.98 + (1 - env.happyT) * U * 0.26);
             ctx.restore();
           }
         }
@@ -8477,7 +8677,8 @@
         // paints it with the act at the act's own point
         // along the runway, so it swaps on the same
         // turnover beat as the act itself, and it paces
-        // the boards with the singer and the rapper. Its
+        // the boards with the rapper (the singer's plate
+        // stays at the runway's front, at her feet). Its
         // seat is the deck at the act's feet: its top edge
         // sits just below the act's feet line (platTop +
         // 3), so it never touches the act, the decks, the
@@ -8526,13 +8727,16 @@
         // deck's head so the whole act stands on the
         // boards below the curtain's valance; the piano
         // is placed along the lower stretch and the band
-        // at the foot; and the two microphone acts — the
-        // singer and the rapper — PACE the runway's
-        // length: a full traverse from the mid-length
-        // down to the foot point and back on the room's
-        // real-elapsed clock, turning at the ends of
-        // their stretch, their feet never leaving the
-        // deck. Every point is measured from the laid-out
+        // at the foot; the SINGER act is fixed at the
+        // FRONT of the runway, at its foot point, with
+        // her live band arranged in the deck's depth
+        // behind her; and the rapper — the remaining
+        // microphone act — PACES the runway's length: a
+        // full traverse from the mid-length down to the
+        // foot point and back on the room's real-elapsed
+        // clock, turning at the ends of his stretch, his
+        // feet never leaving the deck. Every point is
+        // measured from the laid-out
         // runway (headY / footY / u in layoutStage), so
         // the acts track the runway at every size.
         function stageActPoint(actId, nowMs) {
@@ -8566,16 +8770,32 @@
           // short runway.
           if (actId === "pj-morton-piano") return Math.max(headY + len * 0.86, Math.min(headY + u * 2.20, footY - 4));
           if (actId === "tbot-band") return Math.max(headY + len * 0.94, Math.min(headY + u * 1.85, footY - 4));
-          // The microphone acts PACE the runway's length
-          // (same correction): their stretch runs from
+          if (actId === "erykah-badu-mic") {
+            // The SINGER act is FIXED at the FRONT of the
+            // runway (restaged 2026-11-18): she does not
+            // pace — she stands front and centre at the
+            // foot point, the lowest feet whose SINGER
+            // plate still lands on the boards at the
+            // foot's edge, with her band arranged in the
+            // deck's depth behind her (see drawActBadu),
+            // and the follow spotlight's pool rides this
+            // same point, so the light stays on her. On a
+            // very short runway her feet keep the standing
+            // figure's head clearance instead, and the
+            // act's own group step-down (gs, in
+            // drawActBadu) fits the band behind her.
+            return Math.max(footY - 22, headY + u * 2.28);
+          }
+          // The rapper PACES the runway's length
+          // (same correction): his stretch runs from
           // the highest feet a standing figure fits —
           // head clear of the deck's head — all the way
           // down to the foot point, the lowest feet whose
           // role plate still lands on the boards at the
-          // foot's edge, and they traverse the WHOLE of
+          // foot's edge, and he traverses the WHOLE of
           // it on a readable stride (a full traverse in
           // about nine seconds), turning at its ends — so
-          // the singer and the rapper read at mid-length
+          // the rapper reads at mid-length
           // and at the foot, not hovering at the head.
           var paceLo = headY + u * 2.28, paceHi = footY - 22;
           if (paceHi < paceLo) paceHi = paceLo;
@@ -8825,8 +9045,9 @@
           // the runway (see stageActPoint), so the light
           // follows the performance: on the DJ at the
           // head, on the piano at the lower stretch, on
-          // the band at the foot, and travelling with the
-          // singer and the rapper as they pace. Mid-
+          // the band at the foot, on the singer at the
+          // front (the pool stays on her, the act's lead)
+          // and travelling with the rapper as he paces. Mid-
           // rotation the beam follows the incoming act.
           // The beam and pool are painted here, behind
           // the act, so the performer stands IN the
