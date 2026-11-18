@@ -2634,11 +2634,16 @@
         // peak, every person on their OWN phase (their
         // dealt bobPh) and a slightly personal lean, so
         // the room reads alive and organic, never
-        // mechanical. laughAmt eases the whole room in
-        // and out together (stepLaugh, on the frame
-        // loop's real-elapsed step): when the act changes
-        // the room settles smoothly back to normal
-        // dining. Staff never laugh — the waiter, the
+        // mechanical. The laugh is BIG — heads tip and
+        // bob, bodies rock and bounce by several pixels
+        // at live size, plainly visible across the room,
+        // never a motion a checker has to measure for —
+        // and FAST: laughAmt snaps the whole room to
+        // full strength inside the comic's first second
+        // on stage (stepLaugh, on the frame loop's
+        // real-elapsed step) and settles it back to
+        // normal dining when his act ends. Staff never
+        // laugh — the waiter, the
         // chefs and the host keep working as usual — and
         // nobody mid-walk laughs either: walkers and
         // escorted parties keep walking, exactly as
@@ -2661,24 +2666,28 @@
             return laughScratch;
           }
           var ph = phase || 0;
-          var w = Math.sin(nowMs / 168 + ph * 2.63);
+          var w = Math.sin(nowMs / 105 + ph * 2.63);
           var wa = Math.abs(w);
-          var j = Math.sin(nowMs / 84 + ph * 5.17);
-          laughScratch.dy = (-wa * amp - Math.max(0, j) * amp * 0.3) * laughAmt;
-          laughScratch.rock = (w * 0.08 + j * 0.02 + Math.sin(ph * 3.7) * 0.035) * laughAmt;
-          laughScratch.squash = 1 - (0.04 * wa + 0.012 * Math.abs(j)) * laughAmt;
+          var j = Math.sin(nowMs / 52 + ph * 5.17);
+          laughScratch.dy = (-wa * amp * 1.15 - Math.max(0, j) * amp * 0.5) * laughAmt;
+          laughScratch.rock = (w * 0.17 + j * 0.035 + Math.sin(ph * 3.7) * 0.055) * laughAmt;
+          laughScratch.squash = 1 - (0.07 * wa + 0.02 * Math.abs(j)) * laughAmt;
           return laughScratch;
         }
         // The room's laugh level, stepped on the frame
-        // loop: it rises as the comic takes the runway
-        // (his act is named the moment the rotation
-        // advances, so the laugh builds through his
-        // turnover beat) and settles back to nothing
-        // over the same half-second when his act ends.
+        // loop: it SNAPS up as the comic takes the
+        // runway (his act is named the moment the
+        // rotation advances) — full strength in about a
+        // quarter of a second, well inside his first
+        // second on stage, because his act window can
+        // be only a few seconds and a slow ease-in
+        // would spend it — holds at full strength for
+        // his whole act, and settles back to nothing
+        // over about half a second when his act ends.
         function stepLaugh(dtMs) {
           var target = STAGE_ACT_ID === "comic-standup" ? 1 : 0;
-          if (laughAmt < target) laughAmt = Math.min(target, laughAmt + dtMs / 480);
-          else if (laughAmt > target) laughAmt = Math.max(target, laughAmt - dtMs / 480);
+          if (laughAmt < target) laughAmt = Math.min(target, laughAmt + dtMs / 240);
+          else if (laughAmt > target) laughAmt = Math.max(target, laughAmt - dtMs / 550);
         }
 
         // ---------- Show labels ----------
@@ -3263,7 +3272,7 @@
           // The laugh, while the COMIC is on (see the
           // laugh block): the entrance's standing guests
           // rock and bounce on their feet like the diners.
-          var lm = laughMotion(fig.bobPh, nowMs, u * 0.055);
+          var lm = laughMotion(fig.bobPh, nowMs, u * 0.11);
           if (!drawPhotoPerson(fig.build, "stand", x, y + lm.dy, u, lm.squash, rock + lm.rock, true)) {
             drawPlasticPerson(fig.sex, x, y + lm.dy, u, 1, 0, blinkLid(fig, nowMs), true, lm.rock);
           }
@@ -6409,7 +6418,7 @@
               // laugh block): a seated diner rocks and
               // bounces on their seat line, on their own
               // phase — movement only, no mouth, no bubble.
-              var lm = t.state === "seated" ? laughMotion(g.bobPh, nowMs, r * 0.11) : LAUGH_NONE;
+              var lm = t.state === "seated" ? laughMotion(g.bobPh, nowMs, r * 0.19) : LAUGH_NONE;
               if (!drawPhotoPerson(g.build, "sit", gx, cy - r * 0.20 + bob + hop + lm.dy, gS, lm.squash, lm.rock, true)) {
                 drawPlasticPerson(g.sex, gx, cy - r * 0.20 + bob + hop + lm.dy, gS, 0, 0, blinkLid(g, nowMs), true, lm.rock);
               }
@@ -6830,7 +6839,7 @@
           // The laugh, while the COMIC is on (see the
           // laugh block): booth and bar diners rock and
           // bounce on their seat line like everyone else.
-          var lm = t.state === "seated" ? laughMotion(g.bobPh, nowMs, r * 0.11) : LAUGH_NONE;
+          var lm = t.state === "seated" ? laughMotion(g.bobPh, nowMs, r * 0.19) : LAUGH_NONE;
           if (!drawPhotoPerson(g.build, "sit", gx, seatBottomY + bob + hop + lm.dy, gS, lm.squash, lm.rock, true)) {
             drawPlasticPerson(g.sex, gx, seatBottomY + bob + hop + lm.dy, gS, 0, 0, blinkLid(g, nowMs), true, lm.rock);
           }
@@ -8583,38 +8592,32 @@
         // free hand gesturing wide as he works the room.
         // While he is on, the whole room laughs (see the
         // laugh block by blinkLid). He is a SINGLE
-        // figure, and he stands fully clear of the
-        // runway's number stand, solved inside the deck
-        // from the stand's own seat: at his foot point
-        // his head normally passes below the plaque's
-        // bottom edge with room to spare, so he holds
-        // the deck's centre; on a deck too short for
-        // that, his unit steps down until his head
-        // clears the plaque's bottom, and only if the
-        // unit's floor still leaves him under the
-        // plaque does he step left inside the boards
-        // until his widest reach ends left of the
-        // plaque's left edge — the singer's own two
-        // clearances, in his size. The stand never
-        // moves, and drawStage still paints it last,
-        // fully readable.
+        // figure at the FULL standard act unit — the
+        // same unit the singer stands at on her foot
+        // point — and he is NEVER stepped down below
+        // it. He stands fully clear of the runway's
+        // number stand, solved by POSITION inside the
+        // deck from the stand's own seat, the way the
+        // singer's corrected geometry solves it: he
+        // steps LEFT until his head, his raised mic arm
+        // and the mic itself end left of the plaque's
+        // left edge, never so far that he leaves the
+        // boards. The stand never moves, and drawStage
+        // still paints it last, fully readable.
         function drawActComic(env) {
           var u = env.u, cx = env.cx, fy = env.platTop, nowMs = env.nowMs;
-          var U = u;
+          var U = u; // the full standard act unit — the singer's size, never shrunk
           if (stageStation.number > 0) {
             var tentR2 = Math.max(stageStation.r, 26);
             var standL = stageStation.cx + stageStation.w / 2 + 2 - tentR2 * 1.68 / 2;
-            var standB = stageStation.cy + tentR2 * 1.10 / 2;
-            // His head's top — crest included, with the
-            // bounce's lift allowed for — runs about
-            // 2.40 units above his feet.
-            var needU = (fy - standB - 4) / 2.40;
-            if (needU < U) U = Math.max(needU, u * 0.55);
-            if (fy - U * 2.40 <= standB + 4) {
-              cx = Math.min(cx, standL - 4 - U * 0.60);
-              var deckLeft = stageStation.w * 0.34;
-              if (cx < deckLeft + U * 0.30) cx = deckLeft + U * 0.30;
-            }
+            // His widest reach toward the plaque is the
+            // enlarged glove on the mic at his face
+            // (hand at +0.27U, glove rim at +0.374U):
+            // the step left ends that reach left of the
+            // plaque's left edge, with margin.
+            cx = Math.min(cx - U * 0.10, standL - 4 - U * 0.42);
+            var deckLeft = stageStation.w * 0.34;
+            if (cx < deckLeft + U * 0.30) cx = deckLeft + U * 0.30;
           }
           var bounce = -Math.abs(Math.sin(nowMs / 300)) * U * 0.035 -
             (env.happyT > 0 ? Math.sin(env.happyT * Math.PI) * U * 0.07 : 0);
