@@ -2728,9 +2728,11 @@
         // scale, and the HEAD carries the laugh on its
         // own pivot: (headTip) rotates the head on the
         // neck, visibly BACK and rocking on the laugh's
-        // beat — never below about a tenth of a radian
-        // at full laugh, so a still frame catches heads
-        // tipped, not upright — in each person's own
+        // beat — never below about a third of a radian
+        // at full laugh (the tip runs 0.38–0.78 rad on
+        // its beat, a head THROWN BACK at the neck, not
+        // a sub-pixel rock), so a still frame catches
+        // heads tipped, not upright — in each person's own
         // direction, and (headBob) bobs the head up and
         // down on the same beat, over and above the
         // body's bounce. The draw paths apply the head
@@ -2755,7 +2757,7 @@
           seatedLaughScratch.dy = (-wa * r * 0.30 - Math.max(0, j) * r * 0.10) * laughAmt;
           seatedLaughScratch.rock = (w * 0.13 + j * 0.03 + Math.sin(ph * 3.7) * 0.04) * laughAmt;
           seatedLaughScratch.squash = 1 - (0.035 * wa + 0.01 * Math.abs(j)) * laughAmt;
-          seatedLaughScratch.headTip = dir * (0.30 + 0.15 * w + 0.04 * j) * laughAmt;
+          seatedLaughScratch.headTip = dir * (0.58 + 0.16 * w + 0.04 * j) * laughAmt;
           seatedLaughScratch.headBob = (-wa * r * 0.16 - Math.max(0, j) * r * 0.05) * laughAmt;
           return seatedLaughScratch;
         }
@@ -8168,6 +8170,185 @@
           }
         }
 
+        // ---------- Facing the tables: the PROFILE canon ----------
+        // Every stage performer now plays to the TABLES:
+        // the runway stands on the room's left wall and
+        // the dining floor fills the room to its right,
+        // so every act figure is drawn IN PROFILE, facing
+        // RIGHT — body, face, microphone and instruments
+        // oriented toward the tables — never out at the
+        // viewer. The profile head keeps the canon: a
+        // rounded-square head in profile, the plain
+        // three-part crest drawn as a front-to-back row
+        // (middle blade tallest), ONE red dome eye on the
+        // tables side of the head, NO mouth, black suit,
+        // black gloves. The role plates and the runway
+        // number stand are signage: they stay front-
+        // readable exactly as they are (see drawStage).
+        function drawActHeadProfile(cx, cy, hw, nowMs, wrap) {
+          var hh = hw * 0.98;
+          var pw = hw * 0.82; // the profile head's depth, back (wall side) to face (tables side)
+          var top = cy - hh / 2;
+          var left = cx - pw / 2;
+          if (!wrap) {
+            // The crest in profile: three blades in a
+            // front-to-back row along the head's top —
+            // back blade leaning back, front blade
+            // leaning toward the tables, middle tallest.
+            drawActBlade(cx - pw * 0.27, top + 3, hw * 0.30, hw * 0.14, -0.34);
+            drawActBlade(cx + pw * 0.27, top + 3, hw * 0.30, hw * 0.14, 0.34);
+            drawActBlade(cx, top + 3, hw * 0.44, hw * 0.16, 0);
+          }
+          var g = ctx.createLinearGradient(0, top, 0, top + hh);
+          g.addColorStop(0, "#3b3835");
+          g.addColorStop(0.22, "#1d1d21");
+          g.addColorStop(1, "#08080a");
+          ctx.fillStyle = g;
+          rrPath(left, top, pw, hh, pw * 0.30);
+          ctx.fill();
+          ctx.strokeStyle = "rgba(0, 0, 0, 0.55)";
+          ctx.lineWidth = Math.max(0.8, hw * 0.02);
+          rrPath(left, top, pw, hh, pw * 0.30);
+          ctx.stroke();
+          ctx.save();
+          rrPath(left, top, pw, hh, pw * 0.30);
+          ctx.clip();
+          var sheen = ctx.createLinearGradient(left, top, left + pw, top + hh);
+          sheen.addColorStop(0, "rgba(255, 236, 208, 0.05)");
+          sheen.addColorStop(0.55, "rgba(255, 236, 208, 0.10)");
+          sheen.addColorStop(1, "rgba(255, 236, 208, 0.24)");
+          ctx.fillStyle = sheen;
+          ctx.fillRect(left, top, pw, hh);
+          ctx.fillStyle = "rgba(255, 244, 220, 0.30)";
+          ctx.beginPath(); ctx.ellipse(cx + pw * 0.20, top + hh * 0.24, hw * 0.15, hh * 0.11, -0.35, 0, Math.PI * 2); ctx.fill();
+          // The face plane: a fine lit edge down the
+          // head's tables-side front, so the turn reads.
+          ctx.fillStyle = "rgba(255, 240, 214, 0.13)";
+          ctx.fillRect(left + pw * 0.86, top + hh * 0.10, pw * 0.14, hh * 0.80);
+          ctx.restore();
+          if (wrap) {
+            // The headwrap in profile: the gold band
+            // across the head's top, its knot at the
+            // FRONT — the tables side.
+            ctx.fillStyle = "#c9971f";
+            ctx.beginPath();
+            ctx.moveTo(left - pw * 0.04, top + hh * 0.12);
+            ctx.quadraticCurveTo(cx, top - hh * 0.28, left + pw * 1.04, top + hh * 0.12);
+            ctx.lineTo(left + pw * 1.02, top + hh * 0.32);
+            ctx.quadraticCurveTo(cx, top + hh * 0.08, left - pw * 0.02, top + hh * 0.32);
+            ctx.closePath(); ctx.fill();
+            ctx.fillStyle = "#e3b93e";
+            ctx.beginPath(); ctx.ellipse(cx + pw * 0.34, top - hh * 0.03, hw * 0.12, hh * 0.105, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "rgba(120, 72, 0, 0.35)";
+            ctx.beginPath(); ctx.ellipse(cx + pw * 0.34, top, hw * 0.065, hh * 0.055, 0, 0, Math.PI * 2); ctx.fill();
+          }
+          // The ONE eye: a large red dome on the tables
+          // side of the profile head — and the blink lid
+          // in the vinyl's own black. No second eye, no
+          // mouth: the head has turned to the tables.
+          var lid = blinkLid(actBlink, nowMs);
+          var eyeY = cy + hh * 0.06, eyeR = hw * 0.13;
+          var eyeX = cx + pw * 0.20;
+          ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+          ctx.beginPath(); ctx.ellipse(eyeX, eyeY + eyeR * 0.14, eyeR * 1.06, eyeR * 1.02, 0, 0, Math.PI * 2); ctx.fill();
+          var eyeGrad = ctx.createRadialGradient(eyeX - eyeR * 0.35, eyeY - eyeR * 0.4, eyeR * 0.15, eyeX, eyeY, eyeR * 1.05);
+          eyeGrad.addColorStop(0, "#ff6a58");
+          eyeGrad.addColorStop(0.45, "#e01a12");
+          eyeGrad.addColorStop(1, "#8f0703");
+          ctx.fillStyle = eyeGrad;
+          ctx.beginPath(); ctx.arc(eyeX, eyeY, eyeR, 0, Math.PI * 2); ctx.fill();
+          if (lid > 0) {
+            var lidH = eyeR * lid;
+            ctx.fillStyle = "#0a0a0c";
+            ctx.beginPath();
+            ctx.ellipse(eyeX, eyeY - eyeR + lidH, eyeR * 1.04, Math.max(lidH, 0.4), 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          if (lid < 0.7) {
+            ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
+            ctx.beginPath(); ctx.ellipse(eyeX - eyeR * 0.34, eyeY - eyeR * 0.38, eyeR * 0.24, eyeR * 0.17, -0.5, 0, Math.PI * 2); ctx.fill();
+          }
+        }
+
+        // A glossy black-vinyl torso IN PROFILE, facing
+        // the tables (right): the same suit, seen from
+        // the side — a narrower depth than the old front
+        // view at the same (halfW) build, the chest edge
+        // toward the tables, the back edge to the wall.
+        function drawActTorsoProfile(cx, shoulderY, bottomY, halfW) {
+          var dw = halfW * 0.58; // profile depth half width at the build's own scale
+          var g = ctx.createLinearGradient(0, shoulderY, 0, bottomY);
+          g.addColorStop(0, "#2b2a30");
+          g.addColorStop(0.45, "#141418");
+          g.addColorStop(1, "#08080a");
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.moveTo(cx - dw * 0.38, shoulderY - halfW * 0.10);
+          ctx.lineTo(cx + dw * 0.52, shoulderY - halfW * 0.10);
+          ctx.quadraticCurveTo(cx + dw * 1.06, shoulderY + halfW * 0.10, cx + dw * 0.96, (shoulderY + bottomY) / 2);
+          ctx.quadraticCurveTo(cx + dw * 0.88, bottomY - halfW * 0.08, cx + dw * 0.80, bottomY);
+          ctx.lineTo(cx - dw * 0.80, bottomY);
+          ctx.quadraticCurveTo(cx - dw * 0.86, bottomY - halfW * 0.08, cx - dw * 0.94, (shoulderY + bottomY) / 2);
+          ctx.quadraticCurveTo(cx - dw * 1.02, shoulderY + halfW * 0.10, cx - dw * 0.38, shoulderY - halfW * 0.10);
+          ctx.closePath(); ctx.fill();
+          ctx.fillStyle = "rgba(255, 226, 188, 0.16)";
+          ctx.beginPath(); ctx.ellipse(cx + dw * 0.38, shoulderY + halfW * 0.22, dw * 0.34, halfW * 0.13, -0.35, 0, Math.PI * 2); ctx.fill();
+        }
+
+        // Legs IN PROFILE, facing the tables: the back
+        // leg planted under the hip, the front leg
+        // stepped toward the tables, both feet pointing
+        // at the tables. (topY) is the legs' top (the
+        // torso's bottom line), (feetY) the boards, (w)
+        // the leg stroke width at the figure's unit.
+        function drawActLegsProfile(cx, topY, feetY, w) {
+          ctx.strokeStyle = "#101014";
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.lineWidth = w;
+          ctx.beginPath();
+          ctx.moveTo(cx - w * 0.28, topY); ctx.lineTo(cx - w * 0.62, feetY - w * 0.06);
+          ctx.moveTo(cx + w * 0.28, topY); ctx.lineTo(cx + w * 1.18, (topY + feetY) / 2); ctx.lineTo(cx + w * 1.02, feetY - w * 0.06);
+          ctx.stroke();
+          ctx.fillStyle = "#0c0c0f";
+          ctx.beginPath(); ctx.ellipse(cx - w * 0.30, feetY - w * 0.02, w * 0.62, w * 0.24, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(cx + w * 1.34, feetY - w * 0.02, w * 0.62, w * 0.24, 0, 0, Math.PI * 2); ctx.fill();
+        }
+
+        // A handheld microphone IN PROFILE, at a face
+        // turned to the tables: the gloved hand at
+        // (handX, handY) below and behind the ball, a
+        // long dark handle running up toward the tables
+        // to the large silver-grille ball at (ballX,
+        // ballY) — beside the mouth, clear of the head,
+        // so the profile eye reads in full beside it.
+        // The glove is redrawn over the handle's base,
+        // so the hand is seen HOLDING the mic.
+        function drawActMicProfile(handX, handY, ballX, ballY, ballR, u) {
+          ctx.strokeStyle = "#1c1c20";
+          ctx.lineCap = "round";
+          ctx.lineWidth = Math.max(2, u * 0.055);
+          ctx.beginPath(); ctx.moveTo(handX, handY); ctx.lineTo(ballX - ballR * 0.45, ballY + ballR * 0.50); ctx.stroke();
+          ctx.fillStyle = "#43464e";
+          ctx.beginPath(); ctx.arc(ballX, ballY, ballR, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = "rgba(228, 230, 236, 0.60)";
+          ctx.lineWidth = Math.max(0.8, u * 0.018);
+          ctx.beginPath(); ctx.arc(ballX, ballY, ballR * 0.68, 0.35, Math.PI - 0.35); ctx.stroke();
+          ctx.beginPath(); ctx.arc(ballX, ballY, ballR * 0.42, 0.35, Math.PI - 0.35); ctx.stroke();
+          ctx.strokeStyle = "#0a0a0c";
+          ctx.lineWidth = Math.max(1, u * 0.022);
+          ctx.beginPath(); ctx.arc(ballX, ballY, ballR, 0, Math.PI * 2); ctx.stroke();
+          ctx.fillStyle = "rgba(255,255,255,0.55)";
+          ctx.beginPath(); ctx.arc(ballX - ballR * 0.34, ballY - ballR * 0.38, ballR * 0.20, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#0c0c0f";
+          ctx.beginPath(); ctx.arc(handX, handY, u * 0.104, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = "rgba(255, 236, 200, 0.38)";
+          ctx.lineWidth = Math.max(0.7, u * 0.013);
+          ctx.beginPath(); ctx.arc(handX, handY, u * 0.104, 0, Math.PI * 2); ctx.stroke();
+          ctx.fillStyle = "rgba(255, 244, 220, 0.30)";
+          ctx.beginPath(); ctx.arc(handX - u * 0.033, handY - u * 0.035, u * 0.027, 0, Math.PI * 2); ctx.fill();
+        }
+
         // ACT — PJ Morton at the piano (filed alternate):
         // the pianist seated at a glossy black grand, his
         // head and torso over the piano's body, his hands
@@ -8178,79 +8359,108 @@
           var u = env.u, cx = env.cx, fy = env.platTop, nowMs = env.nowMs;
           var sway = Math.sin(nowMs / 900) * 0.018;
           var bounce = env.happyT > 0 ? -Math.sin(env.happyT * Math.PI) * u * 0.09 : 0;
-          var fx = cx + u * 0.52;
+          // FACING THE TABLES: the pianist sits on the
+          // WALL side (left) in profile, facing right to
+          // the tables, and the grand stands in profile
+          // in front of him, extending toward the tables:
+          // keys at his hands on its wall-side end, body
+          // and curved tail running out to the right, the
+          // lid raised over the tail.
+          var fx = cx - u * 0.98;
           var bodyTop = fy - u * 0.88, bodyBot = fy - u * 0.54;
-          // The pianist, behind the piano: torso and head,
-          // swaying on the music.
+          var keyX = cx - u * 0.52; // the keyboard's face, at his hands
+          // The pianist, seated on his bench at the
+          // piano's wall-side end: legs in profile (one
+          // foot forward to the pedal), torso and head in
+          // profile over the keys, swaying on the music.
           ctx.save();
           ctx.translate(fx, fy + bounce);
           ctx.rotate(sway);
           ctx.translate(-fx, -fy);
-          drawActTorso(fx, fy - u * 1.30, fy - u * 0.72, u * 0.31);
-          drawActHead(fx, fy - u * 1.56 + bounce * 0, u * 0.56, nowMs, false);
-          ctx.restore();
-          // The grand piano: a glossy black body, its tail
-          // curving away to the left, the lid raised over
-          // it, legs and a pedal lyre under it.
-          var pGrad = ctx.createLinearGradient(0, bodyTop, 0, bodyBot);
-          pGrad.addColorStop(0, "#2e2d33");
-          pGrad.addColorStop(0.5, "#131316");
-          pGrad.addColorStop(1, "#060607");
-          // Legs first, behind the body.
+          // The bench, under him.
           ctx.fillStyle = "#0b0b0d";
-          ctx.fillRect(cx - u * 1.18, bodyBot - u * 0.02, u * 0.10, fy - bodyBot + u * 0.02);
-          ctx.fillRect(cx + u * 0.88, bodyBot - u * 0.02, u * 0.10, fy - bodyBot + u * 0.02);
-          ctx.fillRect(cx - u * 0.12, bodyBot - u * 0.02, u * 0.07, (fy - bodyBot) * 0.62);
+          ctx.fillRect(fx - u * 0.30, fy - u * 0.46 + bounce, u * 0.52, u * 0.07);
+          ctx.fillRect(fx - u * 0.26, fy - u * 0.39 + bounce, u * 0.07, u * 0.37);
+          ctx.fillRect(fx + u * 0.14, fy - u * 0.39 + bounce, u * 0.07, u * 0.37);
+          // His legs in profile: back leg down to the
+          // boards, front leg stepped toward the tables
+          // to the pedal.
+          ctx.strokeStyle = "#101014";
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.lineWidth = u * 0.105;
+          ctx.beginPath();
+          ctx.moveTo(fx - u * 0.06, fy - u * 0.52 + bounce); ctx.lineTo(fx - u * 0.10, fy - u * 0.02 + bounce);
+          ctx.moveTo(fx + u * 0.10, fy - u * 0.52 + bounce); ctx.lineTo(fx + u * 0.34, fy - u * 0.30 + bounce); ctx.lineTo(fx + u * 0.38, fy - u * 0.06 + bounce);
+          ctx.stroke();
+          drawActTorsoProfile(fx, fy - u * 1.30 + bounce, fy - u * 0.50 + bounce, u * 0.31);
+          drawActHeadProfile(fx, fy - u * 1.56 + bounce, u * 0.56, nowMs, false);
+          ctx.restore();
+          // The grand piano IN PROFILE: legs and pedal
+          // lyre under the body first.
+          ctx.fillStyle = "#0b0b0d";
+          ctx.fillRect(keyX + u * 0.06, bodyBot - u * 0.02, u * 0.10, fy - bodyBot + u * 0.02);
+          ctx.fillRect(cx + u * 1.10, bodyBot - u * 0.02, u * 0.10, fy - bodyBot + u * 0.02);
+          ctx.fillRect(cx + u * 0.42, bodyBot - u * 0.02, u * 0.07, (fy - bodyBot) * 0.62);
           ctx.fillStyle = "#c9a227";
-          ctx.fillRect(cx - u * 0.155, fy - (fy - bodyBot) * 0.34, u * 0.14, u * 0.035);
-          // The raised lid, slanting up over the tail.
+          ctx.fillRect(cx + u * 0.385, fy - (fy - bodyBot) * 0.34, u * 0.14, u * 0.035);
+          // The raised lid, slanting up over the tail
+          // toward the tables.
           ctx.fillStyle = "#1a1a1f";
           ctx.beginPath();
-          ctx.moveTo(cx - u * 0.95, bodyTop + u * 0.01);
-          ctx.lineTo(cx + u * 1.02, bodyTop + u * 0.01);
-          ctx.lineTo(cx - u * 0.42, bodyTop - u * 0.60);
-          ctx.lineTo(cx - u * 1.28, bodyTop - u * 0.52);
+          ctx.moveTo(keyX - u * 0.04, bodyTop + u * 0.01);
+          ctx.lineTo(cx + u * 1.28, bodyTop + u * 0.01);
+          ctx.lineTo(cx + u * 0.94, bodyTop - u * 0.58);
+          ctx.lineTo(keyX + u * 0.10, bodyTop - u * 0.50);
           ctx.closePath(); ctx.fill();
           ctx.strokeStyle = "rgba(201, 162, 39, 0.55)";
           ctx.lineWidth = Math.max(1, u * 0.02);
           ctx.stroke();
           ctx.strokeStyle = "#0b0b0d";
           ctx.lineWidth = Math.max(1.4, u * 0.03);
-          ctx.beginPath(); ctx.moveTo(cx - u * 0.05, bodyTop); ctx.lineTo(cx - u * 0.40, bodyTop - u * 0.52); ctx.stroke();
-          // The body, with its curved tail.
+          ctx.beginPath(); ctx.moveTo(cx + u * 0.46, bodyTop); ctx.lineTo(cx + u * 0.90, bodyTop - u * 0.50); ctx.stroke();
+          // The body in profile: a long side running
+          // toward the tables, its tail curving down at
+          // the far (tables-side) end.
+          var pGrad = ctx.createLinearGradient(0, bodyTop, 0, bodyBot);
+          pGrad.addColorStop(0, "#2e2d33");
+          pGrad.addColorStop(0.5, "#131316");
+          pGrad.addColorStop(1, "#060607");
           ctx.fillStyle = pGrad;
           ctx.beginPath();
-          ctx.moveTo(cx + u * 1.18, bodyTop);
-          ctx.lineTo(cx - u * 0.88, bodyTop);
-          ctx.quadraticCurveTo(cx - u * 1.56, bodyTop + u * 0.06, cx - u * 1.50, bodyBot - u * 0.05);
-          ctx.quadraticCurveTo(cx - u * 1.46, bodyBot + u * 0.01, cx - u * 1.05, bodyBot);
-          ctx.lineTo(cx + u * 1.18, bodyBot);
+          ctx.moveTo(keyX - u * 0.04, bodyTop);
+          ctx.lineTo(cx + u * 0.94, bodyTop);
+          ctx.quadraticCurveTo(cx + u * 1.36, bodyTop + u * 0.05, cx + u * 1.34, bodyBot - u * 0.06);
+          ctx.quadraticCurveTo(cx + u * 1.32, bodyBot + u * 0.01, cx + u * 0.98, bodyBot);
+          ctx.lineTo(keyX - u * 0.04, bodyBot);
           ctx.closePath(); ctx.fill();
           ctx.strokeStyle = "rgba(201, 162, 39, 0.5)";
           ctx.lineWidth = Math.max(1, u * 0.018);
           ctx.beginPath();
-          ctx.moveTo(cx + u * 1.18, bodyBot - u * 0.045);
-          ctx.lineTo(cx - u * 1.02, bodyBot - u * 0.045);
+          ctx.moveTo(keyX - u * 0.02, bodyBot - u * 0.045);
+          ctx.lineTo(cx + u * 0.96, bodyBot - u * 0.045);
           ctx.stroke();
           ctx.fillStyle = "rgba(255, 240, 214, 0.13)";
-          ctx.beginPath(); ctx.ellipse(cx - u * 0.3, bodyTop + u * 0.07, u * 0.55, u * 0.045, -0.04, 0, Math.PI * 2); ctx.fill();
-          // The keys: a white strip at the piano's right
-          // end, where the pianist's hands work.
+          ctx.beginPath(); ctx.ellipse(cx + u * 0.45, bodyTop + u * 0.07, u * 0.55, u * 0.045, -0.04, 0, Math.PI * 2); ctx.fill();
+          // The keys: a white strip at the piano's
+          // wall-side end, facing the pianist, where his
+          // hands work — black keys over its top.
           ctx.fillStyle = "#f7f3e8";
-          ctx.fillRect(cx + u * 0.80, bodyTop + u * 0.07, u * 0.36, u * 0.095);
+          ctx.fillRect(keyX - u * 0.05, bodyTop + u * 0.06, u * 0.30, u * 0.10);
           ctx.fillStyle = "#101014";
-          for (var ki = 0; ki < 7; ki++) {
-            ctx.fillRect(cx + u * (0.845 + ki * 0.045), bodyTop + u * 0.07, u * 0.024, u * 0.058);
+          for (var ki = 0; ki < 6; ki++) {
+            ctx.fillRect(keyX + u * (0.005 + ki * 0.045), bodyTop + u * 0.06, u * 0.024, u * 0.058);
           }
-          // His arms, forward to the keys, the hands
-          // alternating gently over them as he plays — and
-          // lifting with the bounce when a plate lands.
+          // His arms, forward (toward the tables) from
+          // his profile shoulder to the keys, the hands
+          // alternating gently over them as he plays —
+          // and lifting with the bounce when a plate lands.
           var bob1 = Math.sin(nowMs / 170) * u * 0.016, bob2 = Math.sin(nowMs / 170 + Math.PI) * u * 0.016;
-          drawActArm(fx - u * 0.24, fy - u * 1.24 + bounce, fx + u * 0.05, fy - u * 1.00 + bounce, cx + u * 0.86, bodyTop + u * 0.10 + bob1 + bounce, u * 0.105);
-          drawActArm(fx + u * 0.24, fy - u * 1.24 + bounce, fx + u * 0.38, fy - u * 1.02 + bounce, cx + u * 1.04, bodyTop + u * 0.10 + bob2 + bounce, u * 0.105);
-          // The music, drifting up off the piano: two
-          // quiet notes on a slow rise, and a brighter
-          // flurry while the serve beat plays.
+          drawActArm(fx + u * 0.10, fy - u * 1.24 + bounce, fx + u * 0.34, fy - u * 1.02 + bounce, keyX + u * 0.04, bodyTop + u * 0.10 + bob1 + bounce, u * 0.105);
+          drawActArm(fx + u * 0.13, fy - u * 1.18 + bounce, fx + u * 0.40, fy - u * 0.96 + bounce, keyX + u * 0.16, bodyTop + u * 0.10 + bob2 + bounce, u * 0.105);
+          // The music, drifting up off the piano toward
+          // the tables: two quiet notes on a slow rise,
+          // and a brighter flurry while the serve beat plays.
           ctx.fillStyle = "#ffd166";
           ctx.textAlign = "center";
           for (var ni = 0; ni < 2; ni++) {
@@ -8258,84 +8468,62 @@
             ctx.save();
             ctx.globalAlpha = (1 - ph) * 0.45;
             ctx.font = "700 " + Math.round(u * 0.34) + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
-            ctx.fillText("♪", cx - u * 0.95 + ph * u * 0.25, fy - u * 1.15 - ph * u * 0.5);
+            ctx.fillText("♪", cx + u * 0.55 + ph * u * 0.25, fy - u * 1.15 - ph * u * 0.5);
             ctx.restore();
           }
           if (env.happyT > 0) {
             ctx.save();
             ctx.globalAlpha = clamp(env.happyT * 1.4, 0, 1) * 0.9;
             ctx.font = "700 " + Math.round(u * 0.4) + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
-            ctx.fillText("♪", cx - u * 0.55, fy - u * 1.95 + (1 - env.happyT) * u * 0.2);
-            ctx.fillText("♫", cx + u * 0.35, fy - u * 2.02 + (1 - env.happyT) * u * 0.26);
+            ctx.fillText("♪", cx + u * 0.30, fy - u * 1.95 + (1 - env.happyT) * u * 0.2);
+            ctx.fillText("♫", cx + u * 0.95, fy - u * 2.02 + (1 - env.happyT) * u * 0.26);
             ctx.restore();
           }
         }
-
         // ACT 2 — Erykah Badu, headwrap and microphone,
-        // WITH HER LIVE BAND (restaged 2026-11-18, modelled
-        // on a live stage performance — the singer front
-        // and centre with a live band behind her, not a
-        // lone singer on an empty stage): the singer stands
-        // at the FRONT of the runway, centre, facing the
-        // room, microphone in hand at singing height — the
-        // clear lead of the act, at the act's full unit,
-        // with the follow spotlight's pool riding her act
-        // point so the light stays on her (see
-        // stageActPoint and drawStage). Behind her,
-        // arranged in the runway's depth, three backing
-        // players at a smaller unit: a DRUMMER back-centre
-        // at a compact kit (kick drum, snare and cymbals —
-        // simplified but readable as a kit), a GUITARIST
-        // with an electric guitar flanking mid-stage on
-        // the left, and a KEYBOARD PLAYER flanking
-        // mid-stage on the right at a slab keyboard on an
-        // X-stand — NOT the grand piano, which belongs to
-        // the PIANIST act alone. Every figure is a TBOT
-        // person to canon (see drawActHead): rounded-square
-        // heads with the plain three-blade crest, middle
-        // blade tallest (the singer's headwrap takes the
-        // blades' place, as a wrap does), round red dome
-        // eyes, NO mouths, black suits — and black gloves
-        // on EVERY hand: every hand in the act is drawn by
-        // drawActArm, whose round hand is the black glove,
-        // and the gloved hands land visibly on the guitar
-        // neck, on the drumsticks and on the keys. The
-        // band is drawn FIRST and the singer LAST, so the
-        // band stands behind her and none of it ever
-        // covers her. Within this act only, the whole
-        // group steps down together (gs) when the runway's
-        // length cannot hold its full height, so the four
-        // figures and their instruments always fit the
-        // deck between its head and the singer's feet at
-        // its foot — the SINGER plate stays on the deck at
-        // her feet, the number stand keeps its seat (and
-        // drawStage still paints it last, on top), and the
-        // runway's foot stays clear of the kitchen, as
-        // layoutStage leaves it.
-        // LIVE-CHECK CORRECTION (2026-11-18): three parts
-        // of the restage did not read live and are fixed
-        // here. (1) The microphone is BIG — a long handle
-        // and a large silver-grilled ball held up at her
-        // face — so it reads against her headwrap at live
-        // size. (2) The group is COMPRESSED and shifted
-        // inside the deck, clear of the number stand's
-        // plaque (whose seat never moves): the whole
-        // group steps left far enough that the singer's
-        // head, raised arm and mic end left of the
-        // plaque's left edge, and the flanking players
-        // step in (±0.47u) and DOWN in the deck's depth
-        // (sideBack, solved at draw time from the stand's
-        // own seat) until their heads pass below the
-        // plaque's bottom edge — so all four figures
-        // stand fully clear of the plaque whichever way
-        // it would have covered them, and the keyboard
-        // player reads in full: head, slab on its
-        // X-stand, gloved hands on the keys. (3) The drum
-        // kit is shifted to the singer's left and given a
-        // pale kick face, a snare and wide gold cymbals,
-        // so the kit body reads beside/behind her instead
-        // of hiding behind her. Every hand in the act
-        // wears the enlarged rimmed glove (see drawActArm).
+        // WITH HER LIVE BAND: the singer stands at the
+        // FRONT of the runway, with three backing players
+        // behind her — a DRUMMER at a compact kit, a
+        // GUITARIST with an electric guitar, and a
+        // KEYBOARD PLAYER at a slab keyboard on a stand —
+        // NOT the grand piano, which belongs to the
+        // PIANIST act alone. Every figure is a TBOT person
+        // to canon (see drawActHeadProfile): rounded-
+        // square heads with the plain three-blade crest,
+        // middle blade tallest (the singer's headwrap
+        // takes the blades' place), one red dome eye, NO
+        // mouths, black suits, black gloves on EVERY hand
+        // (every hand drawn by drawActArm at the enlarged
+        // rimmed-glove size, landing visibly on the guitar
+        // neck, the drumsticks and the keys). The band is
+        // drawn FIRST and the singer LAST, so the band
+        // stands behind her and none of it ever covers
+        // her. Within this act only, the whole group steps
+        // down together (gs) when the runway's length
+        // cannot hold its full height — the SINGER plate
+        // stays on the deck at her feet, the number stand
+        // keeps its seat (drawStage paints it last, on
+        // top), and the runway's foot stays clear of the
+        // kitchen, as layoutStage leaves it.
+        // FACING THE TABLES (2026-11-18): the whole group
+        // now plays IN PROFILE, facing the tables (right):
+        // the singer in profile at the room side of the
+        // group, mic ball beside her mouth on the tables
+        // side, her eye visible in profile; her band
+        // arranged UPSTAGE of her — on the WALL side
+        // (left) of her, at depths up the deck — every
+        // player in profile, playing toward the tables:
+        // the drummer behind his kit with the kit at his
+        // tables side, the guitarist's neck pointing out
+        // toward the tables, the keyboardist's slab
+        // running out toward the tables from his front.
+        // The group is solved inside the deck, clear of
+        // the number stand's plaque (whose seat never
+        // moves): the singer steps left until her head,
+        // raised mic arm and the mic ball itself end left
+        // of the plaque's left edge, never so far that
+        // she — or her band at her wall side — leaves
+        // the boards.
         function drawActBadu(env) {
           var u = env.u, cx = env.cx, fy = env.platTop, nowMs = env.nowMs;
           var gs = 1;
@@ -8346,130 +8534,121 @@
           var happyLift = env.happyT > 0 ? -Math.sin(env.happyT * Math.PI) * U * 0.05 : 0;
           // The group's seat inside the deck, solved from
           // the number stand's own seat (the stand never
-          // moves and paints last): the group steps LEFT
-          // until the singer's head, her raised mic arm
-          // and the mic itself end left of the plaque's
-          // left edge (never so far that she leaves the
-          // boards), and the flanking players' depth
-          // (sideBack) steps down until their head tops
-          // pass below the plaque's bottom edge. On an
-          // unnumbered floor there is no stand: the group
-          // keeps the deck's centre and its full depth.
+          // moves and paints last): the singer steps LEFT
+          // until her profile head, her raised mic arm
+          // and the mic ball (rim at +0.575U in profile)
+          // end left of the plaque's left edge, and keeps
+          // enough deck at her wall side for her band
+          // (nearest player at −0.50U). On an unnumbered
+          // floor there is no stand: the group keeps the
+          // deck's centre and its full depth. (sideBack)
+          // is the flanking depth step, kept from the
+          // front-facing staging: it steps the guitarist
+          // up the deck, and the keyboardist further.
           var sideBack = U * 0.55;
           if (stageStation.number > 0) {
             var tentR2 = Math.max(stageStation.r, 26);
             var standL = stageStation.cx + stageStation.w / 2 + 2 - tentR2 * 1.68 / 2;
             var standB = stageStation.cy + tentR2 * 1.10 / 2;
-            cx = Math.min(cx - U * 0.10, standL - 4 - U * 0.40);
+            cx = Math.min(cx - U * 0.10, standL - 4 - U * 0.60);
             var deckLeft = stageStation.w * 0.34;
-            if (cx < deckLeft + U * 0.30) cx = deckLeft + U * 0.30;
-            // On a short deck the flanking heads would
-            // still graze the plaque's bottom edge: the
-            // band's unit steps down just enough that,
-            // at the shallowest depth, their head tops
-            // clear it — the singer never steps down.
+            if (cx < deckLeft + U * 0.52) cx = deckLeft + U * 0.52;
             var needB = (fy - standB - 4 - U * 0.12) / 1.664;
             if (needB < B) B = Math.max(needB, U * 0.45);
             var yBack = fy - standB - 4 - B * 1.664;
             sideBack = clamp(Math.min(U * 0.55, yBack), U * 0.06, U * 0.55);
           }
 
-          // ---- THE DRUMMER, back-left behind his kit ----
-          var dCx = cx - U * 0.30, dFy = fy - U * 0.92;
+          // ---- THE DRUMMER, back on the wall side, behind his kit ----
+          var dCx = cx - U * 0.28, dFy = fy - U * 0.95;
           var dBounce = Math.sin(nowMs / 460) * B * 0.03 + happyLift * 0.5;
-          drawActTorso(dCx, dFy - B * 1.16 + dBounce, dFy - B * 0.60 + dBounce, B * 0.21);
-          drawActHead(dCx, dFy - B * 1.40 + dBounce, B * 0.40, nowMs, false);
-          // The kit, standing on the boards at his feet,
-          // shifted to the singer's left so its body reads
-          // beside her instead of hiding behind her:
-          // stands first — the hi-hat's full stand far
-          // left, a short stub for the crash over his
-          // head — then the kick, the snare and the tom.
+          drawActTorsoProfile(dCx, dFy - B * 1.16 + dBounce, dFy - B * 0.60 + dBounce, B * 0.21);
+          drawActHeadProfile(dCx, dFy - B * 1.40 + dBounce, B * 0.40, nowMs, false);
+          // The kit IN PROFILE at his tables side (his
+          // front, to the right): stands first — the
+          // hi-hat's stand far toward the tables, a short
+          // stub for the crash over his head — then the
+          // kick's side, the snare and the tom in front
+          // of him.
           ctx.strokeStyle = "#3a3a41";
           ctx.lineWidth = Math.max(1, B * 0.025);
           ctx.lineCap = "round";
           ctx.beginPath();
-          ctx.moveTo(dCx - B * 0.66, dFy - B * 0.84); ctx.lineTo(dCx - B * 0.66, dFy - B * 0.02);
-          ctx.moveTo(dCx, dFy - B * 1.84); ctx.lineTo(dCx, dFy - B * 1.68);
+          ctx.moveTo(dCx + B * 0.66, dFy - B * 0.84); ctx.lineTo(dCx + B * 0.66, dFy - B * 0.02);
+          ctx.moveTo(dCx + B * 0.16, dFy - B * 1.84); ctx.lineTo(dCx + B * 0.16, dFy - B * 1.66);
           ctx.stroke();
-          // The kick drum: a PALE FACE on a dark shell,
-          // large — the part of the face left of the
-          // singer's torso is the kit's body, read at once.
-          var kickX = dCx - B * 0.10, kickY = dFy - B * 0.30, kickR = B * 0.36;
+          // The kick drum IN PROFILE: the drum's side —
+          // a tall pale-rimmed ellipse at his front.
+          var kickX = dCx + B * 0.44, kickY = dFy - B * 0.34;
           ctx.fillStyle = "#26232a";
-          ctx.beginPath(); ctx.arc(kickX, kickY, kickR, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(kickX, kickY, B * 0.20, B * 0.34, 0, 0, Math.PI * 2); ctx.fill();
           ctx.strokeStyle = "rgba(201, 162, 39, 0.75)";
           ctx.lineWidth = Math.max(1, B * 0.022);
-          ctx.beginPath(); ctx.arc(kickX, kickY, kickR, 0, Math.PI * 2); ctx.stroke();
+          ctx.beginPath(); ctx.ellipse(kickX, kickY, B * 0.20, B * 0.34, 0, 0, Math.PI * 2); ctx.stroke();
           ctx.fillStyle = "#e8e0cc";
-          ctx.beginPath(); ctx.arc(kickX, kickY, kickR * 0.76, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(kickX, kickY, B * 0.13, B * 0.25, 0, 0, Math.PI * 2); ctx.fill();
           ctx.fillStyle = "#17161a";
-          ctx.beginPath(); ctx.arc(kickX + kickR * 0.30, kickY, kickR * 0.16, 0, Math.PI * 2); ctx.fill();
-          // The snare (far left, clear of the singer) and
-          // the tom (above the kick's right shoulder):
-          // pale heads on dark shells.
-          var dHeads = [[-0.52, 0.62], [0.34, 0.60]];
+          ctx.beginPath(); ctx.arc(kickX + B * 0.05, kickY, B * 0.055, 0, Math.PI * 2); ctx.fill();
+          // The snare (in front of his waist, toward the
+          // tables) and the tom (above the kick): pale
+          // heads on dark shells, seen from the side.
+          var dHeads = [[0.30, 0.62], [0.52, 0.76]];
           for (var dhi = 0; dhi < dHeads.length; dhi++) {
             var dhx = dCx + dHeads[dhi][0] * B, dhy = dFy - dHeads[dhi][1] * B;
             ctx.fillStyle = "#1d1c22";
-            ctx.fillRect(dhx - B * 0.17, dhy, B * 0.34, B * 0.085);
+            ctx.fillRect(dhx - B * 0.15, dhy, B * 0.30, B * 0.085);
             ctx.fillStyle = "#efe9da";
-            ctx.beginPath(); ctx.ellipse(dhx, dhy, B * 0.17, B * 0.058, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(dhx, dhy, B * 0.15, B * 0.052, 0, 0, Math.PI * 2); ctx.fill();
             ctx.strokeStyle = "rgba(201, 162, 39, 0.6)";
             ctx.lineWidth = Math.max(0.8, B * 0.016);
-            ctx.beginPath(); ctx.ellipse(dhx, dhy, B * 0.17, B * 0.058, 0, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.ellipse(dhx, dhy, B * 0.15, B * 0.052, 0, 0, Math.PI * 2); ctx.stroke();
           }
-          // The cymbals, in gold: the hi-hat far left at
-          // shoulder height, the crash high over the
-          // drummer's head — both clear of the singer, so
-          // the kit's top line reads behind/beside her.
+          // The cymbals, in gold: the hi-hat toward the
+          // tables at shoulder height, the crash high
+          // over the drummer's head.
           ctx.fillStyle = "#d9a92e";
-          ctx.beginPath(); ctx.ellipse(dCx - B * 0.66, dFy - B * 0.86, B * 0.24, B * 0.038, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(dCx + B * 0.66, dFy - B * 0.86, B * 0.22, B * 0.038, 0, 0, Math.PI * 2); ctx.fill();
           ctx.fillStyle = "rgba(120, 72, 0, 0.45)";
-          ctx.beginPath(); ctx.ellipse(dCx - B * 0.66, dFy - B * 0.845, B * 0.24, B * 0.022, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(dCx + B * 0.66, dFy - B * 0.845, B * 0.22, B * 0.022, 0, 0, Math.PI * 2); ctx.fill();
           ctx.save();
-          ctx.translate(dCx, dFy - B * 1.86);
+          ctx.translate(dCx + B * 0.16, dFy - B * 1.86);
           ctx.rotate(-0.08);
           ctx.fillStyle = "#d9a92e";
-          ctx.beginPath(); ctx.ellipse(0, 0, B * 0.27, B * 0.045, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(0, 0, B * 0.25, B * 0.045, 0, 0, Math.PI * 2); ctx.fill();
           ctx.fillStyle = "rgba(255, 244, 200, 0.5)";
           ctx.beginPath(); ctx.ellipse(-B * 0.06, -B * 0.014, B * 0.09, B * 0.016, 0, 0, Math.PI * 2); ctx.fill();
           ctx.restore();
-          // His arms over the kit, gloved hands on the
-          // sticks above it, the sticks alternating on
-          // the clock — left to the snare, right to the tom.
+          // His arms reaching toward the tables over the
+          // kit, gloved hands on the sticks above it, the
+          // sticks alternating on the clock — one to the
+          // snare, one to the tom.
           var hit1 = Math.sin(nowMs / 230) * B * 0.03, hit2 = Math.sin(nowMs / 230 + Math.PI) * B * 0.03;
-          drawActArm(dCx - B * 0.19, dFy - B * 1.10 + dBounce, dCx - B * 0.34, dFy - B * 0.86 + dBounce, dCx - B * 0.44, dFy - B * 0.70 + hit1, B * 0.10, 2.2);
-          drawActArm(dCx + B * 0.19, dFy - B * 1.10 + dBounce, dCx + B * 0.24, dFy - B * 0.88 + dBounce, dCx + B * 0.28, dFy - B * 0.72 + hit2, B * 0.10, 2.2);
+          drawActArm(dCx + B * 0.10, dFy - B * 1.10 + dBounce, dCx + B * 0.22, dFy - B * 0.88 + dBounce, dCx + B * 0.26, dFy - B * 0.72 + hit1, B * 0.10, 2.2);
+          drawActArm(dCx + B * 0.13, dFy - B * 1.04 + dBounce, dCx + B * 0.30, dFy - B * 0.90 + dBounce, dCx + B * 0.44, dFy - B * 0.84 + hit2, B * 0.10, 2.2);
           ctx.strokeStyle = "#c9a86a";
           ctx.lineWidth = Math.max(1, B * 0.022);
           ctx.beginPath();
-          ctx.moveTo(dCx - B * 0.44, dFy - B * 0.70 + hit1); ctx.lineTo(dCx - B * 0.52, dFy - B * 0.60 + hit1);
-          ctx.moveTo(dCx + B * 0.28, dFy - B * 0.72 + hit2); ctx.lineTo(dCx + B * 0.34, dFy - B * 0.58 + hit2);
+          ctx.moveTo(dCx + B * 0.26, dFy - B * 0.72 + hit1); ctx.lineTo(dCx + B * 0.30, dFy - B * 0.62 + hit1);
+          ctx.moveTo(dCx + B * 0.44, dFy - B * 0.84 + hit2); ctx.lineTo(dCx + B * 0.50, dFy - B * 0.76 + hit2);
           ctx.stroke();
 
-          // ---- THE GUITARIST, flanking mid-stage, left ----
-          var gCx = cx - U * 0.47, gFy = fy - sideBack + happyLift * 0.5;
+          // ---- THE GUITARIST, on the wall side, mid-depth ----
+          var gCx = cx - U * 0.50, gFy = fy - sideBack * 0.55 + happyLift * 0.5;
           var gSway = Math.sin(nowMs / 850 + 0.7) * 0.022;
           ctx.save();
           ctx.translate(gCx, gFy);
           ctx.rotate(gSway);
           ctx.translate(-gCx, -gFy);
-          // Legs, grounded on the boards behind the singer.
-          ctx.strokeStyle = "#101014";
-          ctx.lineCap = "round";
-          ctx.lineWidth = B * 0.095;
-          ctx.beginPath();
-          ctx.moveTo(gCx - B * 0.07, gFy - B * 0.54); ctx.lineTo(gCx - B * 0.11, gFy - B * 0.02);
-          ctx.moveTo(gCx + B * 0.07, gFy - B * 0.54); ctx.lineTo(gCx + B * 0.12, gFy - B * 0.02);
-          ctx.stroke();
-          drawActTorso(gCx, gFy - B * 1.06, gFy - B * 0.52, B * 0.20);
-          drawActHead(gCx, gFy - B * 1.30, B * 0.40, nowMs, false);
-          // The electric guitar: a solid body at his hip
-          // and a neck running up and OUT, away from the
-          // singer at centre.
-          var gBodyX = gCx - B * 0.05, gBodyY = gFy - B * 0.58;
-          var gNeckX = gCx - B * 0.44, gNeckY = gFy - B * 0.98;
+          // Legs in profile, grounded on the boards
+          // behind the singer.
+          drawActLegsProfile(gCx, gFy - B * 0.52, gFy - B * 0.02, B * 0.095);
+          drawActTorsoProfile(gCx, gFy - B * 1.06, gFy - B * 0.52, B * 0.20);
+          drawActHeadProfile(gCx, gFy - B * 1.30, B * 0.40, nowMs, false);
+          // The electric guitar IN PROFILE at his front:
+          // a solid body against his tables side and a
+          // neck running up and OUT toward the tables.
+          var gBodyX = gCx + B * 0.26, gBodyY = gFy - B * 0.60;
+          var gNeckX = gCx + B * 0.68, gNeckY = gFy - B * 1.00;
           ctx.strokeStyle = "#241a12";
           ctx.lineCap = "round";
           ctx.lineWidth = Math.max(1.4, B * 0.05);
@@ -8477,123 +8656,92 @@
           ctx.fillStyle = "#17130e";
           ctx.beginPath(); ctx.arc(gNeckX, gNeckY, B * 0.05, 0, Math.PI * 2); ctx.fill();
           ctx.fillStyle = "#9e3327";
-          ctx.beginPath(); ctx.ellipse(gBodyX, gBodyY, B * 0.20, B * 0.15, -0.5, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(gBodyX, gBodyY, B * 0.16, B * 0.20, -0.35, 0, Math.PI * 2); ctx.fill();
           ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
-          ctx.beginPath(); ctx.arc(gBodyX - B * 0.02, gBodyY, B * 0.055, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(gBodyX + B * 0.03, gBodyY, B * 0.05, 0, Math.PI * 2); ctx.fill();
           ctx.fillStyle = "rgba(255, 240, 214, 0.20)";
-          ctx.beginPath(); ctx.ellipse(gBodyX + B * 0.06, gBodyY - B * 0.07, B * 0.07, B * 0.035, -0.5, 0, Math.PI * 2); ctx.fill();
-          // The neck hand — gloved, up the neck — and the
-          // strumming hand, gloved over the body, working
-          // the strings on the clock.
-          drawActArm(gCx - B * 0.18, gFy - B * 1.00, gCx - B * 0.30, gFy - B * 0.90, gCx - B * 0.36, gFy - B * 0.92, B * 0.10, 2.1);
+          ctx.beginPath(); ctx.ellipse(gBodyX + B * 0.07, gBodyY - B * 0.08, B * 0.06, B * 0.035, -0.5, 0, Math.PI * 2); ctx.fill();
+          // The neck hand — gloved, far out the neck
+          // toward the tables — and the strumming hand,
+          // gloved over the body, working the strings on
+          // the clock.
+          drawActArm(gCx + B * 0.10, gFy - B * 1.00, gCx + B * 0.34, gFy - B * 0.94, gCx + B * 0.56, gFy - B * 0.94, B * 0.10, 2.1);
           var strum = Math.sin(nowMs / 210 + 0.7) * B * 0.026;
-          drawActArm(gCx + B * 0.18, gFy - B * 1.00, gCx + B * 0.04, gFy - B * 0.80, gBodyX + B * 0.03, gBodyY - B * 0.03 + strum, B * 0.10, 2.1);
+          drawActArm(gCx + B * 0.12, gFy - B * 0.94, gCx + B * 0.20, gFy - B * 0.78, gBodyX + B * 0.02, gBodyY - B * 0.04 + strum, B * 0.10, 2.1);
           ctx.restore();
 
-          // ---- THE KEYBOARD PLAYER, flanking mid-stage, right ----
-          var kCx = cx + U * 0.47, kFy = fy - sideBack + happyLift * 0.5;
-          // Legs, grounded on the boards behind the singer.
-          ctx.strokeStyle = "#101014";
-          ctx.lineCap = "round";
-          ctx.lineWidth = B * 0.095;
-          ctx.beginPath();
-          ctx.moveTo(kCx - B * 0.07, kFy - B * 0.54); ctx.lineTo(kCx - B * 0.11, kFy - B * 0.02);
-          ctx.moveTo(kCx + B * 0.07, kFy - B * 0.54); ctx.lineTo(kCx + B * 0.12, kFy - B * 0.02);
-          ctx.stroke();
-          drawActTorso(kCx, kFy - B * 1.06, kFy - B * 0.52, B * 0.20);
-          drawActHead(kCx, kFy - B * 1.30, B * 0.40, nowMs, false);
-          // The keyboard: a slab on an X-stand in front of
-          // him — a slab keyboard, never the grand piano.
-          var kbY = kFy - B * 0.60, kbHalf = B * 0.46;
+          // ---- THE KEYBOARD PLAYER, on the wall side, up the deck ----
+          var kCx = cx - U * 0.50, kFy = fy - sideBack - B * 0.55 + happyLift * 0.5;
+          // Legs in profile, grounded on the boards
+          // behind the singer.
+          drawActLegsProfile(kCx, kFy - B * 0.52, kFy - B * 0.02, B * 0.095);
+          drawActTorsoProfile(kCx, kFy - B * 1.06, kFy - B * 0.52, B * 0.20);
+          drawActHeadProfile(kCx, kFy - B * 1.30, B * 0.40, nowMs, false);
+          // The keyboard IN PROFILE: a slab running OUT
+          // toward the tables from his front, on its
+          // stand — a slab keyboard, never the grand piano.
+          var kbY = kFy - B * 0.62, kbL = kCx + B * 0.02, kbR = kCx + B * 0.80;
           ctx.strokeStyle = "#2c2c33";
           ctx.lineCap = "round";
           ctx.lineWidth = Math.max(1.2, B * 0.035);
           ctx.beginPath();
-          ctx.moveTo(kCx - kbHalf * 0.8, kbY + B * 0.06); ctx.lineTo(kCx + kbHalf * 0.8, kFy - B * 0.01);
-          ctx.moveTo(kCx + kbHalf * 0.8, kbY + B * 0.06); ctx.lineTo(kCx - kbHalf * 0.8, kFy - B * 0.01);
+          ctx.moveTo(kCx + B * 0.52, kbY + B * 0.10); ctx.lineTo(kCx + B * 0.52, kFy - B * 0.01);
+          ctx.moveTo(kCx + B * 0.30, kFy - B * 0.01); ctx.lineTo(kCx + B * 0.74, kFy - B * 0.01);
           ctx.stroke();
           ctx.fillStyle = "#17171c";
-          rrPath(kCx - kbHalf, kbY, kbHalf * 2, B * 0.13, Math.min(3, B * 0.05));
+          rrPath(kbL, kbY, kbR - kbL, B * 0.13, Math.min(3, B * 0.05));
           ctx.fill();
           ctx.strokeStyle = "rgba(201, 162, 39, 0.5)";
           ctx.lineWidth = Math.max(0.8, B * 0.016);
-          rrPath(kCx - kbHalf, kbY, kbHalf * 2, B * 0.13, Math.min(3, B * 0.05));
+          rrPath(kbL, kbY, kbR - kbL, B * 0.13, Math.min(3, B * 0.05));
           ctx.stroke();
-          // The keys: a white strip along the slab, black
-          // keys over it.
+          // The keys: a white strip along the slab's
+          // top, black keys over it, running toward the
+          // tables.
           ctx.fillStyle = "#f7f3e8";
-          ctx.fillRect(kCx - kbHalf + B * 0.04, kbY + B * 0.055, kbHalf * 2 - B * 0.08, B * 0.05);
+          ctx.fillRect(kbL + B * 0.05, kbY + B * 0.018, kbR - kbL - B * 0.10, B * 0.045);
           ctx.fillStyle = "#101014";
-          for (var kki = 0; kki < 9; kki++) {
-            ctx.fillRect(kCx - kbHalf + B * (0.09 + kki * 0.095), kbY + B * 0.055, B * 0.045, B * 0.032);
+          for (var kki = 0; kki < 7; kki++) {
+            ctx.fillRect(kbL + B * (0.10 + kki * 0.09), kbY + B * 0.018, B * 0.042, B * 0.030);
           }
-          // His arms forward to the keys — gloved hands ON
-          // the keys, bobbing gently as he plays.
+          // His arms reaching toward the tables to the
+          // keys — gloved hands ON the keys, bobbing
+          // gently as he plays.
           var keyBob1 = Math.sin(nowMs / 240) * B * 0.012, keyBob2 = Math.sin(nowMs / 240 + Math.PI) * B * 0.012;
-          drawActArm(kCx - B * 0.18, kFy - B * 1.00, kCx - B * 0.26, kFy - B * 0.82, kCx - B * 0.20, kbY + B * 0.07 + keyBob1, B * 0.10, 2.2);
-          drawActArm(kCx + B * 0.18, kFy - B * 1.00, kCx + B * 0.26, kFy - B * 0.82, kCx + B * 0.22, kbY + B * 0.07 + keyBob2, B * 0.10, 2.2);
+          drawActArm(kCx + B * 0.10, kFy - B * 1.00, kCx + B * 0.20, kFy - B * 0.82, kCx + B * 0.30, kbY + B * 0.05 + keyBob1, B * 0.10, 2.2);
+          drawActArm(kCx + B * 0.12, kFy - B * 0.94, kCx + B * 0.30, kFy - B * 0.80, kCx + B * 0.52, kbY + B * 0.05 + keyBob2, B * 0.10, 2.2);
 
-          // ---- THE SINGER, front and centre ----
-          // Drawn last, in front of her band: legs, torso,
-          // the wrap on her head, a microphone in her raised
-          // hand at singing height, her free arm gesturing
-          // as she sways — her established form, unchanged.
+          // ---- THE SINGER, front, at the room side of her band ----
+          // Drawn last, in front of her band: legs,
+          // torso and headwrap IN PROFILE facing the
+          // tables, a microphone in her raised hand
+          // beside her mouth on the tables side, her
+          // free arm gesturing toward the tables as she
+          // sways.
           var sway = Math.sin(nowMs / 1000) * 0.022;
           var bounce = happyLift * 1.8;
           ctx.save();
           ctx.translate(cx, fy + bounce);
           ctx.rotate(sway);
           ctx.translate(-cx, -fy);
-          // Legs, in the vinyl.
-          ctx.strokeStyle = "#101014";
-          ctx.lineCap = "round";
-          ctx.lineWidth = U * 0.115;
-          ctx.beginPath();
-          ctx.moveTo(cx - U * 0.10, fy - U * 0.80); ctx.lineTo(cx - U * 0.13, fy - U * 0.02);
-          ctx.moveTo(cx + U * 0.10, fy - U * 0.80); ctx.lineTo(cx + U * 0.14, fy - U * 0.02);
-          ctx.stroke();
-          drawActTorso(cx, fy - U * 1.42, fy - U * 0.76, U * 0.27);
-          // The free arm, gesturing out on the phrase.
+          // Legs in profile, in the vinyl.
+          drawActLegsProfile(cx, fy - U * 0.80, fy - U * 0.02, U * 0.115);
+          drawActTorsoProfile(cx, fy - U * 1.42, fy - U * 0.76, U * 0.27);
+          // The free arm, gesturing out toward the
+          // tables on the phrase.
           var gest = Math.sin(nowMs / 640) * U * 0.05;
-          drawActArm(cx - U * 0.25, fy - U * 1.36, cx - U * 0.44, fy - U * 1.14, cx - U * 0.40, fy - U * 0.94 + gest, U * 0.10, 2.0);
-          // The microphone arm, RAISED to her face: elbow
-          // out at shoulder height, the gloved hand up at
-          // singing height beside her mouth, holding the
-          // mic — never hanging at her side.
-          drawActArm(cx + U * 0.25, fy - U * 1.36, cx + U * 0.44, fy - U * 1.30, cx + U * 0.27, fy - U * 1.60, U * 0.10, 2.0);
-          drawActHead(cx, fy - U * 1.70, U * 0.54, nowMs, true);
-          // The microphone, IN her raised hand at her
-          // face: a long dark handle running from the
-          // glove up to a LARGE round head — a silver
-          // grille ball with a dark rim — sitting against
-          // her face/headwrap, so it reads at live size
-          // the way her established solo form held it.
-          var micHx = cx + U * 0.27, micHy = fy - U * 1.60;
-          var micX = cx + U * 0.14, micY = fy - U * 1.74, micR = U * 0.105;
-          ctx.strokeStyle = "#1c1c20";
-          ctx.lineCap = "round";
-          ctx.lineWidth = Math.max(2, U * 0.055);
-          ctx.beginPath(); ctx.moveTo(micHx, micHy); ctx.lineTo(micX + micR * 0.45, micY + micR * 0.55); ctx.stroke();
-          ctx.fillStyle = "#43464e";
-          ctx.beginPath(); ctx.arc(micX, micY, micR, 0, Math.PI * 2); ctx.fill();
-          ctx.strokeStyle = "rgba(228, 230, 236, 0.60)";
-          ctx.lineWidth = Math.max(0.8, U * 0.018);
-          ctx.beginPath(); ctx.arc(micX, micY, micR * 0.68, 0.35, Math.PI - 0.35); ctx.stroke();
-          ctx.beginPath(); ctx.arc(micX, micY, micR * 0.42, 0.35, Math.PI - 0.35); ctx.stroke();
-          ctx.strokeStyle = "#0a0a0c";
-          ctx.lineWidth = Math.max(1, U * 0.022);
-          ctx.beginPath(); ctx.arc(micX, micY, micR, 0, Math.PI * 2); ctx.stroke();
-          ctx.fillStyle = "rgba(255,255,255,0.55)";
-          ctx.beginPath(); ctx.arc(micX - micR * 0.34, micY - micR * 0.38, micR * 0.20, 0, Math.PI * 2); ctx.fill();
-          // Her glove over the handle's base, so the hand
-          // is seen HOLDING the mic.
-          ctx.fillStyle = "#0c0c0f";
-          ctx.beginPath(); ctx.arc(micHx, micHy, U * 0.104, 0, Math.PI * 2); ctx.fill();
-          ctx.strokeStyle = "rgba(255, 236, 200, 0.38)";
-          ctx.lineWidth = Math.max(0.7, U * 0.013);
-          ctx.beginPath(); ctx.arc(micHx, micHy, U * 0.104, 0, Math.PI * 2); ctx.stroke();
-          ctx.fillStyle = "rgba(255, 244, 220, 0.30)";
-          ctx.beginPath(); ctx.arc(micHx - U * 0.033, micHy - U * 0.035, U * 0.027, 0, Math.PI * 2); ctx.fill();
+          drawActArm(cx + U * 0.10, fy - U * 1.34, cx + U * 0.30, fy - U * 1.12, cx + U * 0.42, fy - U * 0.94 + gest, U * 0.10, 2.0);
+          // The microphone arm, RAISED to her face:
+          // elbow out at shoulder height, the gloved
+          // hand up at singing height beside her mouth,
+          // holding the mic — never hanging at her side.
+          drawActArm(cx + U * 0.12, fy - U * 1.36, cx + U * 0.34, fy - U * 1.30, cx + U * 0.30, fy - U * 1.58, U * 0.10, 2.0);
+          drawActHeadProfile(cx, fy - U * 1.70, U * 0.54, nowMs, true);
+          // The microphone IN PROFILE, in her raised
+          // hand: the big silver-grille ball beside her
+          // mouth on the tables side, clear of her face,
+          // so her profile eye reads in full beside it.
+          drawActMicProfile(cx + U * 0.30, fy - U * 1.58, cx + U * 0.47, fy - U * 1.70, U * 0.105, U);
           ctx.restore();
           if (env.happyT > 0) {
             ctx.save();
@@ -8602,20 +8750,23 @@
             ctx.font = "700 " + Math.round(U * 0.4) + "px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
             ctx.textAlign = "center";
             ctx.fillText("♪", cx - U * 0.88, fy - U * 1.92 + (1 - env.happyT) * U * 0.2);
-            ctx.fillText("♫", cx + U * 0.88, fy - U * 1.98 + (1 - env.happyT) * U * 0.26);
+            ctx.fillText("♫", cx + U * 0.80, fy - U * 1.98 + (1 - env.happyT) * U * 0.26);
             ctx.restore();
           }
         }
-
-        // ACT — the rapper: a TBOT performer in a wide,
-        // grounded performing stance, a HANDHELD microphone
-        // in the hand raised to his face, his free arm out
-        // gesturing on the phrase as he rides the beat with
-        // a low bounce. No wrap and no stand — the mic is in
-        // his hand, which is what sets him apart from the
-        // singer. Everything stays well inside the stage:
-        // his widest point, the gesturing hand, reaches
-        // about 0.62u from centre.
+        // ACT — the rapper: a TBOT performer IN PROFILE
+        // facing the tables, in a wide, grounded
+        // performing stance — front leg stepped toward
+        // the tables — a HANDHELD microphone in the hand
+        // raised to his face, its ball beside his mouth
+        // on the tables side, his free arm gesturing
+        // toward the tables on the phrase as he rides
+        // the beat with a low bounce. No wrap and no
+        // stand — the mic is in his hand, which is what
+        // sets him apart from the singer. Everything
+        // stays well inside the stage: his widest point,
+        // the mic ball toward the tables, reaches about
+        // 0.60u from centre.
         function drawActRapper(env) {
           var u = env.u, cx = env.cx, fy = env.platTop, nowMs = env.nowMs;
           var bounce = -Math.abs(Math.sin(nowMs / 280)) * u * 0.04 -
@@ -8625,32 +8776,30 @@
           ctx.translate(cx, fy + bounce);
           ctx.rotate(sway);
           ctx.translate(-cx, -fy);
-          // Legs, planted wide on the platform.
-          ctx.strokeStyle = "#101014";
-          ctx.lineCap = "round";
-          ctx.lineWidth = u * 0.115;
-          ctx.beginPath();
-          ctx.moveTo(cx - u * 0.09, fy - u * 0.80); ctx.lineTo(cx - u * 0.24, fy - u * 0.02);
-          ctx.moveTo(cx + u * 0.09, fy - u * 0.80); ctx.lineTo(cx + u * 0.25, fy - u * 0.02);
-          ctx.stroke();
-          drawActTorso(cx, fy - u * 1.44, fy - u * 0.76, u * 0.28);
-          // The free arm, gesturing out on the phrase.
+          // Legs in profile, planted wide on the
+          // platform, front leg stepped to the tables.
+          drawActLegsProfile(cx, fy - u * 0.80, fy - u * 0.02, u * 0.115);
+          drawActTorsoProfile(cx, fy - u * 1.44, fy - u * 0.76, u * 0.28);
+          // The free arm, gesturing out toward the
+          // tables on the phrase.
           var gest = Math.sin(nowMs / 520) * u * 0.06;
-          drawActArm(cx - u * 0.26, fy - u * 1.38, cx - u * 0.47, fy - u * 1.20, cx - u * 0.56, fy - u * 1.00 + gest, u * 0.10);
-          // The mic arm, bent up so the hand rides at his
-          // face, the microphone in it.
-          drawActArm(cx + u * 0.26, fy - u * 1.38, cx + u * 0.45, fy - u * 1.34, cx + u * 0.23, fy - u * 1.60, u * 0.10);
-          drawActHead(cx, fy - u * 1.72, u * 0.55, nowMs, false);
-          // The handheld microphone: a short handle running
-          // from his hand up toward his mouth, ball on top.
+          drawActArm(cx + u * 0.10, fy - u * 1.36, cx + u * 0.32, fy - u * 1.16, cx + u * 0.46, fy - u * 1.00 + gest, u * 0.10);
+          // The mic arm, bent up so the hand rides at
+          // his face, the microphone in it.
+          drawActArm(cx + u * 0.12, fy - u * 1.38, cx + u * 0.36, fy - u * 1.32, cx + u * 0.28, fy - u * 1.60, u * 0.10);
+          drawActHeadProfile(cx, fy - u * 1.72, u * 0.55, nowMs, false);
+          // The handheld microphone IN PROFILE: a short
+          // handle from his hand up toward the tables,
+          // the ball beside his mouth, clear of his
+          // face so his profile eye reads beside it.
           ctx.strokeStyle = "#26262b";
           ctx.lineWidth = Math.max(1.6, u * 0.05);
           ctx.lineCap = "round";
-          ctx.beginPath(); ctx.moveTo(cx + u * 0.25, fy - u * 1.57); ctx.lineTo(cx + u * 0.13, fy - u * 1.68); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(cx + u * 0.29, fy - u * 1.58); ctx.lineTo(cx + u * 0.40, fy - u * 1.66); ctx.stroke();
           ctx.fillStyle = "#3c3f46";
-          ctx.beginPath(); ctx.arc(cx + u * 0.115, fy - u * 1.695, u * 0.066, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(cx + u * 0.435, fy - u * 1.685, u * 0.066, 0, Math.PI * 2); ctx.fill();
           ctx.fillStyle = "rgba(255,255,255,0.5)";
-          ctx.beginPath(); ctx.arc(cx + u * 0.095, fy - u * 1.715, u * 0.021, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(cx + u * 0.415, fy - u * 1.705, u * 0.021, 0, Math.PI * 2); ctx.fill();
           ctx.restore();
           if (env.happyT > 0) {
             ctx.save();
@@ -8663,42 +8812,43 @@
             ctx.restore();
           }
         }
-
         // ACT — the COMIC: a stand-up comedian in full
-        // TBOT canon (see drawActHead): a rounded-square
-        // head with the plain three-part crest, the
-        // middle blade tallest, round red dome eyes, NO
-        // mouth, a black suit, and black gloves on EVERY
-        // hand — every hand here is drawn by drawActArm
-        // at the enlarged rimmed-glove size, the way the
-        // singer's corrected act wears them. He stands
-        // FRONT AND CENTRE of the runway at its foot
-        // (see stageActPoint), facing the room, holding
-        // a microphone RAISED visibly at his face — a
-        // long dark handle and a LARGE round silver-
-        // grilled head, sized to read clearly in the
-        // live view, the lesson from the singer — his
-        // free hand gesturing wide as he works the room.
-        // While he is on, the whole room laughs (see the
-        // laugh block by blinkLid). He is a SINGLE
-        // figure at the FULL standard act unit — the
-        // same unit the singer stands at on her foot
-        // point — and he is NEVER stepped down below
-        // it: his build is the standard act figure's
-        // build at that full unit, broad in the torso
-        // and shoulders, his stance planted wide, so he
-        // reads front-and-centre at the singer's
-        // presence, never a stick figure. He stands
-        // CENTRED in the deck's OPEN width — the boards
-        // between the deck's wall-side edge and the
-        // number stand's plaque — solved by POSITION
-        // inside the deck from the stand's own seat:
-        // his centre sits at the open width's centre,
-        // pulled left only as far as his mic's reach
-        // needs to end left of the plaque's left edge,
-        // never so far that he leaves the boards. The
-        // stand never moves, and drawStage still paints
-        // it last, fully readable.
+        // TBOT canon, drawn IN PROFILE facing the tables
+        // (see drawActHeadProfile): a rounded-square
+        // head in profile with the plain three-part
+        // crest, the tables-side red dome eye, NO mouth,
+        // a black suit, and black gloves on EVERY hand —
+        // every hand here is drawn by drawActArm at the
+        // enlarged rimmed-glove size, the way the
+        // singer's act wears them. He stands FRONT AND
+        // CENTRE of the runway at its foot (see
+        // stageActPoint), in profile to the tables,
+        // holding a microphone RAISED visibly beside his
+        // mouth in profile — a long dark handle and a
+        // LARGE round silver-grilled head, his eye
+        // visible beside it — his free hand RAISED
+        // gesturing toward the tables as he works the
+        // room. While he is on, the whole room laughs
+        // (see the laugh block by blinkLid). He is a
+        // SINGLE figure at the FULL standard act unit —
+        // the same unit the singer stands at on her foot
+        // point — and he is NEVER stepped down below it:
+        // he is drawn at the SAME height and the SAME
+        // broad build width as the singer figure in her
+        // act (her head width, her torso build, her leg
+        // cut, her head height), his stance planted in
+        // profile, so he reads front-and-centre at the
+        // singer's presence, never a stick figure. He
+        // stands CENTRED in the deck's OPEN width — the
+        // boards between the deck's wall-side edge and
+        // the number stand's plaque — solved by POSITION
+        // inside the deck from the stand's own seat: his
+        // centre sits at the open width's centre, pulled
+        // left only as far as his mic's reach needs to
+        // end left of the plaque's left edge, never so
+        // far that he leaves the boards. The stand never
+        // moves, and drawStage still paints it last,
+        // fully readable.
         function drawActComic(env) {
           var u = env.u, cx = env.cx, fy = env.platTop, nowMs = env.nowMs;
           var U = u; // the full standard act unit — the singer's size, never shrunk
@@ -8710,11 +8860,11 @@
             // midpoint of the boards left of the plaque.
             cx = (deckLeft + standL) / 2;
             // His widest reach toward the plaque is the
-            // mic ball beside his mouth (ball centre at
-            // +0.385U, rim at +0.483U): the centre never
-            // sits so far right that the ball touches
-            // the plaque's left edge.
-            cx = Math.min(cx, standL - 3 - U * 0.483);
+            // mic ball beside his mouth in profile (ball
+            // centre at +0.47U, rim at +0.575U): the
+            // centre never sits so far right that the
+            // ball touches the plaque's left edge.
+            cx = Math.min(cx, standL - 3 - U * 0.575);
             if (cx < deckLeft + U * 0.30) cx = deckLeft + U * 0.30;
           }
           var bounce = -Math.abs(Math.sin(nowMs / 300)) * U * 0.035 -
@@ -8724,66 +8874,34 @@
           ctx.translate(cx, fy + bounce);
           ctx.rotate(sway);
           ctx.translate(-cx, -fy);
-          // Legs, planted wide on the boards at the foot.
-          ctx.strokeStyle = "#101014";
-          ctx.lineCap = "round";
-          ctx.lineWidth = U * 0.12;
-          ctx.beginPath();
-          ctx.moveTo(cx - U * 0.11, fy - U * 0.80); ctx.lineTo(cx - U * 0.17, fy - U * 0.02);
-          ctx.moveTo(cx + U * 0.11, fy - U * 0.80); ctx.lineTo(cx + U * 0.18, fy - U * 0.02);
-          ctx.stroke();
-          // The torso at the standard act figure's full
-          // build — broad shoulders, the singer's unit
-          // at full width — never the thin cut.
-          drawActTorso(cx, fy - U * 1.44, fy - U * 0.76, U * 0.34);
+          // Legs in profile, planted on the boards at
+          // the foot, front leg stepped to the tables —
+          // the singer's own leg cut at her unit.
+          drawActLegsProfile(cx, fy - U * 0.80, fy - U * 0.02, U * 0.115);
+          // The torso at the SINGER's build — her torso
+          // width at her unit — never the thin cut.
+          drawActTorsoProfile(cx, fy - U * 1.42, fy - U * 0.76, U * 0.27);
           // The free arm, RAISED in its gesturing pose
-          // as he works the room — the gloved hand up at
-          // shoulder-to-face height, out on the line and
-          // up on the beat, never hanging at his side.
+          // toward the tables as he works the room — the
+          // gloved hand up above shoulder height, out on
+          // the line and up on the beat, never hanging
+          // at his side.
           var gest = Math.sin(nowMs / 430) * U * 0.06 + Math.sin(nowMs / 215) * U * 0.02;
-          drawActArm(cx - U * 0.32, fy - U * 1.38, cx - U * 0.50, fy - U * 1.26, cx - U * 0.56, fy - U * 1.52 + gest, U * 0.10, 2.0);
+          drawActArm(cx + U * 0.10, fy - U * 1.36, cx + U * 0.34, fy - U * 1.44, cx + U * 0.50, fy - U * 1.66 + gest, U * 0.10, 2.0);
           // The mic arm, RAISED to his face: elbow out
           // at shoulder height, the gloved hand up
           // beside his mouth holding the mic — never
           // hanging at his side.
-          drawActArm(cx + U * 0.32, fy - U * 1.38, cx + U * 0.48, fy - U * 1.28, cx + U * 0.30, fy - U * 1.50, U * 0.10, 2.0);
-          drawActHead(cx, fy - U * 1.72, U * 0.55, nowMs, false);
-          // The microphone, IN his raised hand, ANGLED
-          // so its ball sits BESIDE his mouth, clear of
-          // his face: a long dark handle running up and
-          // out from the glove to a LARGE round head — a
-          // silver grille ball with a dark rim — whose
-          // near edge stops short of the head's own edge,
-          // so BOTH red eyes read in full beside it.
-          var micHx = cx + U * 0.30, micHy = fy - U * 1.50;
-          var micX = cx + U * 0.385, micY = fy - U * 1.61, micR = U * 0.098;
-          ctx.strokeStyle = "#1c1c20";
-          ctx.lineCap = "round";
-          ctx.lineWidth = Math.max(2, U * 0.055);
-          ctx.beginPath(); ctx.moveTo(micHx, micHy); ctx.lineTo(micX - micR * 0.40, micY + micR * 0.58); ctx.stroke();
-          ctx.fillStyle = "#43464e";
-          ctx.beginPath(); ctx.arc(micX, micY, micR, 0, Math.PI * 2); ctx.fill();
-          ctx.strokeStyle = "rgba(228, 230, 236, 0.60)";
-          ctx.lineWidth = Math.max(0.8, U * 0.018);
-          ctx.beginPath(); ctx.arc(micX, micY, micR * 0.68, 0.35, Math.PI - 0.35); ctx.stroke();
-          ctx.beginPath(); ctx.arc(micX, micY, micR * 0.42, 0.35, Math.PI - 0.35); ctx.stroke();
-          ctx.strokeStyle = "#0a0a0c";
-          ctx.lineWidth = Math.max(1, U * 0.022);
-          ctx.beginPath(); ctx.arc(micX, micY, micR, 0, Math.PI * 2); ctx.stroke();
-          ctx.fillStyle = "rgba(255,255,255,0.55)";
-          ctx.beginPath(); ctx.arc(micX - micR * 0.34, micY - micR * 0.38, micR * 0.20, 0, Math.PI * 2); ctx.fill();
-          // His glove over the handle's base, so the
-          // hand is seen HOLDING the mic.
-          ctx.fillStyle = "#0c0c0f";
-          ctx.beginPath(); ctx.arc(micHx, micHy, U * 0.104, 0, Math.PI * 2); ctx.fill();
-          ctx.strokeStyle = "rgba(255, 236, 200, 0.38)";
-          ctx.lineWidth = Math.max(0.7, U * 0.013);
-          ctx.beginPath(); ctx.arc(micHx, micHy, U * 0.104, 0, Math.PI * 2); ctx.stroke();
-          ctx.fillStyle = "rgba(255, 244, 220, 0.30)";
-          ctx.beginPath(); ctx.arc(micHx - U * 0.033, micHy - U * 0.035, U * 0.027, 0, Math.PI * 2); ctx.fill();
+          drawActArm(cx + U * 0.12, fy - U * 1.38, cx + U * 0.36, fy - U * 1.30, cx + U * 0.30, fy - U * 1.56, U * 0.10, 2.0);
+          drawActHeadProfile(cx, fy - U * 1.70, U * 0.54, nowMs, false);
+          // The microphone IN PROFILE, in his raised
+          // hand: the big silver-grille ball BESIDE his
+          // mouth on the tables side, clear of his face,
+          // so his profile red eye reads in full beside
+          // it — at the singer's own mic size.
+          drawActMicProfile(cx + U * 0.30, fy - U * 1.56, cx + U * 0.47, fy - U * 1.68, U * 0.105, U);
           ctx.restore();
         }
-
         // ACT — the DJ on the decks (the launch act): his
         // act is built around the house song — "Chic
         // Cheer" by Chic — which he fronts at the runway
@@ -8823,17 +8941,12 @@
           // into the room.
           ctx.save();
           ctx.translate(0, bounce);
-          // His legs, on the platform behind the table, so
+          // His legs in profile on the platform behind
+          // the table, feet pointing at the tables, so
           // he stands grounded on the wall side.
-          ctx.strokeStyle = "#101014";
-          ctx.lineCap = "round";
-          ctx.lineWidth = u * 0.115;
-          ctx.beginPath();
-          ctx.moveTo(djX - u * 0.10, fy - u * 0.60); ctx.lineTo(djX - u * 0.13, fy - u * 0.02);
-          ctx.moveTo(djX + u * 0.10, fy - u * 0.60); ctx.lineTo(djX + u * 0.14, fy - u * 0.02);
-          ctx.stroke();
-          drawActTorso(djX, fy - u * 1.26, fy - u * 0.56, u * 0.30);
-          drawActHead(djX, fy - u * 1.52, u * 0.56, nowMs, false);
+          drawActLegsProfile(djX, fy - u * 0.60, fy - u * 0.02, u * 0.115);
+          drawActTorsoProfile(djX, fy - u * 1.26, fy - u * 0.56, u * 0.30);
+          drawActHeadProfile(djX, fy - u * 1.52, u * 0.56, nowMs, false);
           ctx.restore();
           // The table: a dark counter whose LONG axis runs
           // vertically along the stage's left edge — a tall,
@@ -8876,8 +8989,8 @@
           // across to the discs — he works the decks from
           // the wall side, facing the tables — hands riding
           // the records as they turn.
-          drawActArm(djX + u * 0.24, fy - u * 1.20 + bounce, djX + u * 0.52, fy - u * 1.26 + bounce, tableX - u * 0.04, discY1 + u * 0.04, u * 0.10);
-          drawActArm(djX + u * 0.26, fy - u * 1.14 + bounce, djX + u * 0.54, fy - u * 0.80 + bounce, tableX - u * 0.04, discY2 + u * 0.04, u * 0.10);
+          drawActArm(djX + u * 0.10, fy - u * 1.20 + bounce, djX + u * 0.52, fy - u * 1.26 + bounce, tableX - u * 0.04, discY1 + u * 0.04, u * 0.10);
+          drawActArm(djX + u * 0.12, fy - u * 1.14 + bounce, djX + u * 0.54, fy - u * 0.80 + bounce, tableX - u * 0.04, discY2 + u * 0.04, u * 0.10);
           if (env.happyT > 0) {
             ctx.save();
             ctx.globalAlpha = clamp(env.happyT * 1.4, 0, 1) * 0.9;
@@ -8932,47 +9045,49 @@
         // is drawn at band scale (heads 0.40u wide against
         // the solo acts' 0.54–0.56u) and every part is
         // measured to stay inside the platform: the flank
-        // figures stand at ±1.02u, their guitar necks point
-        // up and OUT (never across the drummer), and the
-        // widest points of the whole act — the neck tips at
-        // ±1.47u and the crash cymbal at +0.73u — sit inside
-        // the stage's half width at every size (the half
-        // width never falls below ≈1.65u where the layout
-        // clamps bite — see drawActDJ's note). The kit sits
-        // on the platform, the flankers' feet stand on it,
-        // and the BAND plate and the number stand keep
-        // their seats, clear of the act. Each player keeps
-        // a subtle motion on the room's clock: the drummer's
+        // figures stand at ±1.02u, and the widest points
+        // of the whole act sit inside the stage's half
+        // width at every size (the half width never falls
+        // below ≈1.65u where the layout clamps bite — see
+        // drawActDJ's note). The kit sits on the platform,
+        // the flankers' feet stand on it, and the BAND
+        // plate and the number stand keep their seats,
+        // clear of the act. Each player keeps a subtle
+        // motion on the room's clock: the drummer's
         // sticks alternate, the guitarist strums, the
-        // bassist plucks, and all three sway a touch out of
-        // phase with each other.
+        // bassist plucks, and all three sway a touch out
+        // of phase with each other.
+        // FACING THE TABLES (2026-11-18): all three play
+        // IN PROFILE, facing the tables (right): the
+        // drummer in profile behind his kit with the kit
+        // at his tables side, both flankers in profile
+        // with their instruments at their fronts and
+        // their necks pointing up and OUT toward the
+        // tables.
         function drawActBand(env) {
           var u = env.u, cx = env.cx, fy = env.platTop, nowMs = env.nowMs;
           var happyBounce = env.happyT > 0 ? -Math.sin(env.happyT * Math.PI) * u * 0.05 : 0;
 
-          // One standing flank player — guitar (dir −1, on
-          // the left) or bass (dir +1, on the right) — his
-          // instrument held close, its neck up and outward.
-          function drawBandMate(mx, dir, phase, bodyColor) {
+          // One standing flank player — guitar (on the
+          // left) or bass (on the right) — IN PROFILE
+          // facing the tables: his instrument held at
+          // his front, its neck up and out toward the
+          // tables.
+          function drawBandMate(mx, phase, bodyColor) {
             var sway = Math.sin(nowMs / 850 + phase) * 0.022;
             ctx.save();
             ctx.translate(mx, fy + happyBounce);
             ctx.rotate(sway);
             ctx.translate(-mx, -fy);
-            // Legs, grounded on the platform.
-            ctx.strokeStyle = "#101014";
-            ctx.lineCap = "round";
-            ctx.lineWidth = u * 0.095;
-            ctx.beginPath();
-            ctx.moveTo(mx - u * 0.07, fy - u * 0.54); ctx.lineTo(mx - u * 0.11, fy - u * 0.02);
-            ctx.moveTo(mx + u * 0.07, fy - u * 0.54); ctx.lineTo(mx + u * 0.12, fy - u * 0.02);
-            ctx.stroke();
-            drawActTorso(mx, fy - u * 1.06, fy - u * 0.52, u * 0.20);
-            drawActHead(mx, fy - u * 1.30, u * 0.40, nowMs, false);
-            // The instrument: a compact body at his hip and
-            // a neck running up and OUT, away from the kit.
-            var bodyX = mx + dir * u * 0.04, bodyY = fy - u * 0.60;
-            var neckX = mx + dir * u * 0.40, neckY = fy - u * 0.95;
+            // Legs in profile, grounded on the platform.
+            drawActLegsProfile(mx, fy - u * 0.54, fy - u * 0.02, u * 0.095);
+            drawActTorsoProfile(mx, fy - u * 1.06, fy - u * 0.52, u * 0.20);
+            drawActHeadProfile(mx, fy - u * 1.30, u * 0.40, nowMs, false);
+            // The instrument IN PROFILE: a compact body
+            // at his front (tables side) and a neck
+            // running up and OUT toward the tables.
+            var bodyX = mx + u * 0.24, bodyY = fy - u * 0.60;
+            var neckX = mx + u * 0.58, neckY = fy - u * 0.97;
             ctx.strokeStyle = "#241a12";
             ctx.lineCap = "round";
             ctx.lineWidth = Math.max(1.4, u * 0.045);
@@ -8980,85 +9095,93 @@
             ctx.fillStyle = "#17130e";
             ctx.beginPath(); ctx.arc(neckX, neckY, u * 0.045, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = bodyColor;
-            ctx.beginPath(); ctx.ellipse(bodyX, bodyY, u * 0.19, u * 0.145, dir * 0.5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(bodyX, bodyY, u * 0.15, u * 0.185, -0.35, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
-            ctx.beginPath(); ctx.arc(bodyX + dir * u * 0.03, bodyY, u * 0.055, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(bodyX + u * 0.03, bodyY, u * 0.05, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = "rgba(255, 240, 214, 0.20)";
-            ctx.beginPath(); ctx.ellipse(bodyX - dir * u * 0.06, bodyY - u * 0.07, u * 0.07, u * 0.035, dir * 0.5, 0, Math.PI * 2); ctx.fill();
-            // The neck hand, up the neck.
-            drawActArm(mx + dir * u * 0.18, fy - u * 1.00, mx + dir * u * 0.30, fy - u * 0.90, mx + dir * u * 0.335, fy - u * 0.905, u * 0.082);
+            ctx.beginPath(); ctx.ellipse(bodyX + u * 0.06, bodyY - u * 0.08, u * 0.06, u * 0.035, -0.5, 0, Math.PI * 2); ctx.fill();
+            // The neck hand, gloved, far out the neck
+            // toward the tables.
+            drawActArm(mx + u * 0.08, fy - u * 1.00, mx + u * 0.28, fy - u * 0.92, mx + u * 0.46, fy - u * 0.92, u * 0.082);
             // The playing hand, working the strings over
             // the body — strumming / plucking on the clock.
             var play = Math.sin(nowMs / 210 + phase) * u * 0.026;
-            drawActArm(mx - dir * u * 0.18, fy - u * 1.00, mx - dir * u * 0.04, fy - u * 0.80, bodyX - dir * u * 0.02, bodyY - u * 0.03 + play, u * 0.082);
+            drawActArm(mx + u * 0.09, fy - u * 0.94, mx + u * 0.16, fy - u * 0.78, bodyX + u * 0.01, bodyY - u * 0.03 + play, u * 0.082);
             ctx.restore();
           }
 
-          // The drummer, centre-back: torso and head behind
-          // the kit, bouncing a touch on the beat.
+          // The drummer, centre-back IN PROFILE: torso
+          // and head behind the kit, bouncing a touch on
+          // the beat, the kit at his tables side.
           var dBounce = Math.sin(nowMs / 460) * u * 0.012 + happyBounce;
-          drawActTorso(cx, fy - u * 1.16 + dBounce, fy - u * 0.60 + dBounce, u * 0.21);
-          drawActHead(cx, fy - u * 1.40 + dBounce, u * 0.40, nowMs, false);
-          // The kit, standing on the platform: cymbal stands
-          // first, then the kick, the snare and the tom.
+          drawActTorsoProfile(cx, fy - u * 1.16 + dBounce, fy - u * 0.60 + dBounce, u * 0.21);
+          drawActHeadProfile(cx, fy - u * 1.40 + dBounce, u * 0.40, nowMs, false);
+          // The kit IN PROFILE, standing on the platform
+          // at his front: cymbal stands first, then the
+          // kick's side, the snare and the tom.
           ctx.strokeStyle = "#3a3a41";
           ctx.lineWidth = Math.max(1, u * 0.025);
           ctx.lineCap = "round";
           ctx.beginPath();
-          ctx.moveTo(cx - u * 0.50, fy - u * 0.78); ctx.lineTo(cx - u * 0.50, fy - u * 0.02);
-          ctx.moveTo(cx + u * 0.52, fy - u * 0.90); ctx.lineTo(cx + u * 0.52, fy - u * 0.02);
+          ctx.moveTo(cx + u * 0.52, fy - u * 0.78); ctx.lineTo(cx + u * 0.52, fy - u * 0.02);
+          ctx.moveTo(cx + u * 0.60, fy - u * 0.90); ctx.lineTo(cx + u * 0.60, fy - u * 0.02);
           ctx.stroke();
-          // The kick drum.
+          // The kick drum IN PROFILE: its side, a tall
+          // ellipse at his front.
           ctx.fillStyle = "#26232a";
-          ctx.beginPath(); ctx.arc(cx, fy - u * 0.27, u * 0.26, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(cx + u * 0.34, fy - u * 0.30, u * 0.15, u * 0.27, 0, 0, Math.PI * 2); ctx.fill();
           ctx.strokeStyle = "rgba(201, 162, 39, 0.75)";
           ctx.lineWidth = Math.max(1, u * 0.022);
-          ctx.beginPath(); ctx.arc(cx, fy - u * 0.27, u * 0.26, 0, Math.PI * 2); ctx.stroke();
+          ctx.beginPath(); ctx.ellipse(cx + u * 0.34, fy - u * 0.30, u * 0.15, u * 0.27, 0, 0, Math.PI * 2); ctx.stroke();
           ctx.fillStyle = "#17161a";
-          ctx.beginPath(); ctx.arc(cx, fy - u * 0.27, u * 0.185, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(cx + u * 0.34, fy - u * 0.30, u * 0.09, u * 0.18, 0, 0, Math.PI * 2); ctx.fill();
           ctx.fillStyle = "#c9a227";
-          ctx.beginPath(); ctx.arc(cx, fy - u * 0.27, u * 0.045, 0, Math.PI * 2); ctx.fill();
-          // The snare (left) and the tom (right): pale heads
-          // on dark shells, either side of the kick's top.
-          var drumHeads = [[-0.31, 0.50], [0.33, 0.53]];
+          ctx.beginPath(); ctx.arc(cx + u * 0.34, fy - u * 0.30, u * 0.04, 0, Math.PI * 2); ctx.fill();
+          // The snare (front, toward the tables) and the
+          // tom (above the kick): pale heads on dark
+          // shells, seen from the side.
+          var drumHeads = [[0.30, 0.52], [0.40, 0.66]];
           for (var dhi = 0; dhi < drumHeads.length; dhi++) {
             var dhx = cx + drumHeads[dhi][0] * u, dhy = fy - drumHeads[dhi][1] * u;
             ctx.fillStyle = "#1d1c22";
-            ctx.fillRect(dhx - u * 0.15, dhy, u * 0.30, u * 0.085);
+            ctx.fillRect(dhx - u * 0.14, dhy, u * 0.28, u * 0.085);
             ctx.fillStyle = "#efe9da";
-            ctx.beginPath(); ctx.ellipse(dhx, dhy, u * 0.15, u * 0.052, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(dhx, dhy, u * 0.14, u * 0.05, 0, 0, Math.PI * 2); ctx.fill();
             ctx.strokeStyle = "rgba(201, 162, 39, 0.6)";
             ctx.lineWidth = Math.max(0.8, u * 0.016);
-            ctx.beginPath(); ctx.ellipse(dhx, dhy, u * 0.15, u * 0.052, 0, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.ellipse(dhx, dhy, u * 0.14, u * 0.05, 0, 0, Math.PI * 2); ctx.stroke();
           }
-          // The cymbals: hi-hat left, crash right, in gold.
+          // The cymbals toward the tables, in gold:
+          // hi-hat front, crash above it.
           ctx.fillStyle = "#d9a92e";
-          ctx.beginPath(); ctx.ellipse(cx - u * 0.50, fy - u * 0.80, u * 0.19, u * 0.034, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(cx + u * 0.52, fy - u * 0.80, u * 0.18, u * 0.034, 0, 0, Math.PI * 2); ctx.fill();
           ctx.fillStyle = "rgba(120, 72, 0, 0.45)";
-          ctx.beginPath(); ctx.ellipse(cx - u * 0.50, fy - u * 0.815, u * 0.19, u * 0.02, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(cx + u * 0.52, fy - u * 0.815, u * 0.18, u * 0.02, 0, 0, Math.PI * 2); ctx.fill();
           ctx.save();
-          ctx.translate(cx + u * 0.52, fy - u * 0.92);
+          ctx.translate(cx + u * 0.60, fy - u * 0.92);
           ctx.rotate(-0.12);
           ctx.fillStyle = "#d9a92e";
-          ctx.beginPath(); ctx.ellipse(0, 0, u * 0.21, u * 0.038, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(0, 0, u * 0.20, u * 0.038, 0, 0, Math.PI * 2); ctx.fill();
           ctx.fillStyle = "rgba(255, 244, 200, 0.5)";
           ctx.beginPath(); ctx.ellipse(-u * 0.05, -u * 0.012, u * 0.08, u * 0.014, 0, 0, Math.PI * 2); ctx.fill();
           ctx.restore();
-          // His arms over the kit, the sticks alternating on
-          // the clock — left to the snare, right to the tom.
+          // His arms reaching toward the tables over the
+          // kit, the sticks alternating on the clock —
+          // one to the snare, one to the tom.
           var hit1 = Math.sin(nowMs / 230) * u * 0.03, hit2 = Math.sin(nowMs / 230 + Math.PI) * u * 0.03;
-          drawActArm(cx - u * 0.19, fy - u * 1.10 + dBounce, cx - u * 0.30, fy - u * 0.82 + dBounce, cx - u * 0.29, fy - u * 0.60 + hit1, u * 0.082);
-          drawActArm(cx + u * 0.19, fy - u * 1.10 + dBounce, cx + u * 0.31, fy - u * 0.82 + dBounce, cx + u * 0.31, fy - u * 0.63 + hit2, u * 0.082);
+          drawActArm(cx + u * 0.09, fy - u * 1.10 + dBounce, cx + u * 0.20, fy - u * 0.84 + dBounce, cx + u * 0.24, fy - u * 0.62 + hit1, u * 0.082);
+          drawActArm(cx + u * 0.11, fy - u * 1.04 + dBounce, cx + u * 0.26, fy - u * 0.86 + dBounce, cx + u * 0.34, fy - u * 0.74 + hit2, u * 0.082);
           ctx.strokeStyle = "#c9a86a";
           ctx.lineWidth = Math.max(1, u * 0.022);
           ctx.beginPath();
-          ctx.moveTo(cx - u * 0.29, fy - u * 0.60 + hit1); ctx.lineTo(cx - u * 0.33, fy - u * 0.50 + hit1);
-          ctx.moveTo(cx + u * 0.31, fy - u * 0.63 + hit2); ctx.lineTo(cx + u * 0.36, fy - u * 0.53 + hit2);
+          ctx.moveTo(cx + u * 0.24, fy - u * 0.62 + hit1); ctx.lineTo(cx + u * 0.28, fy - u * 0.53 + hit1);
+          ctx.moveTo(cx + u * 0.34, fy - u * 0.74 + hit2); ctx.lineTo(cx + u * 0.39, fy - u * 0.66 + hit2);
           ctx.stroke();
           // The flankers: guitar left in warm wood, bass
-          // right in deep blue, swaying out of phase.
-          drawBandMate(cx - u * 1.02, -1, 0, "#b35c2e");
-          drawBandMate(cx + u * 1.02, 1, 2.1, "#3e6b8a");
+          // right in deep blue, swaying out of phase —
+          // both in profile to the tables.
+          drawBandMate(cx - u * 1.02, 0, "#b35c2e");
+          drawBandMate(cx + u * 1.02, 2.1, "#3e6b8a");
           if (env.happyT > 0) {
             ctx.save();
             ctx.globalAlpha = clamp(env.happyT * 1.4, 0, 1) * 0.9;
@@ -9070,7 +9193,6 @@
             ctx.restore();
           }
         }
-
         // The act's ROLE PLATE: a small name plate riding
         // the runway's deck at the act's feet, on the
         // runway's room-facing front — gold lettering on
@@ -9196,7 +9318,7 @@
           if (actId === "comic-standup") {
             // The COMIC is FIXED at the FRONT of the
             // runway, like the singer: front and centre
-            // at the foot point, facing the room, with
+            // at the foot point, facing the tables, with
             // the follow spotlight's pool riding this
             // same point so the light stays on him. His
             // draw keeps the single figure fully clear
