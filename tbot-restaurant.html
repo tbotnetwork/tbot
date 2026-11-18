@@ -2308,7 +2308,7 @@
         // Returns false while that photograph has not
         // landed, so the caller can stand the drawn figure
         // in for the moment instead of leaving a gap.
-        function drawPhotoPerson(build, pose, cx, anchorY, u, squash, rock, shadow) {
+        function drawPhotoPerson(build, pose, cx, anchorY, u, squash, rock, shadow, head) {
           var rec = peopleImgs[pose + "-" + build];
           if (!rec || !rec.ready) return false;
           // The people scale (see PEOPLE_SCALE): the
@@ -2347,7 +2347,32 @@
             ctx.drawImage(rec.img, -dw / 2, -rec.seat * dh * squash, dw, dh * squash);
             ctx.restore();
           }
-          ctx.drawImage(rec.img, -dw / 2, -rec.seat * dh * squash, dw, dh * squash);
+          if (head && (head.headTip || head.headBob)) {
+            // The laughing head (seated diners only —
+            // see seatedLaughMotion): the cut-out is
+            // drawn in two slices at the neck — the
+            // body slice straight, the head slice
+            // rotated on the neck pivot and bobbed on
+            // the laugh's beat — so the head visibly
+            // tips back and bobs on its own instead of
+            // only riding the body's bounce. The split
+            // sits just below the chin (the head
+            // fraction, a step past it), where a real
+            // neck bends.
+            var imgTop = -rec.seat * dh * squash;
+            var splitF = rec.head * 1.06;
+            var splitSrc = splitF * rec.h;
+            var pivotY = imgTop + splitF * dh * squash;
+            ctx.drawImage(rec.img, 0, splitSrc, rec.w, rec.h - splitSrc, -dw / 2, pivotY, dw, dh * squash * (1 - splitF));
+            ctx.save();
+            ctx.translate(0, pivotY + (head.headBob || 0));
+            ctx.rotate(head.headTip || 0);
+            ctx.translate(0, -pivotY);
+            ctx.drawImage(rec.img, 0, 0, rec.w, splitSrc, -dw / 2, imgTop, dw, dh * squash * splitF);
+            ctx.restore();
+          } else {
+            ctx.drawImage(rec.img, -dw / 2, -rec.seat * dh * squash, dw, dh * squash);
+          }
           // The room's warm light laid over the cut-out:
           // a soft glow falling from the upper left across
           // the head and shoulders, feathering out before
@@ -2370,7 +2395,7 @@
         // read from the body build. (sex) is "f" or "m";
         // (stand) runs 0 (seated) to 1 (standing); (swing)
         // is the walk cycle's leg swing; (lid) the blink.
-        function drawPlasticPerson(sex, cx, bottomY, u, stand, swing, lid, shadow, rock) {
+        function drawPlasticPerson(sex, cx, bottomY, u, stand, swing, lid, shadow, rock, headTip, headBob) {
           var female = sex === "f";
           u = u * PEOPLE_SCALE; // the people scale — see drawPhotoPerson
           ctx.save();
@@ -2507,6 +2532,20 @@
           ctx.lineTo(u * 0.06, -shH - u * 0.055);
           ctx.lineTo(-u * 0.06, -shH - u * 0.055);
           ctx.closePath(); ctx.fill();
+          // The laughing head rides its own neck pivot
+          // (seated diners only — see seatedLaughMotion):
+          // hair, cube and eyes are drawn inside a
+          // transform that tips and bobs the head alone,
+          // restored after the eyes below.
+          var headWrapped = false;
+          if (headTip || headBob) {
+            var headPivotY = -(shH + u * 0.04);
+            ctx.save();
+            ctx.translate(0, headPivotY + (headBob || 0));
+            ctx.rotate(headTip || 0);
+            ctx.translate(0, -headPivotY);
+            headWrapped = true;
+          }
           // The hair first: the compact THREE-BLADE
           // standard — three pointed blades sitting close
           // on the cube's top, the middle blade tallest,
@@ -2600,6 +2639,7 @@
               ctx.beginPath(); ctx.ellipse(eyeX - eyeR * 0.34, eyeY - eyeR * 0.38, eyeR * 0.24, eyeR * 0.17, -0.5, 0, Math.PI * 2); ctx.fill();
             }
           }
+          if (headWrapped) ctx.restore();
           ctx.restore();
         }
 
@@ -2673,6 +2713,51 @@
           laughScratch.rock = (w * 0.17 + j * 0.035 + Math.sin(ph * 3.7) * 0.055) * laughAmt;
           laughScratch.squash = 1 - (0.07 * wa + 0.02 * Math.abs(j)) * laughAmt;
           return laughScratch;
+        }
+        // The SEATED laugh (round tables, booths, bar) —
+        // its own motion, stronger than the standing
+        // line's where the seated draw paths used to
+        // damp it: a seated figure is anchored at its
+        // seat and largely covered below the torso by
+        // its table, bench or counter, so the old shared
+        // motion — above all its squash, which pressed
+        // the head DOWN by about as much as the bounce
+        // lifted it — cancelled out at the one part of
+        // the figure that shows. Here the squash is
+        // gentle, the bounce runs at the figure's own
+        // scale, and the HEAD carries the laugh on its
+        // own pivot: (headTip) rotates the head on the
+        // neck, visibly BACK and rocking on the laugh's
+        // beat — never below about a tenth of a radian
+        // at full laugh, so a still frame catches heads
+        // tipped, not upright — in each person's own
+        // direction, and (headBob) bobs the head up and
+        // down on the same beat, over and above the
+        // body's bounce. The draw paths apply the head
+        // motion to the head alone (see drawPhotoPerson's
+        // sliced head and drawPlasticPerson's head pivot),
+        // so the tip reads in the head itself, not as a
+        // whole-body bounce. The entrance line keeps the
+        // shared laughMotion above, exactly as it was.
+        var SEATED_LAUGH_NONE = { dy: 0, rock: 0, squash: 1, headTip: 0, headBob: 0 };
+        var seatedLaughScratch = { dy: 0, rock: 0, squash: 1, headTip: 0, headBob: 0 };
+        function seatedLaughMotion(phase, nowMs, r) {
+          if (laughAmt <= 0.002) {
+            seatedLaughScratch.dy = 0; seatedLaughScratch.rock = 0; seatedLaughScratch.squash = 1;
+            seatedLaughScratch.headTip = 0; seatedLaughScratch.headBob = 0;
+            return seatedLaughScratch;
+          }
+          var ph = phase || 0;
+          var w = Math.sin(nowMs / 105 + ph * 2.63);
+          var wa = Math.abs(w);
+          var j = Math.sin(nowMs / 52 + ph * 5.17);
+          var dir = Math.sin(ph * 3.7) >= 0 ? 1 : -1;
+          seatedLaughScratch.dy = (-wa * r * 0.30 - Math.max(0, j) * r * 0.10) * laughAmt;
+          seatedLaughScratch.rock = (w * 0.13 + j * 0.03 + Math.sin(ph * 3.7) * 0.04) * laughAmt;
+          seatedLaughScratch.squash = 1 - (0.035 * wa + 0.01 * Math.abs(j)) * laughAmt;
+          seatedLaughScratch.headTip = dir * (0.30 + 0.15 * w + 0.04 * j) * laughAmt;
+          seatedLaughScratch.headBob = (-wa * r * 0.16 - Math.max(0, j) * r * 0.05) * laughAmt;
+          return seatedLaughScratch;
         }
         // The room's laugh level, stepped on the frame
         // loop: it SNAPS up as the comic takes the
@@ -6417,10 +6502,12 @@
               // The laugh, while the COMIC is on (see the
               // laugh block): a seated diner rocks and
               // bounces on their seat line, on their own
-              // phase — movement only, no mouth, no bubble.
-              var lm = t.state === "seated" ? laughMotion(g.bobPh, nowMs, r * 0.19) : LAUGH_NONE;
-              if (!drawPhotoPerson(g.build, "sit", gx, cy - r * 0.20 + bob + hop + lm.dy, gS, lm.squash, lm.rock, true)) {
-                drawPlasticPerson(g.sex, gx, cy - r * 0.20 + bob + hop + lm.dy, gS, 0, 0, blinkLid(g, nowMs), true, lm.rock);
+              // phase, their head tipping back and bobbing
+              // on its own pivot — movement only, no
+              // mouth, no bubble.
+              var lm = t.state === "seated" ? seatedLaughMotion(g.bobPh, nowMs, r) : SEATED_LAUGH_NONE;
+              if (!drawPhotoPerson(g.build, "sit", gx, cy - r * 0.20 + bob + hop + lm.dy, gS, lm.squash, lm.rock, true, lm)) {
+                drawPlasticPerson(g.sex, gx, cy - r * 0.20 + bob + hop + lm.dy, gS, 0, 0, blinkLid(g, nowMs), true, lm.rock, lm.headTip, lm.headBob);
               }
             }
             ctx.restore();
@@ -6838,10 +6925,12 @@
           var gS = r * gSize * anim.scale;
           // The laugh, while the COMIC is on (see the
           // laugh block): booth and bar diners rock and
-          // bounce on their seat line like everyone else.
-          var lm = t.state === "seated" ? laughMotion(g.bobPh, nowMs, r * 0.19) : LAUGH_NONE;
-          if (!drawPhotoPerson(g.build, "sit", gx, seatBottomY + bob + hop + lm.dy, gS, lm.squash, lm.rock, true)) {
-            drawPlasticPerson(g.sex, gx, seatBottomY + bob + hop + lm.dy, gS, 0, 0, blinkLid(g, nowMs), true, lm.rock);
+          // bounce on their seat line like everyone else,
+          // their heads tipping back and bobbing on
+          // their own pivot.
+          var lm = t.state === "seated" ? seatedLaughMotion(g.bobPh, nowMs, r) : SEATED_LAUGH_NONE;
+          if (!drawPhotoPerson(g.build, "sit", gx, seatBottomY + bob + hop + lm.dy, gS, lm.squash, lm.rock, true, lm)) {
+            drawPlasticPerson(g.sex, gx, seatBottomY + bob + hop + lm.dy, gS, 0, 0, blinkLid(g, nowMs), true, lm.rock, lm.headTip, lm.headBob);
           }
         }
 
@@ -8595,28 +8684,37 @@
         // figure at the FULL standard act unit — the
         // same unit the singer stands at on her foot
         // point — and he is NEVER stepped down below
-        // it. He stands fully clear of the runway's
-        // number stand, solved by POSITION inside the
-        // deck from the stand's own seat, the way the
-        // singer's corrected geometry solves it: he
-        // steps LEFT until his head, his raised mic arm
-        // and the mic itself end left of the plaque's
-        // left edge, never so far that he leaves the
-        // boards. The stand never moves, and drawStage
-        // still paints it last, fully readable.
+        // it: his build is the standard act figure's
+        // build at that full unit, broad in the torso
+        // and shoulders, his stance planted wide, so he
+        // reads front-and-centre at the singer's
+        // presence, never a stick figure. He stands
+        // CENTRED in the deck's OPEN width — the boards
+        // between the deck's wall-side edge and the
+        // number stand's plaque — solved by POSITION
+        // inside the deck from the stand's own seat:
+        // his centre sits at the open width's centre,
+        // pulled left only as far as his mic's reach
+        // needs to end left of the plaque's left edge,
+        // never so far that he leaves the boards. The
+        // stand never moves, and drawStage still paints
+        // it last, fully readable.
         function drawActComic(env) {
           var u = env.u, cx = env.cx, fy = env.platTop, nowMs = env.nowMs;
           var U = u; // the full standard act unit — the singer's size, never shrunk
+          var deckLeft = stageStation.w * 0.34;
           if (stageStation.number > 0) {
             var tentR2 = Math.max(stageStation.r, 26);
             var standL = stageStation.cx + stageStation.w / 2 + 2 - tentR2 * 1.68 / 2;
+            // Centred in the deck's open width: the
+            // midpoint of the boards left of the plaque.
+            cx = (deckLeft + standL) / 2;
             // His widest reach toward the plaque is the
-            // enlarged glove on the mic at his face
-            // (hand at +0.27U, glove rim at +0.374U):
-            // the step left ends that reach left of the
-            // plaque's left edge, with margin.
-            cx = Math.min(cx - U * 0.10, standL - 4 - U * 0.42);
-            var deckLeft = stageStation.w * 0.34;
+            // mic ball beside his mouth (ball centre at
+            // +0.385U, rim at +0.483U): the centre never
+            // sits so far right that the ball touches
+            // the plaque's left edge.
+            cx = Math.min(cx, standL - 3 - U * 0.483);
             if (cx < deckLeft + U * 0.30) cx = deckLeft + U * 0.30;
           }
           var bounce = -Math.abs(Math.sin(nowMs / 300)) * U * 0.035 -
@@ -8626,37 +8724,43 @@
           ctx.translate(cx, fy + bounce);
           ctx.rotate(sway);
           ctx.translate(-cx, -fy);
-          // Legs, planted on the boards at the foot.
+          // Legs, planted wide on the boards at the foot.
           ctx.strokeStyle = "#101014";
           ctx.lineCap = "round";
-          ctx.lineWidth = U * 0.115;
+          ctx.lineWidth = U * 0.12;
           ctx.beginPath();
-          ctx.moveTo(cx - U * 0.10, fy - U * 0.80); ctx.lineTo(cx - U * 0.14, fy - U * 0.02);
-          ctx.moveTo(cx + U * 0.10, fy - U * 0.80); ctx.lineTo(cx + U * 0.15, fy - U * 0.02);
+          ctx.moveTo(cx - U * 0.11, fy - U * 0.80); ctx.lineTo(cx - U * 0.17, fy - U * 0.02);
+          ctx.moveTo(cx + U * 0.11, fy - U * 0.80); ctx.lineTo(cx + U * 0.18, fy - U * 0.02);
           ctx.stroke();
-          drawActTorso(cx, fy - U * 1.44, fy - U * 0.76, U * 0.28);
-          // The free arm, gesturing wide as he works
-          // the room — out on the line, up on the beat.
-          var gest = Math.sin(nowMs / 430) * U * 0.07 + Math.sin(nowMs / 215) * U * 0.02;
-          drawActArm(cx - U * 0.26, fy - U * 1.38, cx - U * 0.47, fy - U * 1.18, cx - U * 0.58, fy - U * 0.98 + gest, U * 0.10, 2.0);
+          // The torso at the standard act figure's full
+          // build — broad shoulders, the singer's unit
+          // at full width — never the thin cut.
+          drawActTorso(cx, fy - U * 1.44, fy - U * 0.76, U * 0.34);
+          // The free arm, RAISED in its gesturing pose
+          // as he works the room — the gloved hand up at
+          // shoulder-to-face height, out on the line and
+          // up on the beat, never hanging at his side.
+          var gest = Math.sin(nowMs / 430) * U * 0.06 + Math.sin(nowMs / 215) * U * 0.02;
+          drawActArm(cx - U * 0.32, fy - U * 1.38, cx - U * 0.50, fy - U * 1.26, cx - U * 0.56, fy - U * 1.52 + gest, U * 0.10, 2.0);
           // The mic arm, RAISED to his face: elbow out
-          // at shoulder height, the gloved hand up at
-          // his face holding the mic — never hanging
-          // at his side.
-          drawActArm(cx + U * 0.26, fy - U * 1.38, cx + U * 0.45, fy - U * 1.32, cx + U * 0.27, fy - U * 1.60, U * 0.10, 2.0);
+          // at shoulder height, the gloved hand up
+          // beside his mouth holding the mic — never
+          // hanging at his side.
+          drawActArm(cx + U * 0.32, fy - U * 1.38, cx + U * 0.48, fy - U * 1.28, cx + U * 0.30, fy - U * 1.50, U * 0.10, 2.0);
           drawActHead(cx, fy - U * 1.72, U * 0.55, nowMs, false);
-          // The microphone, IN his raised hand at his
-          // face: a long dark handle running from the
-          // glove up to a LARGE round head — a silver
-          // grille ball with a dark rim — sitting
-          // against his face, so it reads at live size
-          // the way the singer's corrected mic reads.
-          var micHx = cx + U * 0.27, micHy = fy - U * 1.60;
-          var micX = cx + U * 0.14, micY = fy - U * 1.74, micR = U * 0.105;
+          // The microphone, IN his raised hand, ANGLED
+          // so its ball sits BESIDE his mouth, clear of
+          // his face: a long dark handle running up and
+          // out from the glove to a LARGE round head — a
+          // silver grille ball with a dark rim — whose
+          // near edge stops short of the head's own edge,
+          // so BOTH red eyes read in full beside it.
+          var micHx = cx + U * 0.30, micHy = fy - U * 1.50;
+          var micX = cx + U * 0.385, micY = fy - U * 1.61, micR = U * 0.098;
           ctx.strokeStyle = "#1c1c20";
           ctx.lineCap = "round";
           ctx.lineWidth = Math.max(2, U * 0.055);
-          ctx.beginPath(); ctx.moveTo(micHx, micHy); ctx.lineTo(micX + micR * 0.45, micY + micR * 0.55); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(micHx, micHy); ctx.lineTo(micX - micR * 0.40, micY + micR * 0.58); ctx.stroke();
           ctx.fillStyle = "#43464e";
           ctx.beginPath(); ctx.arc(micX, micY, micR, 0, Math.PI * 2); ctx.fill();
           ctx.strokeStyle = "rgba(228, 230, 236, 0.60)";
