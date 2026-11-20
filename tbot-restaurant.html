@@ -431,11 +431,12 @@
         .over-card { animation: none; }
       }
       .over-nocatch[hidden] { display: none; }
-      /* The prize plate: "Your Tip:" first, then the winning
-         show's name on its own deep-navy plate with bright gold
-         lettering — the family composition. The plate names
-         the show only; the episode is served once at prize
-         time and the Watch button is its only door. */
+      /* The prize plate: "Your Tip:" first, then the prize
+         episode's own show's name on its own deep-navy plate
+         with bright gold lettering — the family composition.
+         The plate names the show only; the episode is served
+         once at prize time and the Watch button is its only
+         door. */
       .over-prize {
         font-size: 30px;
         font-weight: 800;
@@ -857,25 +858,31 @@
         // Copied verbatim from TBOT Garden (and The Last TBOT
         // In): 19 shows, 200 episodes. During play a table
         // carries a show's NAME only, worn as the white pill
-        // label under the table (see drawLabel). The LAST table
-        // served right decides the prize show; if none are
-        // served right, NOTHING is crowned — no show is named
-        // and no episode is served (the honest zero card). The
-        // won show's episode is served ONCE, at prize time —
-        // never during play. TBOT Network itself is NOT a show
-        // and is not in this list.
+        // label under the table (see drawLabel). ALL EPISODES
+        // ARE IN ROTATION: the prize is drawn from ONE global
+        // shuffled deck of every episode of every show (see
+        // the episode deck below), so any show's episode can
+        // be the tip on any winning shift — the plate and the
+        // Watch button name the drawn episode's OWN show. If
+        // no table is served right, NOTHING is crowned — no
+        // show is named and no episode is served (the honest
+        // zero card). An episode is served ONCE, at prize
+        // time — never during play. TBOT Network itself is
+        // NOT a show and is not in this list.
         // THE NO-REPEAT EPISODE LAW: a player is never served
-        // the same episode twice — every episode SERVED is
-        // remembered per show on this device (see nextEpisode),
-        // and a prize only ever serves an episode this player
-        // has not been served yet. Only episodes served AT
-        // PRIZE TIME count: tables carry show names only during
-        // play, and the idle dining room never deals, peeks,
-        // borrows, displays, or links an episode. Only when the
-        // player has been served EVERY episode of a show does
-        // that show's list start over — and even then the
-        // episode served last sits out the first pick of the new
-        // cycle, so a repeat never lands back to back.
+        // the same episode twice — the deck holds only
+        // episodes this player has not been served yet
+        // (episodes already won stay honoured, remembered per
+        // show on this device), and no episode goes out again
+        // until every one of the 200 has gone out. Only
+        // episodes served AT PRIZE TIME count: tables carry
+        // show names only during play, and the idle dining
+        // room never deals, peeks, borrows, displays, or links
+        // an episode. Only when the player has been served
+        // EVERY episode does the rotation start over — and
+        // even then the episode served last is dealt to the
+        // bottom of the new deck, so a repeat never lands
+        // back to back.
         var SHOWS = [
           { name: "Ask the Q - Speak Your Truth", eps: ["0qDX0T5_1u8", "5hcz5Lg9yKs", "8Gwj-hJYnak", "8fIAL7Bh954", "A3hfilujX1Y", "ER_AMHkIT2E", "FOK6GvXQnCw", "FWTx5fCBy-k", "K56riBl1kSo", "Oz6c8Emg9c4", "PCbwvLP0fJ8", "Q_umdsDJKDI", "Zo_uwwBwQO4", "ZtEs7okuu9I", "bDnvLeG-XNE", "dw_HQ3zcnrM", "el6eg7ccVvg", "fqpoBtJD8LA", "l2ZYC18yPNw", "l_55f-TRq9c", "laMRL_cbUqk", "pOwXjxLHkbk", "s3d0xSbJPTY", "soNYQAQKXo8", "thfWMfmWCN8", "tjis7_fvtl4", "ul9uo6t2MgI", "35ZnsAIyFg0", "DTq0XbWii4M", "S6oNF8t3u8U", "EAIYYiqtWtU", "1eUDeWedlIM", "LnY3xOO0yLw", "8SOteho_cNo", "YkTc_ELtPp4", "fP_dT8P2Ga4", "W-mScZplBUs", "Ehw4Tc0fC2c", "ne1stTbZjQw", "Ql1XUe4cs20", "9DwQ_HEp12c", "r9qH3qZ3790", "9omBry8NXVY", "U41OcIiDn0Q"] },
           { name: "Meta Street Journal", eps: ["iYBHmVGMfBk", "Bk3hLFA9gAI", "xKEiecg3DnY"] },
@@ -897,21 +904,28 @@
           { name: "Honoring Great Talent", eps: ["kumprE76ZrQ", "RGwpHbyuehQ", "TaY6Qz7gjnk", "3UqnhoekQ6g", "QONoSnwZY6Q", "akddJKjjaz0", "QpNQUDdJwjo", "l4MibQZUoic", "4_z-bDijJaI", "9p8_Z3kdEDs"] },
           { name: "Press Briefing", eps: ["vAoN8xKkhNE", "pDAvact3zAw", "BHjyk6EKqjs"] }
         ];
-        // Deal a show to a carrier. A PRIZE deal (consume = true)
-        // serves one specific episode of the show: name = the
-        // show's name (prize headline); url = that episode's
-        // watch page; watch = the Watch button's tail ("Ep. 22 of
-        // Ladies of Comedy Museum"); ep / showName = the
-        // episode's video ID and its show. A CARRIER deal
-        // (consume = false) carries NO episode at all: the table
-        // holds only the show's name, for flavor — no episode ID,
-        // no episode link, no "Ep. N" label — and the episode
-        // machinery never runs for it. Prize deals happen exactly
-        // once per round, at prize time, for the winning show
-        // only (see endGame). Copied from TBOT Garden.
-        function dealShow(show, consume) {
-          if (!consume) return { name: show.name };
-          var n = nextEpisode(show);
+        // Deal a show to a carrier. A carrier deal carries NO
+        // episode at all: the table holds only the show's name,
+        // for flavor — no episode ID, no episode link, no
+        // "Ep. N" label — and the episode machinery never runs
+        // for it. The PRIZE deal is a separate door (dealPrize,
+        // below): it draws the next episode off the global
+        // rotation deck and names that episode's own show.
+        // Prize deals happen exactly once per round, at prize
+        // time (see endGame).
+        function dealShow(show) {
+          return { name: show.name };
+        }
+        // The prize deal: one specific episode, drawn from the
+        // global rotation (see nextPrizePick). name = the
+        // episode's OWN show's name (prize headline); url =
+        // that episode's watch page; watch = the Watch
+        // button's tail ("Ep. 22 of Ladies of Comedy Museum");
+        // ep / showName = the episode's video ID and its show.
+        function dealPrize() {
+          var pick = nextPrizePick();
+          if (!pick) return null;
+          var show = pick.show, n = pick.n;
           return {
             name: show.name,
             url: "https://www.youtube.com/watch?v=" + show.eps[n],
@@ -924,9 +938,9 @@
         // The no-repeat memory: for each show, the video IDs this
         // device has already been served AS A PRIZE, in the order
         // served. If storage is blocked, the in-memory copy still
-        // enforces the rule for the session. Only nextEpisode
-        // writes it — prize deals. The idle room and in-round
-        // carries never read or write it.
+        // enforces the rule for the session. Only the prize draw
+        // (nextPrizePick) writes it — prize deals. The idle room
+        // and in-round carries never read or write it.
         var SEEN_EPS_KEY = "tbotRestaurantSeenEpisodes";
         var seenEps = null; // { showName: [videoId, ...] } — lazily loaded
         function loadSeenEps() {
@@ -957,26 +971,76 @@
           }
           return clean;
         }
-        function nextEpisode(show) {
-          var seen = loadSeenEps();
-          var clean = cleanServedList(show);
-          var fresh = [];
-          for (var fi = 0; fi < show.eps.length; fi++) {
-            if (clean.indexOf(show.eps[fi]) === -1) fresh.push(fi);
-          }
-          if (!fresh.length) {
-            var lastId = clean.length ? clean[clean.length - 1] : null;
-            clean = [];
-            for (var ri = 0; ri < show.eps.length; ri++) {
-              if (show.eps[ri] !== lastId) fresh.push(ri);
+        // ---------- The global episode rotation ----------
+        // ALL EPISODES IN ROTATION: one deck for the whole
+        // roster — every episode of every show, shuffled
+        // together, dealt from the end. An entry is a
+        // (show, episode) pair: the same video can sit in two
+        // shows' lists, and each listing is its own card in
+        // the deck, honoured per show exactly as the served
+        // memory keeps it. The deck is built LAZILY, at the
+        // first prize draw that needs it, from the episodes
+        // this player has NOT been served yet — episodes
+        // already won stay honoured and never enter the deck.
+        // Each draw records its episode in the served memory
+        // at once, so the law holds across sessions too: no
+        // episode is served twice until all 200 have gone
+        // out. When the deck runs dry AND the memory says
+        // every episode has been served, the rotation starts
+        // a new cycle: the memory resets, a fresh full deck
+        // is shuffled, and the episode served last is moved
+        // to the bottom of it (drawn last), so the new cycle
+        // never opens with a back-to-back repeat.
+        var epDeck = null;        // [{ show, n }, ...] — drawn from the end
+        var lastPrizePick = null; // { show, n } of the most recent prize draw
+        function buildEpDeck() {
+          var deck = [];
+          for (var si = 0; si < SHOWS.length; si++) {
+            var show = SHOWS[si];
+            var served = cleanServedList(show);
+            for (var ei = 0; ei < show.eps.length; ei++) {
+              if (served.indexOf(show.eps[ei]) === -1) deck.push({ show: show, n: ei });
             }
-            if (!fresh.length) fresh.push(show.eps.indexOf(lastId));
           }
-          var n = fresh[Math.floor(Math.random() * fresh.length)];
-          clean.push(show.eps[n]);
-          seen[show.name] = clean;
+          for (var j = deck.length - 1; j > 0; j--) {
+            var k = Math.floor(Math.random() * (j + 1));
+            var tmp = deck[j]; deck[j] = deck[k]; deck[k] = tmp;
+          }
+          return deck;
+        }
+        function nextPrizePick() {
+          if (!epDeck || !epDeck.length) epDeck = buildEpDeck();
+          if (!epDeck.length) {
+            // Every episode of every show has been served to
+            // this player: a new cycle. The memory resets and
+            // a fresh full deck is dealt — with the last-served
+            // episode moved to the bottom of the deck (index
+            // 0; draws pop from the end), so it cannot be the
+            // new cycle's first serve.
+            var seen = loadSeenEps();
+            for (var sk in seen) {
+              if (Object.prototype.hasOwnProperty.call(seen, sk)) delete seen[sk];
+            }
+            saveSeenEps();
+            epDeck = buildEpDeck();
+            if (lastPrizePick && epDeck.length > 1) {
+              for (var bi = 0; bi < epDeck.length; bi++) {
+                if (epDeck[bi].show === lastPrizePick.show && epDeck[bi].n === lastPrizePick.n) {
+                  var held = epDeck.splice(bi, 1)[0];
+                  epDeck.unshift(held);
+                  break;
+                }
+              }
+            }
+          }
+          if (!epDeck.length) return null;
+          var pick = epDeck.pop();
+          var clean = cleanServedList(pick.show);
+          clean.push(pick.show.eps[pick.n]);
+          loadSeenEps()[pick.show.name] = clean;
           saveSeenEps();
-          return n;
+          lastPrizePick = pick;
+          return pick;
         }
 
         // ---------- Per-device tag (quiet, player counting) ----------
@@ -2862,7 +2926,7 @@
         var score = 0;
         var servedCount = 0;
         var wrongCount = 0;
-        var lastServed = null;  // carrier deal of the LAST table served right
+        var lastServed = null;  // carrier deal of the LAST table served right — now only the prize's gate: any correct serve earns the tip, which the global rotation deals
         var lastPrize = null;   // prize deal of the round just ended
         var ticketNum = null;   // the number the kitchen is calling
         var nextLeaveAt = 0;    // when the next party gets up and leaves
@@ -4539,7 +4603,7 @@
         }
         function nextDeckShow() {
           if (deckPos >= deck.length) shuffleDeck();
-          return dealShow(SHOWS[deck[deckPos++]], false);
+          return dealShow(SHOWS[deck[deckPos++]]);
         }
 
         // Table numbers: distinct numbers dealt from a pool
@@ -10760,19 +10824,19 @@
         }
 
         // ---------- Round flow ----------
-        // PRIZE-FIRST, the end card's law: the LAST table served
-        // right is the show the player wins, and its episode is
-        // served only NOW — picked fresh from the episodes this
-        // player has never been handed (see nextEpisode).
-        // servePrize is called ONLY for a round with at least
-        // one correct serve: a zero round crowns nothing and
-        // serves nothing (see endGame).
+        // PRIZE-FIRST, the end card's law: a round with at
+        // least one correct serve earns the tip, and the
+        // episode is served only NOW — drawn from the global
+        // rotation of ALL episodes (see nextPrizePick), never
+        // tied to the show of any table served: the prize
+        // plate and the Watch button name the drawn episode's
+        // own show. servePrize is called ONLY for a round with
+        // at least one correct serve: a zero round crowns
+        // nothing and serves nothing (see endGame).
         function servePrize() {
           var prizeDeal = null;
           if (lastServed) {
-            for (var psi = 0; psi < SHOWS.length; psi++) {
-              if (SHOWS[psi].name === lastServed.name) { prizeDeal = dealShow(SHOWS[psi], true); break; }
-            }
+            prizeDeal = dealPrize();
           }
           lastPrize = prizeDeal;
           if (prizeDeal) {
