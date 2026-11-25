@@ -892,19 +892,24 @@
       @keyframes shk{ 0%,100%{transform:translateX(0);} 25%{transform:translateX(-4px);} 75%{transform:translateX(4px);} }
 
       /* ---------- WINNER CARD — TBOT Bar & Grill's card ----------
-         The actual end card from the tbot-restaurant build, copied
-         faithfully: the dimmed fixed overlay, the centred translucent
-         card, the game-name title line, the prize plate ("Your Tip:"
-         in Bar & Grill — here the shift's turkeys, on the same
-         deep-navy plate with bright gold lettering), the result line,
-         the gold-tinted line under it (there the number to beat —
-         here BEST SHIFT), the gold badge pill keyed to
-         the round's own count, the five-star rating, and the button
-         row. The fit tiers below are Bar & Grill's own, so the whole
-         card stays on one phone screen. Adapted only where this game
-         differs: the banner names TBOT TURKEY ROAST, the result is
-         the turkeys-served count with the best shift, and PLAY AGAIN
-         restarts a Turkey Roast shift. */
+         The actual end card from the tbot-restaurant build, made
+         the same piece for piece: the dimmed fixed overlay, the
+         centred translucent card, the game-name title line, the
+         prize plate ("Your Tip:" + the drawn episode's show on the
+         deep-navy plate with bright gold lettering), the result
+         line, the walked-out line under it, the gold-tinted
+         number-to-beat box, the gold badge pill keyed to the
+         round's own count, the five-star rating, and the button
+         row with the red Watch button naming the drawn episode.
+         The fit tiers below are Bar & Grill's own, so the whole
+         card stays on one phone screen. Adapted only where this
+         game differs: the title names TBOT Turkey Roast, the
+         counts are turkeys in a 90-second shift, the badge names
+         are the Thanksgiving ladder, and the number to beat is
+         this device's best shift — this game keeps no scorebook,
+         so there is no rank line (Bar & Grill's rank is read
+         from its own book; Turkey scores are never posted into
+         another game's book). */
       .winner-screen{
         --card-bg:rgba(255,251,244,.92);
         --card-ink:#2b1a12;
@@ -949,21 +954,23 @@
       @keyframes cardIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:translateY(0); } }
       @media (prefers-reduced-motion: reduce){ .over-card{ animation:none; } }
       /* The card's middle scrolls; its button row never does. On a
-         short phone screen the prize plate, Tip clip, badge and
-         stars add up to more than the card's capped height — when
-         the whole card was one scrolling box, PLAY AGAIN sank below
-         the fold and taps at the bottom edge landed on the overlay
-         instead of the button. Now only .over-scroll scrolls and
-         the buttons + sound toggle sit in a pinned footer, always
-         on screen and always tappable. */
+         short phone screen the prize plate, result lines, badge
+         and stars add up to more than the card's capped height —
+         when the whole card was one scrolling box, PLAY AGAIN
+         sank below the fold and taps at the bottom edge landed on
+         the overlay instead of the button. Now only .over-scroll
+         scrolls and the buttons + sound toggle sit in a pinned
+         footer, always on screen and always tappable. */
       .over-scroll{ overflow-y:auto; -webkit-overflow-scrolling:touch; min-height:0; }
       .over-btns{ flex:none; }
       .over-card .sound-btn{ flex:none; align-self:center; }
       .over-nocatch[hidden]{ display:none; }
-      /* The prize plate: the label first, then the prize on its own
-         deep-navy plate with bright gold lettering — Bar & Grill's
-         family composition. The plate names the show there; here it
-         carries the shift's turkeys-served count. */
+      /* The prize plate: "Your Tip:" first, then the prize
+         episode's own show's name on its own deep-navy plate
+         with bright gold lettering — Bar & Grill's composition,
+         exactly. The plate names the show only; the episode is
+         served once at prize time and the Watch button is its
+         only door. */
       .over-prize{ font-size:30px; font-weight:800; line-height:1.25; margin:0 0 8px; }
       .over-prize[hidden]{ display:none; }
       /* The game's full name crowns the card — the shift's results
@@ -982,34 +989,20 @@
         box-shadow:0 4px 14px rgba(4,6,16,.45);
         font-variant-numeric:tabular-nums;
       }
-      /* The Tip slot: Bar & Grill's show moment, kept on this card
-         under its own label — "Your Tip:" — and the tip is a clip
-         from LADIES OF COMEDY (the fleet library's Ladies of Comedy
-         Museum), drawn from the show library and played right in
-         the card. The episode caption rides on the same deep-navy
-         plate with gold lettering as the prize plate above it. */
-      .over-tip{ margin:0 0 10px; }
-      .over-tip[hidden]{ display:none; }
-      .tip-label{ font-size:21px; font-weight:800; line-height:1.25; margin:0 0 6px; }
-      .tip-frame{
-        position:relative; aspect-ratio:16/9; border-radius:12px; overflow:hidden;
-        background:#052e1f; border:1.5px solid rgba(43,26,18,.35);
-        box-shadow:0 4px 14px rgba(4,6,16,.4);
-      }
-      .tip-frame iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; display:block; }
-      .tip-show{ margin:6px 0 0; }
-      .tip-show span{
-        display:inline-block;
-        background:#052e1f; color:#ffbe1a;
-        font-size:14.5px; font-weight:800;
-        padding:5px 12px 6px; border-radius:10px;
-        box-shadow:0 3px 10px rgba(4,6,16,.4);
-      }
       .over-result{ font-size:21px; font-weight:800; color:var(--card-ink); line-height:1.3; margin:0 0 10px; }
       .over-result[hidden]{ display:none; }
-      /* The best-shift line, directly under the result, in Bar &
-         Grill's gold-tinted number-to-beat box: this game's mark is
-         the player's own BEST SHIFT. */
+      /* The walked-out line, directly under the result: how many
+         customers gave up and walked out this shift — Bar &
+         Grill's wrong-tables line, in this game's own terms. */
+      .over-wrong{
+        font-size:20px; font-weight:800; color:var(--card-ink);
+        margin:0 0 6px; line-height:1.3;
+      }
+      .over-wrong[hidden]{ display:none; }
+      /* The number-to-beat line, under the walked-out line, in
+         Bar & Grill's gold-tinted box: judged against the mark
+         as it stood before the shift — this game's mark is the
+         player's own best shift on this device. */
       .over-beat{
         font-size:16.5px; font-weight:800; line-height:1.35;
         margin:0 0 7px; padding:9px 12px; border-radius:12px;
@@ -1044,6 +1037,20 @@
       }
       .over-btns button:active{ transform:scale(.96); }
       .over-btns button.primary{ background:var(--card-accent); color:var(--card-accent-ink); }
+      /* The Watch button: Bar & Grill's full-width red link over
+         the button row, naming the drawn episode — its only door. */
+      .over-btns a.btnlink{
+        display:flex; align-items:center; justify-content:center;
+        text-decoration:none; font-weight:800; border-radius:14px; line-height:1.15;
+        text-align:center; touch-action:manipulation;
+        background:var(--card-btn-bg); color:var(--card-btn-ink);
+        font-size:17px; padding:12px 18px; min-height:46px;
+        flex:1 1 100%; min-width:0;
+        -webkit-tap-highlight-color:transparent;
+      }
+      .over-btns a.btnlink:active{ transform:scale(.96); }
+      .over-btns a.btnlink.primary{ background:var(--card-accent); color:var(--card-accent-ink); }
+      .over-btns a.btnlink[hidden]{ display:none; }
       .rate-box{ margin:0 0 10px; }
       .rate-label{ font-size:15px; font-weight:800; margin:0 0 4px; }
       .stars{ display:flex; justify-content:center; gap:2px; }
@@ -1068,15 +1075,15 @@
         .over-card{ padding:12px 16px; }
         .over-prize{ font-size:27px; margin-bottom:6px; }
         .over-prize span{ padding:7px 14px 9px; }
-        .over-tip{ margin-bottom:7px; }
-        .tip-label{ font-size:19px; margin-bottom:5px; }
         .over-result{ font-size:20px; margin-bottom:7px; }
+        .over-wrong{ font-size:20px; margin-bottom:4px; }
         .over-beat{ font-size:15px; padding:8px 10px; }
         .over-tier{ font-size:19px; padding:8px 20px; margin-bottom:6px; }
         .rate-box{ margin-bottom:7px; }
         .rate-label{ margin-bottom:3px; }
         button.star-btn{ font-size:34px; padding:6px 6px; min-width:46px; min-height:46px; }
         .over-btns{ gap:8px; }
+        .over-btns a.btnlink{ font-size:16px; padding:10px 14px; min-height:42px; }
         .over-btns button{ font-size:18px; padding:12px 14px; min-height:48px; }
       }
       @media (max-height:680px){
@@ -1084,12 +1091,8 @@
         .over-title{ font-size:22px; margin-bottom:6px; }
         .over-prize{ font-size:24px; margin-bottom:5px; }
         .over-prize span{ padding:6px 12px 8px; }
-        .over-tip{ margin-bottom:5px; }
-        .tip-label{ font-size:17px; margin-bottom:4px; }
-        .tip-frame{ width:82%; margin:0 auto; }
-        .tip-show{ margin-top:5px; }
-        .tip-show span{ font-size:13.5px; padding:4px 10px 5px; }
         .over-result{ font-size:18px; margin-bottom:5px; }
+        .over-wrong{ font-size:20px; margin-bottom:3px; }
         .over-beat{ font-size:14.5px; margin-bottom:5px; }
         .over-tier{ font-size:17px; padding:6px 16px; border-width:2px; margin-bottom:4px; }
         .rate-box{ margin-bottom:5px; }
@@ -1097,6 +1100,7 @@
         .rate-thanks{ font-size:14px; margin-top:4px; }
         button.star-btn{ font-size:28px; padding:4px 5px; min-width:40px; min-height:40px; }
         .over-btns{ gap:7px; }
+        .over-btns a.btnlink{ font-size:15px; padding:9px 12px; min-height:38px; }
         .over-btns button{ font-size:16px; padding:10px 12px; min-height:42px; }
       }
       @media (max-height:560px){
@@ -1105,12 +1109,8 @@
         .over-title{ font-size:20px; margin-bottom:4px; }
         .over-prize{ font-size:21px; margin-bottom:3px; }
         .over-prize span{ padding:5px 10px 7px; }
-        .over-tip{ margin-bottom:4px; }
-        .tip-label{ font-size:15px; margin-bottom:3px; }
-        .tip-frame{ width:64%; margin:0 auto; }
-        .tip-show{ margin-top:4px; }
-        .tip-show span{ font-size:12.5px; padding:3px 9px 4px; }
         .over-result{ font-size:16px; margin-bottom:4px; }
+        .over-wrong{ font-size:20px; margin-bottom:2px; }
         .over-beat{ font-size:13.5px; margin-bottom:3px; padding:6px 9px; }
         .over-tier{ font-size:15px; padding:5px 14px; margin-bottom:3px; }
         .rate-box{ margin-bottom:4px; }
@@ -1118,6 +1118,7 @@
         .rate-thanks{ font-size:13px; margin-top:3px; }
         button.star-btn{ font-size:24px; padding:3px 4px; min-width:34px; min-height:34px; }
         .over-btns{ gap:6px; }
+        .over-btns a.btnlink{ font-size:14px; padding:8px 10px; min-height:34px; }
         .over-btns button{ font-size:15px; padding:9px 10px; min-height:38px; }
       }
 
@@ -1279,41 +1280,38 @@
       </section>
 
       <!-- END — THE ONLY WINNER CARD IN THE GAME: TBOT Bar & Grill's
-           card, adapted for this game. Turkey Roast's original end
-           card (the gold-ruled SHIFT DONE card with the logo and
-           mascot) was removed outright — its markup, its styles and
-           its show logic are gone, and this Bar & Grill card is the
-           single end card a finished shift can ever show: same
-           overlay, card, prize plate, result line, best line, badge
-           pill, stars and buttons; the plate and result carry this
-           game's turkeys-served count, the gold line under the
-           result is BEST SHIFT, the title names TBOT TURKEY ROAST,
-           and PLAY AGAIN restarts a Turkey Roast shift. The card's
-           show moment — the Tip — is a clip from LADIES OF COMEDY,
-           drawn from the fleet's show library and played in the tip
-           slot under its "Your Tip:" label -->
+           regular winners card, made the same piece for piece.
+           Turkey Roast's original end card (the gold-ruled SHIFT
+           DONE card with the logo and mascot) was removed outright —
+           its markup, its styles and its show logic are gone, and
+           this Bar & Grill card is the single end card a finished
+           shift can ever show: same overlay, card, title line, Tip
+           plate ("Your Tip:" + the drawn episode's show), result
+           line, walked-out line, number-to-beat box, badge pill,
+           stars, red Watch button naming the drawn episode, and
+           the TURKEY ROAST / Play again button row. The counts are
+           this game's turkeys in 90 seconds, the badge names are
+           the Thanksgiving ladder, and the number to beat is this
+           device's best shift — this game keeps no scorebook, so
+           the card carries no rank line. -->
       <section class="screen winner-screen" id="screen-end" data-winner-card="bar-and-grill"></section>
       <!-- The card itself lives in this template, inert. It is NOT
            part of the page between shifts: at a shift's end a fresh
            copy is built from here, and the moment the player leaves
-           the card — PLAY AGAIN or TURKEY ROAST — the built card is
-           removed from the document entirely, Tip iframe and all.
-           There is no finished card left in the page to resurface,
-           so the card a player lands on is always the one the shift
-           they just played built. -->
+           the card — Play again or TURKEY ROAST — the built card is
+           removed from the document entirely. There is no finished
+           card left in the page to resurface, so the card a player
+           lands on is always the one the shift they just played
+           built. -->
       <template id="winner-template">
         <div class="over-card" role="dialog" aria-modal="true" aria-label="Shift over">
           <div class="over-scroll">
-          <p class="over-title">TBOT TURKEY ROAST</p>
-          <p class="over-prize" id="end-prize" hidden>Your Turkeys:<br /><span id="end-prize-count"></span></p>
+          <p class="over-title">TBOT Turkey Roast</p>
+          <p class="over-prize" id="end-prize" hidden>Your Tip:<br /><span id="end-prize-name"></span></p>
           <p class="over-result over-nocatch" id="end-noserve" hidden>No turkeys served this shift — the ovens kept their birds.</p>
-          <div class="over-tip" id="end-tip" hidden>
-            <p class="tip-label">Your Tip:</p>
-            <div class="tip-frame"><iframe id="tip-frame" title="Your Tip — a clip from Ladies of Comedy" allow="encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
-            <p class="tip-show"><span id="tip-show-name"></span></p>
-          </div>
           <p class="over-result" id="end-result"></p>
-          <p class="over-beat" id="end-best-line"></p>
+          <p class="over-wrong" id="end-wrong"></p>
+          <p class="over-beat" id="end-beat-line" hidden></p>
           <p class="over-tier" id="end-tier" hidden></p>
           <div class="rate-box">
             <p class="rate-label">Rate this game:</p>
@@ -1328,8 +1326,9 @@
           </div>
           </div>
           <div class="over-btns">
+            <a class="btnlink primary" id="btn-watch" href="#" target="_blank" rel="noopener" hidden>Watch now</a>
             <button id="btn-lobby" type="button">TURKEY ROAST</button>
-            <button class="primary" id="btn-again" type="button">PLAY AGAIN</button>
+            <button class="primary" id="btn-again" type="button">Play again</button>
           </div>
           <button class="sound-btn" id="btn-sound-end" type="button">SOUND: ON</button>
         </div>
@@ -1366,7 +1365,7 @@
           /* The winner card exists only while it is the screen being
              shown. Leaving it — for a fresh shift or for the lobby —
              destroys the built card outright: the node leaves the
-             document, Tip iframe and all, so no finished card stays
+             document entirely, so no finished card stays
              in the page to resurface later. */
           destroyWinnerCard();
         }
@@ -1995,6 +1994,7 @@
       function walkOutCustomer(c){
         if (c.gone) return;
         c.gone = true;
+        if (G) G.missed++; /* the card's walked-out count: one per customer who gave up */
         c.stage = 3;
         c.el.classList.remove("stage-1", "stage-2", "armed");
         c.el.classList.add("hands-up", "leaving");
@@ -2448,12 +2448,12 @@
         if (G && G.running) return; /* a shift is already running — a second tap (or a doubled one) starts nothing and leaks no timer */
         if (G && G.timer) { clearInterval(G.timer); G.timer = null; }
         ensureAudio();
-        destroyWinnerCard(); /* leaving the card: the built card is destroyed, Tip clip and all */
+        destroyWinnerCard(); /* leaving the card: the built card is destroyed outright */
         endCardShown = false; /* a fresh shift earns a fresh card at its end */
         primeVoice(); /* unlock the voice player inside the START tap */
         startStoreMusic(); /* the store music bed starts on the START tap, low under everything */
         G = {
-          running: true, served: 0, counterTurkeys: [], pickupBusy: false,
+          running: true, served: 0, missed: 0, counterTurkeys: [], pickupBusy: false,
           isFirstShift: isFirstTimer(), taughtCustomer: false,
           endsAt: performance.now() + SHIFT_MS,
           ovens: [], customers: [], custSeq: 0,
@@ -2537,77 +2537,173 @@
         try { window.localStorage.setItem(RATING_KEY, String(n)); } catch(e) {}
       }
 
-      /* ---------- the Tip: a Ladies of Comedy clip ----------
-         The winner card's show moment. In Bar & Grill the Tip is a
-         show drawn from the fleet's SHOWS library and served at
-         prize time; here the Tip is always LADIES OF COMEDY — the
-         library's own entry for the show (Ladies of Comedy Museum,
-         the TBOT Network show) — and the tip slot PLAYS a clip of
-         it right in the card, the way What TBOT Say!? plays its
-         show footage in its player. The episode is drawn the
-         fleet's way: the NO-REPEAT EPISODE LAW — an episode served
-         as a Tip is remembered on this device and never served
-         again until every episode of the show has been served,
-         and even then the last one served sits out the first pick
-         of the new cycle. The clip is served once, at card time,
-         for a shift that served at least one turkey; a zero shift
-         crowns nothing and tips nothing (the honest zero card). */
-      var TIP_SHOW = {
-        name: "Ladies of Comedy Museum",
-        eps: ["1lbi9wrPA64", "2NS6Rgdss2w", "5rNRio6TpSI", "6J0d10gL89Q", "6p6KAePYEEI", "AOqCwa0OlJU", "DoPtjVCORr8", "HDfhFOVE8Os", "LNbdIOKOaUo", "NtItEgJrevw", "XDTj3X23ik4", "hyNvchWOMuk", "pKn7qKBQrWE", "qUbQoGZPQmM", "tE138doE0k4", "x6Y_iWc8jgg", "wzTcbpScsHk", "yd_AJg843FM", "3JaN2hcfSkc", "cupsHaSNxtM", "EitUFf8gBHQ", "rAGqeCCZ9UI", "rOrJVniqpho", "M84xOPAA7kg"]
-      };
-      var TIP_SEEN_KEY = "tbot-turkey-roast-tip-episodes";
-      var tipSeen = null; /* video IDs already served as a Tip, in order */
-      function loadTipSeen(){
-        if (tipSeen) return tipSeen;
-        tipSeen = [];
+      /* ---------- the Tip: the family show rotation ----------
+         The winner card's show moment, made the same as Bar &
+         Grill's: the Tip is ONE episode drawn from the global
+         rotation of the whole family roster — every episode of
+         every show, one shuffled deck — and served once, at
+         prize time. The prize plate names the drawn episode's
+         OWN show; the episode itself is behind the red Watch
+         button, which names it ("Watch Ep. N of <show>") and is
+         its only door. THE NO-REPEAT EPISODE LAW holds exactly
+         as there: an episode served as a Tip is remembered on
+         this device per show and never served again until every
+         episode in the rotation has been served, and even then
+         the last one served sits out the first pick of the new
+         cycle. (Episodes this device was already served under
+         the old Ladies-of-Comedy-only Tip stay honoured — they
+         seed the Ladies of Comedy Museum list below.) A shift
+         that served at least one turkey earns the Tip; a zero
+         shift crowns nothing and tips nothing (the honest zero
+         card). */
+      var SHOWS = [
+          { name: "Ask the Q - Speak Your Truth", eps: ["0qDX0T5_1u8", "5hcz5Lg9yKs", "8Gwj-hJYnak", "8fIAL7Bh954", "A3hfilujX1Y", "ER_AMHkIT2E", "FOK6GvXQnCw", "FWTx5fCBy-k", "K56riBl1kSo", "Oz6c8Emg9c4", "PCbwvLP0fJ8", "Q_umdsDJKDI", "Zo_uwwBwQO4", "ZtEs7okuu9I", "bDnvLeG-XNE", "dw_HQ3zcnrM", "el6eg7ccVvg", "fqpoBtJD8LA", "l2ZYC18yPNw", "l_55f-TRq9c", "laMRL_cbUqk", "pOwXjxLHkbk", "s3d0xSbJPTY", "soNYQAQKXo8", "thfWMfmWCN8", "tjis7_fvtl4", "ul9uo6t2MgI", "35ZnsAIyFg0", "DTq0XbWii4M", "S6oNF8t3u8U", "EAIYYiqtWtU", "1eUDeWedlIM", "LnY3xOO0yLw", "8SOteho_cNo", "YkTc_ELtPp4", "fP_dT8P2Ga4", "W-mScZplBUs", "Ehw4Tc0fC2c", "ne1stTbZjQw", "Ql1XUe4cs20", "9DwQ_HEp12c", "r9qH3qZ3790", "9omBry8NXVY", "U41OcIiDn0Q"] },
+          { name: "Meta Street Journal", eps: ["iYBHmVGMfBk", "Bk3hLFA9gAI", "xKEiecg3DnY"] },
+          { name: "Wake & Bake", eps: ["-C4tZ-6XUs8", "0LhRajQfH-U", "25sLEkA2-Jc", "3EaO5UfQgIY", "6oH9u3LPl78", "ABl0DjnZaLw", "DtA1rLtpj2g", "FCUrhjBIST0", "GzMO0HxCLII", "JHs6_zNKyR0", "aaBB-FxNJdA", "jn8kuHloNVU", "lC54My7xNzQ", "nauginc7mPY", "tIPDDRoO55M", "te5u1MRhWjY"] },
+          { name: "Ladies of Comedy Museum", eps: ["1lbi9wrPA64", "2NS6Rgdss2w", "5rNRio6TpSI", "6J0d10gL89Q", "6p6KAePYEEI", "AOqCwa0OlJU", "DoPtjVCORr8", "HDfhFOVE8Os", "LNbdIOKOaUo", "NtItEgJrevw", "XDTj3X23ik4", "hyNvchWOMuk", "pKn7qKBQrWE", "qUbQoGZPQmM", "tE138doE0k4", "x6Y_iWc8jgg", "wzTcbpScsHk", "yd_AJg843FM", "3JaN2hcfSkc", "cupsHaSNxtM", "EitUFf8gBHQ", "rAGqeCCZ9UI", "rOrJVniqpho", "M84xOPAA7kg"] },
+          { name: "Poetry 101", eps: ["5XHGyZVRs9w", "Ro-T5BU03A0", "_hHmwbvUe4Y", "fJ6ipk4Prok", "mOyRlDq7_lw"] },
+          { name: "Word of Grace", eps: ["9fLUcttEdr8", "M7bKTuVMuKQ", "_9ubwz83dhM", "gFhUDQW5l44", "k_77f-BREMg", "ps36IcwOZzQ", "q7G4-e9wr00", "uDhtJNoqun0", "x1yxdJfQo6A", "Xbl7xyAYrMM", "n1xEu5vdTg0", "vRsN-_vMsZE", "eB_4ruh7BTw", "k4xOMKmKSgU", "pcy-NqoR1e4", "SjkS5LRCskA", "tA56O4COMMQ", "c6QSfBJqGYs", "X5WMOf2ixog", "Cs9FAy5MSOs"] },
+          { name: "vrSun-Day's Best", eps: ["EEnZ2ZIBp3Q", "KYZtTtFkC8c", "8QT2scxMSv8", "vtauPPq2v2Q"] },
+          { name: "Kingdom Life Meta Church", eps: ["279_zEsadVk", "2pH1_LJzv3M", "3FRsG5B4hDw", "5qnLlra7Zpk", "8Hvt9bDfrSs", "AxEAIYWMCrY", "FKzmEqfGips", "KTiX0LAYGLE", "Ki1nAQy_z8I", "TIXWG-fh6NU", "_YzLti2hVXQ", "eK-esGKnGRY", "eyWOIwwhiGI", "fW07F_-RLIs", "o3p4KAEFKE0", "qGVqdUibIRA", "xBjq42JYM6E", "xkr5ejaIE5w", "zZk-XRbzyo4"] },
+          { name: "Gospel Cruise", eps: ["ZNgPhtEdadk", "xIzS22kgXGg", "UxMcBe7i7uo"] },
+          { name: "Art Wars", eps: ["grK-JRzWMmo", "1aGKh6-UoUg", "mCfxNW1pXRo", "zvHxLJtftoU"] },
+          { name: "Culture X Art", eps: ["rA5f6FEClY0", "u9N2YbafOe0", "sCZi2qbk69k", "zaFGNKtB_z4"] },
+          { name: "The MF Drag Race", eps: ["0VkA8Cn5CmU", "8teJHngtHAI", "EuVc_v5mZqk", "PWcf1SZX3Ms", "Tjq6NWeoPNE", "ZHvMR2enyzA", "aECgHOojjyQ", "h8dydoZxJz0", "vlz7P1L9-v8", "wOjxsmNM6Ss", "wdTkgK5VAjA"] },
+          { name: "World Creator Day", eps: ["sQXvVKC9GeM", "nrpYHIEnmEw", "Nhl0zFSVG5M", "YDm1_sckT4c", "pOk6gRq_YPU", "sed4sIoHEDk", "AaKYTIpLb04", "yQYL9bpMC5Q"] },
+          { name: "Horizon Worlds Classics", eps: ["ihJQ_X63OKE", "4Yxa5ckdKpY", "S0ByPGN9IA8", "OI13_nNZBL8", "93dhHjPt5Cs", "XPO__ZPdngQ", "m_XiA8RHwSw", "0yfH_l6sK9s", "gmPjFGQSec4", "OGya6BG-Yj0"] },
+          { name: "Forgotten Voices", eps: ["gKb4MaPzOlc", "5Dos4T2tUKo", "QYfU1p1pmY8", "i3Xx3l5g_ws"] },
+          { name: "Horizon Awards", eps: ["0PULo9c5Lgs"] },
+          { name: "Horizon Got Talent", eps: ["Nhl0zFSVG5M", "q3941mQRrsQ", "RMfdoD2sUnU", "ZbxBWoTUsKM", "ZVFSWu_1aSM", "jxLpg_HAkNY", "wY-Vuh2DdzI"] },
+          { name: "Honoring Great Talent", eps: ["kumprE76ZrQ", "RGwpHbyuehQ", "TaY6Qz7gjnk", "3UqnhoekQ6g", "QONoSnwZY6Q", "akddJKjjaz0", "QpNQUDdJwjo", "l4MibQZUoic", "4_z-bDijJaI", "9p8_Z3kdEDs"] },
+          { name: "Press Briefing", eps: ["vAoN8xKkhNE", "pDAvact3zAw", "BHjyk6EKqjs"] }
+        ];
+      var SEEN_EPS_KEY = "tbot-turkey-roast-seen-episodes";
+      var LEGACY_TIP_KEY = "tbot-turkey-roast-tip-episodes";
+      var seenEps = null; /* { showName: [videoId, ...] } — lazily loaded */
+      function loadSeenEps(){
+        if (seenEps) return seenEps;
+        seenEps = {};
         try {
-          var raw = window.localStorage.getItem(TIP_SEEN_KEY);
+          var raw = window.localStorage.getItem(SEEN_EPS_KEY);
           if (raw) {
             var parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) {
-              parsed.forEach(function(id){
-                if (TIP_SHOW.eps.indexOf(id) !== -1 && tipSeen.indexOf(id) === -1) tipSeen.push(id);
-              });
+            if (parsed && typeof parsed === "object") seenEps = parsed;
+          } else {
+            /* first run under the rotation: honour the episodes
+               the old Ladies-of-Comedy-only Tip already served */
+            var legacy = window.localStorage.getItem(LEGACY_TIP_KEY);
+            if (legacy) {
+              var lparsed = JSON.parse(legacy);
+              if (Array.isArray(lparsed) && lparsed.length) {
+                seenEps["Ladies of Comedy Museum"] = lparsed.slice();
+              }
             }
           }
-        } catch(e) { /* no storage — the session copy still enforces the law */ }
-        return tipSeen;
+        } catch(e) { /* no storage — the session copy stands */ }
+        return seenEps;
       }
-      function nextTipEpisode(){
-        var seen = loadTipSeen();
-        var fresh = [];
-        TIP_SHOW.eps.forEach(function(id, i){ if (seen.indexOf(id) === -1) fresh.push(i); });
-        if (!fresh.length) {
-          var lastId = seen.length ? seen[seen.length - 1] : null;
-          seen.length = 0;
-          TIP_SHOW.eps.forEach(function(id, i){ if (id !== lastId) fresh.push(i); });
-          if (!fresh.length) fresh.push(TIP_SHOW.eps.indexOf(lastId));
+      function saveSeenEps(){
+        try { window.localStorage.setItem(SEEN_EPS_KEY, JSON.stringify(seenEps)); } catch(e) {}
+      }
+      function cleanServedList(show){
+        var list = loadSeenEps()[show.name];
+        if (!Array.isArray(list)) return [];
+        var clean = [];
+        for (var ci = 0; ci < list.length; ci++) {
+          if (show.eps.indexOf(list[ci]) !== -1 && clean.indexOf(list[ci]) === -1) clean.push(list[ci]);
         }
-        var n = fresh[Math.floor(Math.random() * fresh.length)];
-        seen.push(TIP_SHOW.eps[n]);
-        try { window.localStorage.setItem(TIP_SEEN_KEY, JSON.stringify(seen)); } catch(e) {}
-        return n;
+        return clean;
       }
-      function serveTip(){
-        var n = nextTipEpisode();
-        $("tip-frame").src = "https://www.youtube.com/embed/" + TIP_SHOW.eps[n] + "?rel=0&playsinline=1";
-        $("tip-show-name").textContent = TIP_SHOW.name + " · Ep. " + (n + 1);
-        $("end-tip").hidden = false;
+      /* one deck for the whole roster, built lazily from the
+         episodes this player has NOT been served yet, drawn
+         from the end */
+      var epDeck = null;        /* [{ show, n }, ...] */
+      var lastPrizePick = null; /* { show, n } of the most recent draw */
+      function buildEpDeck(){
+        var deck = [];
+        for (var si2 = 0; si2 < SHOWS.length; si2++) {
+          var show = SHOWS[si2];
+          var served = cleanServedList(show);
+          for (var ei2 = 0; ei2 < show.eps.length; ei2++) {
+            if (served.indexOf(show.eps[ei2]) === -1) deck.push({ show: show, n: ei2 });
+          }
+        }
+        for (var j = deck.length - 1; j > 0; j--) {
+          var k = Math.floor(Math.random() * (j + 1));
+          var tmp = deck[j]; deck[j] = deck[k]; deck[k] = tmp;
+        }
+        return deck;
       }
-      function stopTip(){
-        var tip = $("end-tip"), f = $("tip-frame");
-        if (tip) tip.hidden = true;
-        if (f && f.getAttribute("src")) f.src = "about:blank"; /* unload the player so the clip stops */
+      function nextPrizePick(){
+        if (!epDeck || !epDeck.length) epDeck = buildEpDeck();
+        if (!epDeck.length) {
+          /* every episode has been served: a new cycle — the
+             memory resets, a fresh full deck is dealt, and the
+             last-served episode moves to the bottom of it (drawn
+             last), so the new cycle never opens with a repeat */
+          var seen = loadSeenEps();
+          for (var sk in seen) {
+            if (Object.prototype.hasOwnProperty.call(seen, sk)) delete seen[sk];
+          }
+          saveSeenEps();
+          epDeck = buildEpDeck();
+          if (lastPrizePick && epDeck.length > 1) {
+            for (var bi = 0; bi < epDeck.length; bi++) {
+              if (epDeck[bi].show === lastPrizePick.show && epDeck[bi].n === lastPrizePick.n) {
+                var held = epDeck.splice(bi, 1)[0];
+                epDeck.unshift(held);
+                break;
+              }
+            }
+          }
+        }
+        if (!epDeck.length) return null;
+        var pick = epDeck.pop();
+        var clean = cleanServedList(pick.show);
+        clean.push(pick.show.eps[pick.n]);
+        loadSeenEps()[pick.show.name] = clean;
+        saveSeenEps();
+        lastPrizePick = pick;
+        return pick;
+      }
+      function dealPrize(){
+        var pick = nextPrizePick();
+        if (!pick) return null;
+        var show = pick.show, n = pick.n;
+        return {
+          name: show.name,
+          url: "https://www.youtube.com/watch?v=" + show.eps[n],
+          watch: "Ep. " + (n + 1) + " of " + show.name
+        };
+      }
+      /* serve the Tip onto the freshly built card: the plate
+         names the show, the Watch button names the episode */
+      function servePrize(){
+        var prize = dealPrize();
+        var watchBtn = $("btn-watch"), againBtn = $("btn-again");
+        if (prize) {
+          $("end-prize-name").textContent = prize.name;
+          $("end-prize").hidden = false;
+          watchBtn.href = prize.url;
+          watchBtn.textContent = "Watch " + prize.watch;
+          watchBtn.hidden = false;
+          againBtn.classList.remove("primary");
+        } else {
+          $("end-prize").hidden = true;
+          watchBtn.hidden = true;
+          againBtn.classList.add("primary");
+        }
       }
 
       /* The shift's end — the clock died. One ending per shift. The
-         card is Bar & Grill's prize-first pattern, adapted: the
-         prize plate ("Your Turkeys:" + the count on the navy plate),
-         the Tip slot under it (a Ladies of Comedy clip, labeled
-         "Your Tip:"), the result line, the BEST SHIFT
-         line in the gold box under it, the gold badge from the
-         round's served count, the stars, and the buttons. */
+         card is Bar & Grill's, piece for piece: the prize plate
+         ("Your Tip:" + the drawn episode's show), the result line,
+         the walked-out line under it, the number-to-beat box
+         judged against the mark as it stood BEFORE this shift,
+         the gold badge from the round's served count, the stars,
+         and the buttons with the red Watch button naming the
+         drawn episode. The mark here is this device's best shift
+         (the lobby's BEST SHIFT line is the same number). */
       function endShift(){
         if (!G || endCardShown) return; /* one ending, one card, per shift */
         endCardShown = true;
@@ -2617,24 +2713,39 @@
         if (G.timer) clearInterval(G.timer);
         buildWinnerCard(); /* a brand-new card node for this shift — nothing on it predates the shift */
         var finalServed = G.served;
-        var prevBest = bestServed;
-        var isBest = finalServed > prevBest;
-        if (isBest) { bestServed = finalServed; saveBest(); }
+        var finalMissed = G.missed || 0;
+        var markBefore = bestServed; /* the number to beat, as it stood before this shift */
+        if (finalServed > markBefore) { bestServed = finalServed; saveBest(); }
         renderBestLobby();
         resetRating();
         $("end-result").textContent = "You served " + finalServed +
-          (finalServed === 1 ? " turkey" : " turkeys") + " in 90 seconds";
-        /* The best-shift line stands under the result on every card:
-           a beating shift says so and raises the mark at once. */
-        if (isBest && finalServed > 0 && prevBest >= 1) {
-          $("end-best-line").innerHTML = "★ NEW BEST SHIFT! ★<br />BEST SHIFT: <strong>" +
-            bestServed + (bestServed === 1 ? " turkey" : " turkeys") + "</strong>";
-        } else if (isBest && finalServed > 0) {
-          $("end-best-line").innerHTML = "BEST SHIFT: <strong>" + bestServed +
-            (bestServed === 1 ? " turkey" : " turkeys") + "</strong> — that's the mark to chase next shift";
+          (finalServed === 1 ? " turkey" : " turkeys") + " right in 90 seconds";
+        /* The walked-out count stays on the card, on its own line
+           under the result — this game's wrong-tables line. */
+        $("end-wrong").textContent = finalMissed > 0
+          ? finalMissed + (finalMissed === 1 ? " customer walked out" : " customers walked out")
+          : "No customers walked out";
+        /* The number to beat, judged against the mark as it stood
+           BEFORE this shift: beat it, tie it, or the shortfall —
+           then a beating shift raises the mark at once (bestServed
+           above), so the lobby carries the new number. */
+        var beatEl = $("end-beat-line");
+        if (markBefore >= 1) {
+          beatEl.hidden = false;
+          if (finalServed > markBefore) {
+            beatEl.innerHTML = "You BEAT the number! <strong>" + markBefore + "</strong> was the mark — you served <strong>" + finalServed + "</strong>. New number to beat: <strong>" + finalServed + " turkeys</strong>";
+          } else if (finalServed === markBefore) {
+            beatEl.innerHTML = "You TIED the number to beat: <strong>" + markBefore + " turkeys</strong>";
+          } else if (finalServed > 0) {
+            beatEl.innerHTML = "Number to beat: <strong>" + markBefore + " turkeys</strong> — you were " + (markBefore - finalServed) + " short";
+          } else {
+            beatEl.innerHTML = "Number to beat: <strong>" + markBefore + " turkeys</strong>";
+          }
+        } else if (finalServed > 0) {
+          beatEl.hidden = false;
+          beatEl.innerHTML = "Number to beat: <strong>" + finalServed + " turkeys</strong> — that's the mark to chase next shift";
         } else {
-          $("end-best-line").innerHTML = "BEST SHIFT: <strong>" + bestServed +
-            (bestServed === 1 ? " turkey" : " turkeys") + "</strong>";
+          beatEl.hidden = true;
         }
         /* The badge paints with the card, from the round's own
            served count. */
@@ -2642,19 +2753,19 @@
         if (finalServed > 0) {
           $("end-noserve").hidden = true;
           $("end-result").hidden = false;
-          $("end-prize-count").textContent = finalServed + (finalServed === 1 ? " Turkey" : " Turkeys");
-          $("end-prize").hidden = false;
-          /* The Tip is served with the card: one Ladies of Comedy
-             clip, drawn fresh from the show library. */
-          serveTip();
+          /* The Tip is served with the card: one episode drawn
+             from the family rotation — the plate names its show,
+             the Watch button names the episode. */
+          servePrize();
         } else {
           /* THE HONEST ZERO CARD: nothing was served, so nothing is
-             crowned — no prize plate, no badge, no Tip. */
+             crowned — no Tip plate, no Watch button, no badge. */
           $("end-noserve").hidden = false;
           $("end-result").hidden = true;
           $("end-prize").hidden = true;
           $("end-tier").hidden = true;
-          stopTip();
+          $("btn-watch").hidden = true;
+          $("btn-again").classList.add("primary");
         }
         showScreen("end");
       }
@@ -2665,7 +2776,7 @@
          node from it, wires its buttons and stars, paints this
          shift's results onto it, and shows it. Leaving the card by
          either button destroys the node outright — the finished
-         card, its Tip iframe, its badge and its best line leave
+         card, its badge and its beat line leave
          the document entirely. So there is never an old winner
          card in the page for a tap to land on or a later shift to
          re-show: the only card that can ever appear is the one the
