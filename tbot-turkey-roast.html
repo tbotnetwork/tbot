@@ -1178,6 +1178,7 @@
           <p class="teach" id="teach-lobby">Tap an oven to start a roast — when it's ready, tap it again and TBOT sets the turkey on the counter. Then tap a waiting customer and they'll pick it up!</p>
           <button class="big-btn" id="btn-start" type="button">START THE SHIFT</button>
           <div class="best-line" id="best-lobby">NUMBER TO BEAT: —</div>
+        <div style="font-size:11px;opacity:.55;margin-top:4px;letter-spacing:.08em;">VOICES V3 &middot; BUILD 2026-11-25</div>
           <button class="sound-btn" id="btn-sound-lobby" type="button">SOUND: ON</button>
           <div class="lobby-tbot">
             <span class="tbot-wrap" data-tbot>
@@ -2769,6 +2770,43 @@
       var voicePrimed = false;
       var voiceNeedsUnlock = false; /* a play() was refused: the next tap re-unlocks */
       function voiceLines(c, cat){ var v = VOICE[c.key]; return v ? v[cat] : null; }
+      /* ---------- voice buffers (WebAudio route) ----------
+         The clips live in VOICE_AUDIO as data URIs. They are decoded
+         ONCE into AudioBuffers on the game's own AudioContext — the
+         same context the oven dings play through, resumed inside the
+         START tap. Buffer playback fires happily on game beats (no
+         gesture needed at line time) and never swaps an <audio>
+         element's src, which is the step iPhone silently refuses:
+         the element unlocks, the src changes, and every later line
+         plays to nobody. The element route below stays as fallback. */
+      var voiceBuffers = {};
+      var currentVoiceSrc = null;
+      var voiceDecodeStarted = false;
+      function stopCurrentVoiceSrc(){
+        if (currentVoiceSrc) {
+          try { currentVoiceSrc.onended = null; currentVoiceSrc.stop(); } catch(e) {}
+          currentVoiceSrc = null;
+        }
+      }
+      function ensureVoiceBuffers(){
+        if (voiceDecodeStarted) return;
+        ensureAudio();
+        if (!actx) return;
+        voiceDecodeStarted = true;
+        Object.keys(VOICE_AUDIO).forEach(function(k){
+          try {
+            var payload = VOICE_AUDIO[k].split(",")[1];
+            var bin = atob(payload);
+            var bytes = new Uint8Array(bin.length);
+            for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            var bufCopy = bytes.buffer.slice(0);
+            var done = function(buf){ if (buf) voiceBuffers[k] = buf; };
+            var pr = null;
+            try { pr = actx.decodeAudioData(bufCopy, done, function(){}); } catch(e) {}
+            if (pr && pr.then) pr.then(done).catch(function(){});
+          } catch(e) {}
+        });
+      }
       function showSpeakBubble(c, text, holdMs){
         if (!c.bubbleEl) return;
         if (c.bubbleTimer) { clearTimeout(c.bubbleTimer); c.bubbleTimer = null; }
@@ -2782,7 +2820,39 @@
         idx = (typeof idx === "number") ? idx : Math.floor(Math.random() * lines.length);
         if (lines.length > 1 && c["lastVoice_" + cat] === idx) idx = (idx + 1) % lines.length;
         c["lastVoice_" + cat] = idx;
-        var _vk = cat + "-" + c.key + "-" + idx; voiceEl.src = VOICE_AUDIO[_vk] || ("assets/voice/" + _vk + ".mp3");
+        showSpeakBubble(c, lines[idx], cat === "chat" ? 2500 : 2300);
+        var vkey = cat + "-" + c.key + "-" + idx;
+        /* if the context got suspended (iOS interruption), hold the
+           line for the tap recovery instead of spending it silently */
+        if (actx && voiceBuffers[vkey] && actx.state !== "running") {
+          try { actx.resume(); } catch(e) {}
+          voiceNeedsUnlock = true;
+          if (cat !== "chat") pendingVoice = { c: c, cat: cat };
+          voiceBusyUntil = performance.now() + 600;
+          return;
+        }
+        /* FIRST ROUTE — WebAudio buffer on the ding context */
+        if (actx && actx.state === "running" && voiceBuffers[vkey]) {
+          try {
+            stopCurrentVoiceSrc();
+            var bsrc = actx.createBufferSource();
+            bsrc.buffer = voiceBuffers[vkey];
+            var bgain = actx.createGain(); bgain.gain.value = 1.0;
+            bsrc.connect(bgain); bgain.connect(actx.destination);
+            duckMusic();
+            currentVoiceSrc = bsrc;
+            voiceBusyUntil = performance.now() + bsrc.buffer.duration * 1000 + 320;
+            bsrc.onended = function(){
+              if (currentVoiceSrc === bsrc) currentVoiceSrc = null;
+              voiceBusyUntil = Math.min(voiceBusyUntil, performance.now() + 280);
+              unduckMusic();
+            };
+            bsrc.start();
+            return;
+          } catch(e) { /* fall through to the element route */ }
+        }
+        /* FALLBACK ROUTE — the shared <audio> element, clip embedded */
+        voiceEl.src = VOICE_AUDIO[vkey] || ("assets/voice/" + vkey + ".mp3");
         voiceEl.muted = false; /* never let a stale muted flag silence a line */
         voiceEl.volume = 1.0; /* voices LEAD the mix — full volume, music ducks under */
         duckMusic();
@@ -2791,9 +2861,6 @@
         if (p && p.catch) p.catch(function(err){
           unduckMusic();
           if (err && err.name === "NotAllowedError") {
-            /* the browser refused sound the element hadn't earned yet:
-               hold the line and let the player's next tap re-unlock the
-               player and speak it (see the tap recovery below) */
             voiceNeedsUnlock = true;
             pendingVoice = { c: c, cat: cat };
             voiceBusyUntil = performance.now() + 1200;
@@ -2801,7 +2868,6 @@
             voiceBusyUntil = 0;
           }
         });
-        showSpeakBubble(c, lines[idx], cat === "chat" ? 2500 : 2300);
       }
       /* speak now if the channel is free; otherwise hold the line in the
          single pending slot (patience and event lines only — chat waits
@@ -2828,6 +2894,7 @@
       function stopVoice(){
         pendingVoice = null;
         voiceBusyUntil = 0;
+        stopCurrentVoiceSrc();
         try { voiceEl.pause(); } catch(e) {}
         unduckMusic();
       }
@@ -2852,6 +2919,14 @@
          played sound inside the tap, the one unlock every browser
          honours for the lines that fire later on game beats. */
       function primeVoice(){
+        /* The unlock that counts is the AudioContext resuming inside
+           the tap: the dings run on it, and now the voices do too.
+           The START tap resumes it and kicks off decoding every clip
+           into buffers. The old element prime stays below as a
+           belt-and-braces unlock for the fallback route only. */
+        ensureAudio();
+        ensureVoiceBuffers();
+        if (actx && actx.state === "running") voiceNeedsUnlock = false;
         if (voicePrimed) return;
         voicePrimed = true;
         try {
@@ -2859,8 +2934,8 @@
           voiceEl.volume = 1.0;
           voiceEl.src = "data:application/octet-stream;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYyLjEyLjEwMgAAAAAAAAAAAAAA//OEwAAAAAAAAAAAAEluZm8AAAAPAAAADQAABaAAMzMzMzMzM0REREREREREVVVVVVVVVVVmZmZmZmZmd3d3d3d3d3eIiIiIiIiIiJmZmZmZmZmqqqqqqqqqqru7u7u7u7u7zMzMzMzMzN3d3d3d3d3d7u7u7u7u7u7/////////AAAAAExhdmM2Mi4yOAAAAAAAAAAAAAAAACQDkAAAAAAAAAWgUwWkcQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//NExAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExFMAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKYAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NExKwAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NExKwAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV";
           var p = voiceEl.play();
-          if (p && p.catch) p.catch(function(){ voicePrimed = false; voiceNeedsUnlock = true; });
-        } catch(e) { voicePrimed = false; voiceNeedsUnlock = true; }
+          if (p && p.catch) p.catch(function(){ voicePrimed = false; });
+        } catch(e) { voicePrimed = false; }
       }
       /* Tap recovery: if a line's play() was still refused (the unlock
          didn't stick on this browser), the player's very next tap —
@@ -2868,7 +2943,10 @@
          inside that genuine gesture, then the tick speaks the held
          line through the normal pending slot. */
       document.addEventListener("pointerdown", function(){
-        if (!voiceNeedsUnlock || !soundOn) return;
+        if (!soundOn) return;
+        ensureAudio();
+        ensureVoiceBuffers();
+        if (!voiceNeedsUnlock) return;
         voiceNeedsUnlock = false;
         voicePrimed = false;
         primeVoice();
