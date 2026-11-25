@@ -2487,15 +2487,15 @@
          shows no pill. */
       function serveTier(served){
         if (typeof served !== "number" || !isFinite(served) || served < 1) return null;
-        if (served <= 2) return "Every Turkey Counts";
-        if (served <= 4) return "You Can Do This";
-        if (served <= 6) return "Still Seasoning";
-        if (served <= 8) return "Keep Roasting";
-        if (served <= 10) return "Don't Let It Burn";
-        if (served <= 12) return "Golden Brown";
-        if (served <= 14) return "Let's Eat";
-        if (served <= 16) return "The Best";
-        return "Head Roaster";
+        if (served <= 2) return "Every Slice Counts";
+        if (served <= 4) return "Still at the Kids' Table";
+        if (served <= 6) return "Still Basting";
+        if (served <= 8) return "Keep Basting";
+        if (served <= 10) return "Don't Burn the Bird";
+        if (served <= 12) return "Golden & Grateful";
+        if (served <= 14) return "Time to Feast";
+        if (served <= 16) return "The Whole Feast";
+        return "Head Carver";
       }
       function paintServeTier(served){
         var tier = serveTier(served);
